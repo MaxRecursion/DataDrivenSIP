@@ -1,0 +1,114 @@
+@import "tailwindcss" source("..");
+
+/*
+ * Fonts are Fontshare's own woff2 files, fetched at build time by scripts/fonts-fetch.ts.
+ * The ITF Free Font License 2.0 allows self-hosting them but forbids subsetting,
+ * converting, or committing them to this public repository.
+ */
+@font-face {
+  font-family: "Cabinet Grotesk";
+  src: url("/fonts/v1/cabinet-grotesk-700.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Satoshi";
+  src: url("/fonts/v1/satoshi-variable.woff2") format("woff2");
+  font-weight: 300 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Satoshi has no ₹ glyph. Borrow it from the Cabinet file that is already loaded. */
+@font-face {
+  font-family: "Satoshi";
+  src: url("/fonts/v1/cabinet-grotesk-700.woff2") format("woff2");
+  font-weight: 300 900;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+20B9;
+}
+
+/* Metric-matched fallbacks so the font swap doesn't move text. Values from research report 07. */
+@font-face {
+  font-family: "Satoshi Fallback";
+  src: local("Arial"), local("Helvetica"), local("Roboto");
+  size-adjust: 98.92%;
+  ascent-override: 102.1%;
+  descent-override: 24.26%;
+  line-gap-override: 10.11%;
+}
+
+@font-face {
+  font-family: "Cabinet Grotesk Fallback";
+  src: local("Arial"), local("Helvetica"), local("Roboto");
+  size-adjust: 98.92%;
+  ascent-override: 87.95%;
+  descent-override: 28.3%;
+  line-gap-override: 9.1%;
+}
+
+:root {
+  --ink: #17203a;
+  --surface: #eef0f4;
+  --raised: #ffffff;
+  --marigold: #f2a71b;
+  --teal: #0e7c7b;
+  --mute: #7c8699;
+  /* D15: --mute fails AA for small text, so text uses this darker step. */
+  --mute-text: #626b80;
+  /* D15: raised on surface is only 1.14:1, so cards get a hairline border. */
+  --line: #d6dbe4;
+}
+
+@theme inline {
+  --color-ink: var(--ink);
+  --color-surface: var(--surface);
+  --color-raised: var(--raised);
+  --color-marigold: var(--marigold);
+  --color-teal: var(--teal);
+  --color-mute: var(--mute);
+  --color-mute-text: var(--mute-text);
+  --color-line: var(--line);
+
+  /* shadcn semantic tokens, mapped onto the brand palette. */
+  --color-background: var(--surface);
+  --color-foreground: var(--ink);
+  --color-card: var(--raised);
+  --color-card-foreground: var(--ink);
+  --color-popover: var(--raised);
+  --color-popover-foreground: var(--ink);
+  --color-primary: var(--ink);
+  --color-primary-foreground: var(--raised);
+  --color-muted: var(--surface);
+  --color-muted-foreground: var(--mute-text);
+  --color-accent: var(--surface);
+  --color-accent-foreground: var(--ink);
+  --color-border: var(--line);
+  --color-input: var(--line);
+  --color-ring: var(--teal);
+
+  --font-sans: "Satoshi", "Satoshi Fallback", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Cabinet Grotesk", "Cabinet Grotesk Fallback", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Aligned numbers. Satoshi kerns tabular digit pairs unless kerning is switched off. */
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+  font-kerning: none;
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+
+  body {
+    background-color: var(--surface);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+}

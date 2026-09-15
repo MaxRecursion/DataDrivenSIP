@@ -1,0 +1,52 @@
+{
+  "name": "sip-date-planner",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "packageManager": "pnpm@10.34.5",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "dev": "vite",
+    "typecheck": "tsc -b",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "fonts:fetch": "tsx scripts/fonts-fetch.ts",
+    "build": "pnpm fonts:fetch && vite build && tsx scripts/write-static.ts",
+    "preview": "vite preview",
+    "size": "size-limit",
+    "e2e": "playwright test",
+    "check:rules": "tsx scripts/check-rules.ts"
+  },
+  "dependencies": {
+    "cmdk": "1.1.1",
+    "cn": "0.3.0",
+    "motion": "12.43.0",
+    "radix-ui": "1.6.7",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-router": "7.18.3",
+    "uplot": "1.6.32"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@size-limit/file": "13.1.1",
+    "@tailwindcss/vite": "4.3.3",
+    "@types/node": "22.20.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "5.2.0",
+    "size-limit": "13.1.1",
+    "tailwindcss": "4.3.3",
+    "tsx": "4.23.13",
+    "typescript": "5.9.3",
+    "vite": "6.4.3",
+    "vitest": "5.0.1"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
+}

@@ -1,16 +1,25 @@
+// @ts-check
 // Bundle budgets from PLAN.md §9. Sizes are gzip, because the spec's budget is gzip and
 // @size-limit/file measures Brotli unless told otherwise.
 const fs = require("node:fs");
 const path = require("node:path");
 
-/** The entry chunk plus every chunk it imports statically: what the browser loads up front. */
+/** @typedef {{ file: string, isEntry?: boolean, imports?: string[] }} ManifestChunk */
+
+/**
+ * The entry chunk plus every chunk it imports statically: what the browser loads up front.
+ * @returns {string[]}
+ */
 function initialChunks() {
   const manifestPath = path.join(__dirname, "dist/.vite/manifest.json");
+  /** @type {Record<string, ManifestChunk>} */
   const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
   const entry = Object.values(manifest).find((chunk) => chunk.isEntry);
   if (!entry) throw new Error("No entry chunk in dist/.vite/manifest.json");
 
+  /** @type {Set<string>} */
   const files = new Set();
+  /** @param {ManifestChunk | undefined} chunk */
   const visit = (chunk) => {
     if (!chunk || files.has(chunk.file)) return;
     files.add(chunk.file);

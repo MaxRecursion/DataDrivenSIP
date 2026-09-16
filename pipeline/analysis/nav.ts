@@ -15,6 +15,32 @@ export type NavHistory = {
   readonly last: DayNum;
 };
 
+/** A print that jumps this far and comes straight back was never a real price. */
+const SPIKE_MOVE = 0.25;
+const SPIKE_RETURN = 0.05;
+
+/**
+ * Drops a single row that jumps away from its neighbours and returns: 21.71 → 70.53 → 21.54
+ * is a typo, not three days of trading. Left in, it buys units at a fictitious NAV and looks
+ * like a re-denomination to the trimming rule.
+ */
+export function withoutSpikes(rows: readonly NavRow[]): NavRow[] {
+  const kept: NavRow[] = [];
+  for (let index = 0; index < rows.length; index++) {
+    const previous = kept.at(-1);
+    const row = rows[index];
+    const next = rows[index + 1];
+    if (!row) continue;
+    if (previous && next && previous.nav > 0) {
+      const jumped = Math.abs(row.nav - previous.nav) / previous.nav >= SPIKE_MOVE;
+      const cameBack = Math.abs(next.nav - previous.nav) / previous.nav <= SPIKE_RETURN;
+      if (jumped && cameBack) continue;
+    }
+    kept.push(row);
+  }
+  return kept;
+}
+
 /**
  * Parses mfapi rows and sorts them ascending. Rows whose NAV is zero, negative or
  * unparseable are dropped, and so are rows whose date isn't a real DD-MM-YYYY date: upstream
@@ -34,7 +60,8 @@ export function parseNavRows(rows: readonly { date: string; nav: string }[]): Na
     }
     if (!byDay.has(day)) byDay.set(day, nav);
   }
-  return [...byDay.entries()].map(([day, nav]) => ({ day, nav })).sort((a, b) => a.day - b.day);
+  const sorted = [...byDay.entries()].map(([day, nav]) => ({ day, nav })).sort((a, b) => a.day - b.day);
+  return withoutSpikes(sorted);
 }
 
 export function buildHistory(rows: readonly NavRow[]): NavHistory {

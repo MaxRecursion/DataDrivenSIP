@@ -41,6 +41,12 @@ export type FundArtifact = {
   verdict: Verdict;
   windows: number;
   confidence: Confidence;
+  /**
+   * Set when the published history starts later than the fund's own first NAV, because the
+   * series before this date belongs to a different one: a re-denomination, or a hole months
+   * long. Such a fund is always "reduced" confidence, and the UI must say so.
+   */
+  trimmedFrom?: string;
 };
 
 /** One row of public/data/index.json. Rows are in scheme-code order, never ordered by a metric. */

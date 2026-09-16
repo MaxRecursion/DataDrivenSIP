@@ -359,6 +359,58 @@ proved hard to reach, and Cloudflare directs its investment at Workers. The site
 **Cost accepted:** an unknown fund code is a 200 with HTML rather than a 404. Nothing else
 in the plan depends on that 404.
 
+#### D21 — Rules added while fixing the Phase 3 review (2026-09-16)
+
+An independent review of the pipeline and an audit of the published data found defects that
+changed published numbers. These are the fixes. Two items at the end are yours.
+
+**History cleaning, before any analysis**
+- A single print that jumps 25% or more and comes straight back is dropped: 21.71 → 70.53 →
+  21.54 is a typo, not three days of trading. Left in, it buys units at a price that never
+  existed and looks like a re-denomination to the rule below.
+- The cut for a re-denomination is **400%**, not 50%. Real cases are around 100×; the lower
+  threshold cost real funds up to seven years of history over a single violent day.
+- The history is also cut at an internal hole longer than **60 days**. One fund carries a
+  705-day gap that was being treated as one day-over-day step.
+- A fund whose history was cut publishes `trimmedFrom` and is always **reduced** confidence.
+  Otherwise the page presents a truncated series as the fund's whole life.
+
+**Eligibility**
+- **37 months**, not 36. A fund with exactly 36 months produces no rolling window at all, so
+  it would be graded on spread alone with no robustness behind it; nine such funds had been
+  published as "marginal".
+- **ETF fund-of-funds are kept.** They're ordinary open-ended schemes you can SIP with the
+  AMC, and the ETF rule was dropping them, along with one liquid FoF.
+- **Target maturity** now also catches issuer-basket funds carrying a maturity year without
+  bond or SDL wording: IBX, AAA, NBFC, HFC.
+
+**Correctness**
+- `metricsAgree` is computed from the rounded values the artifact publishes, so the flag
+  can't contradict the numbers on screen.
+- The cache tail is anchored to the **cached** newest day, not the newest day upstream. A
+  cache staler than the tail window is refetched whole, which doubles as the periodic full
+  refresh. Rows that upstream withdraws are dropped instead of living in the cache for ever.
+- Partial runs (`--codes`, `--limit`) require an explicit `--out` and never touch the real
+  `meta.json`, whose `fundCount` is the baseline for the next run's drop guard.
+- `--as-of` fixes the whole run, the scheme list included, so a run is reproducible.
+- The writer validates and size-checks before writing anything, renames index and meta into
+  place, and `keepVersions` counts every version retained, the new one included (default 3).
+
+**Deferred, with a home**
+- Three pairs of funds share a display name in `index.json` (119588/119589, 119767/133035,
+  135762/135764). That's a search problem: Phase 4 shows house and category, and the scheme
+  code where names still collide.
+- A fund's own `navTo` can be older than the site-wide `navAsOf`; Phase 5 renders the fund's
+  own date on its page.
+
+**Needs your decision**
+- `spreadPp > 0.25` is an absolute threshold on a max-minus-min of 28 estimates whose noise
+  shrinks as history grows, so the verdict partly grades history length. Median spread is
+  0.508 pp for funds with 36–47 instalments and 0.062 pp past 150; every "meaningful" fund
+  has 103 instalments or fewer, and none of the 432 funds with 150 or more is meaningful.
+  This isn't an engine bug — a constant-rate synthetic NAV gives exactly 0.000 — and
+  CLAUDE.md freezes the thresholds, so it stays as specified unless you decide otherwise.
+
 #### D13 — Lighthouse target
 
 Spec §9 says "95+, CI fails below 90".
@@ -586,13 +638,15 @@ interface NavSource {
 These run in order and log each count:
 1. The name contains `Direct`, matches `/growth/i`, and doesn't match
    `/IDCW|dividend(?! yield)|payout|reinvest|bonus|unclaim/i`.
-2. `scheme_type === "Open Ended Schemes"`; not an ETF; target-maturity and overnight/liquid
-   funds per your D4 choice.
+2. `scheme_type === "Open Ended Schemes"`; not an ETF, unless it's a fund of funds;
+   target-maturity and overnight/liquid funds per your D4 choice (D21).
 3. The latest non-zero NAV is within 12 days of today.
 4. After fetching:
-   - zero NAVs are dropped
+   - zero NAVs are dropped, and single bad prints are removed (D21)
+   - the history is cut at a re-denomination, or at a hole longer than 60 days (D21)
    - flat NAVs are rejected
-   - `addMonths(navFrom, 36) <= navTo`
+   - `addMonths(navFrom, 37) <= navTo`, so every published fund has at least one rolling
+     window
 
 ### 3.3 Fetch and cache
 

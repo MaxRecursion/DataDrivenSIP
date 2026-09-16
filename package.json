@@ -18,6 +18,7 @@
     "size": "size-limit",
     "e2e": "playwright test",
     "check:rules": "tsx scripts/check-rules.ts",
+    "pipeline": "tsx pipeline/cli.ts",
     "bench": "tsx scripts/bench-analysis.ts"
   },
   "dependencies": {

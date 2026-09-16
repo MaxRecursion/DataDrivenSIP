@@ -20,6 +20,40 @@ describe("parseNavRows", () => {
     expect(parsed.map((row) => row.nav)).toEqual([13.9, 14.052]);
   });
 
+  it("drops a print that jumps and comes straight back", () => {
+    // Seen in real data: 21.71 → 70.53 → 21.54 on consecutive days.
+    const parsed = parseNavRows(
+      rows([
+        ["09-04-2019", "21.71"],
+        ["10-04-2019", "70.53"],
+        ["11-04-2019", "21.54"],
+      ]),
+    );
+    expect(parsed.map((row) => row.nav)).toEqual([21.71, 21.54]);
+  });
+
+  it("keeps a move that sticks, however violent", () => {
+    const parsed = parseNavRows(
+      rows([
+        ["09-04-2019", "21.71"],
+        ["10-04-2019", "70.53"],
+        ["11-04-2019", "70.10"],
+      ]),
+    );
+    expect(parsed).toHaveLength(3);
+  });
+
+  it("keeps a fall followed by a partial recovery, which is just a market", () => {
+    const parsed = parseNavRows(
+      rows([
+        ["11-03-2020", "7.184"],
+        ["12-03-2020", "5.719"],
+        ["13-03-2020", "6.169"],
+      ]),
+    );
+    expect(parsed).toHaveLength(3);
+  });
+
   it("keeps one row per date", () => {
     const parsed = parseNavRows(rows([["03-01-2013", "14.052"], ["03-01-2013", "14.052"]]));
     expect(parsed).toHaveLength(1);

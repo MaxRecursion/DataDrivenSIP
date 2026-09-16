@@ -17,7 +17,8 @@
     "preview": "vite preview",
     "size": "size-limit",
     "e2e": "playwright test",
-    "check:rules": "tsx scripts/check-rules.ts"
+    "check:rules": "tsx scripts/check-rules.ts",
+    "bench": "tsx scripts/bench-analysis.ts"
   },
   "dependencies": {
     "cmdk": "1.1.1",

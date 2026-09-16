@@ -1,0 +1,242 @@
+{
+  "code": 119775,
+  "name": "Kotak Mid Cap Fund - Direct Plan - Growth",
+  "house": "Kotak Mahindra Mutual Fund",
+  "category": "Equity Schemes - Mid Cap Fund",
+  "navFrom": "2023-05-11",
+  "navTo": "2026-09-11",
+  "instalments": 39,
+  "dates": [
+    {
+      "d": 1,
+      "xirr": 14.185,
+      "corpus": 492254,
+      "meanPct": 91.667,
+      "topQ": 1,
+      "w": 0
+    },
+    {
+      "d": 2,
+      "xirr": 14.128,
+      "corpus": 491608,
+      "meanPct": 76.852,
+      "topQ": 0.5,
+      "w": 0
+    },
+    {
+      "d": 3,
+      "xirr": 14.089,
+      "corpus": 491188,
+      "meanPct": 63.889,
+      "topQ": 0.25,
+      "w": 0
+    },
+    {
+      "d": 4,
+      "xirr": 14.223,
+      "corpus": 492016,
+      "meanPct": 97.222,
+      "topQ": 1,
+      "w": 1
+    },
+    {
+      "d": 5,
+      "xirr": 14.137,
+      "corpus": 491137,
+      "meanPct": 84.259,
+      "topQ": 1,
+      "w": 0
+    },
+    {
+      "d": 6,
+      "xirr": 14.145,
+      "corpus": 491013,
+      "meanPct": 85.185,
+      "topQ": 1,
+      "w": 0
+    },
+    {
+      "d": 7,
+      "xirr": 14.052,
+      "corpus": 490111,
+      "meanPct": 53.704,
+      "topQ": 0,
+      "w": 0
+    },
+    {
+      "d": 8,
+      "xirr": 14.107,
+      "corpus": 490355,
+      "meanPct": 69.444,
+      "topQ": 0,
+      "w": 0
+    },
+    {
+      "d": 9,
+      "xirr": 14.081,
+      "corpus": 489950,
+      "meanPct": 56.481,
+      "topQ": 0,
+      "w": 0
+    },
+    {
+      "d": 10,
+      "xirr": 13.968,
+      "corpus": 488890,
+      "meanPct": 33.333,
+      "topQ": 0,
+      "w": 0
+    },
+    {
+      "d": 11,
+      "xirr": 14.526,
+      "corpus": 489403,
+      "meanPct": 53.704,
+      "topQ": 0,
+      "w": 0
+    },
+    {
+      "d": 12,
+      "xirr": 14.574,
+      "corpus": 489599,
+      "meanPct": 77.778,
+      "topQ": 0.75,
+      "w": 0
+    },
+    {
+      "d": 13,
+      "xirr": 14.669,
+      "corpus": 490230,
+      "meanPct": 99.074,
+      "topQ": 1,
+      "w": 3
+    },
+    {
+      "d": 14,
+      "xirr": 14.503,
+      "corpus": 488671,
+      "meanPct": 61.111,
+      "topQ": 0,
+      "w": 0
+    },
+    {
+      "d": 15,
+      "xirr": 14.366,
+      "corpus": 487362,
+      "meanPct": 25.926,
+      "topQ": 0,
+      "w": 0
+    },
+    {
+      "d": 16,
+      "xirr": 14.268,
+      "corpus": 486453,
+      "meanPct": 9.259,
+      "topQ": 0,
+      "w": 0
+    },
+    {
+      "d": 17,
+      "xirr": 14.26,
+      "corpus": 486192,
+      "meanPct": 4.63,
+      "topQ": 0,
+      "w": 0
+    },
+    {
+      "d": 18,
+      "xirr": 14.232,
+      "corpus": 485641,
+      "meanPct": 0,
+      "topQ": 0,
+      "w": 0
+    },
+    {
+      "d": 19,
+      "xirr": 14.275,
+      "corpus": 485855,
+      "meanPct": 8.333,
+      "topQ": 0,
+      "w": 0
+    },
+    {
+      "d": 20,
+      "xirr": 14.326,
+      "corpus": 486155,
+      "meanPct": 21.296,
+      "topQ": 0,
+      "w": 0
+    },
+    {
+      "d": 21,
+      "xirr": 14.432,
+      "corpus": 486814,
+      "meanPct": 51.852,
+      "topQ": 0,
+      "w": 0
+    },
+    {
+      "d": 22,
+      "xirr": 14.427,
+      "corpus": 486596,
+      "meanPct": 41.667,
+      "topQ": 0,
+      "w": 0
+    },
+    {
+      "d": 23,
+      "xirr": 14.35,
+      "corpus": 485880,
+      "meanPct": 22.222,
+      "topQ": 0,
+      "w": 0
+    },
+    {
+      "d": 24,
+      "xirr": 14.325,
+      "corpus": 485450,
+      "meanPct": 14.815,
+      "topQ": 0,
+      "w": 0
+    },
+    {
+      "d": 25,
+      "xirr": 14.396,
+      "corpus": 485911,
+      "meanPct": 35.185,
+      "topQ": 0,
+      "w": 0
+    },
+    {
+      "d": 26,
+      "xirr": 14.427,
+      "corpus": 486109,
+      "meanPct": 53.704,
+      "topQ": 0,
+      "w": 0
+    },
+    {
+      "d": 27,
+      "xirr": 14.355,
+      "corpus": 485441,
+      "meanPct": 30.556,
+      "topQ": 0,
+      "w": 0
+    },
+    {
+      "d": 28,
+      "xirr": 14.484,
+      "corpus": 486272,
+      "meanPct": 76.852,
+      "topQ": 0.5,
+      "w": 0
+    }
+  ],
+  "spreadPp": 0.7,
+  "spreadRupees": 6812,
+  "stability": -0.498,
+  "metricsAgree": false,
+  "verdict": "marginal",
+  "windows": 4,
+  "confidence": "reduced"
+}

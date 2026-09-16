@@ -696,7 +696,20 @@ counts as > 0.60. The thresholds are frozen.
 **Confidence (D5).** `"reduced"` when there are < 24 windows or either half has < 24
 instalments.
 
-**Rounding.** All floats to 3 dp. `corpus` and `spreadRupees` are integers.
+**Rounding.** All floats to 3 dp, half away from zero, so a negative stability rounds like
+its positive mirror. `corpus` and `spreadRupees` are integers. `spreadPp` and `spreadRupees`
+are differences of unrounded values, rounded once at the end.
+
+**Details settled during Phase 2.** A clean-room re-implementation from this section alone
+matched the engine on every number, but had to guess these, so they're written down:
+
+- Months stop naturally: a target past the last NAV simply has no NAV within seven days.
+  There's no separate upper bound.
+- Ties are exact equality of the unrounded rates, not of the 3 dp values.
+- `meanPct` and `topQ` average over the windows that were kept, not over every candidate.
+- A half's instalment count, for confidence, is the smallest across the 28 dates in that half.
+- When a date appears twice in the source, the first row wins.
+- A fund with no month common to all 28 dates is an error, not an artifact of zeroes.
 
 **Kotak snapshot** (NAVs to 2026-09-11):
 

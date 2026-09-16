@@ -24,17 +24,8 @@ export type Answer = {
 /** A window date paired with its position in the window, which is the last tie-break. */
 type Candidate = { order: number; result: DateResult };
 
-/**
- * XIRR is stored to 3 dp, so a difference between two of them carries no information past 3 dp;
- * the rest is float noise (20.319 - 20.288 lands at 0.031000000000000583). Rounding here keeps
- * the D7 copy thresholds, which compare `edgePp` against 0.005, reading the same number the page
- * prints.
- */
-function round3(value: number): number {
-  const rounded = Math.round(value * 1000) / 1000;
-  // Negative zero would reach formatPp as a minus sign in front of nothing.
-  return Object.is(rounded, -0) ? 0 : rounded;
-}
+/** XIRR is published at 3 dp, so whole thousandths of a percentage point are exact integers. */
+const thousandths = (xirr: number): number => Math.round(xirr * 1000);
 
 /** Descending: positive when `b` should come first. */
 const desc = (a: number, b: number): number => b - a;
@@ -76,13 +67,23 @@ function candidates(fund: FundArtifact, window: number[]): Candidate[] {
   return pool;
 }
 
-/** The middle of the window's XIRRs; with ten dates, the mean of the 5th and 6th. */
-function medianXirr(pool: Candidate[]): number {
-  const sorted = pool.map(({ result }) => result.xirr).sort((a, b) => a - b);
+/**
+ * The edge over the middle of the window, computed in exact integers.
+ *
+ * Every XIRR is a whole number of thousandths, and the median of ten of them is the mean of two,
+ * so every edge this can produce is a multiple of 0.0005 — precisely the values that sit on a
+ * float round's own tie point. Rounding one put 45.6% of all window states there, leaving binary
+ * representation error to decide which D7 headline a fund got at the 0.005 threshold: two funds
+ * with an identical measured edge of 0.0055 pp were given different sentences. Integers decide
+ * it by the number instead. The division happens once, at the end, so callers still get points.
+ */
+function edgeOverWindow(chosen: Candidate, pool: Candidate[]): number {
+  const sorted = pool.map(({ result }) => thousandths(result.xirr)).sort((a, b) => a - b);
   const middle = sorted.length >> 1;
   const upper = sorted[middle] ?? 0;
   const lower = sorted.length % 2 === 0 ? (sorted[middle - 1] ?? upper) : upper;
-  return (lower + upper) / 2;
+  // Doubled, so an even-length median needs no halving and the whole sum stays an integer.
+  return (thousandths(chosen.result.xirr) * 2 - (lower + upper)) / 2000;
 }
 
 /**
@@ -105,6 +106,6 @@ export function pickAnswer(fund: FundArtifact, window: number[]): Answer {
   return {
     date: chosen.result.d,
     result: chosen.result,
-    edgePp: round3(chosen.result.xirr - medianXirr(pool)),
+    edgePp: edgeOverWindow(chosen, pool),
   };
 }

@@ -19,6 +19,7 @@ import {
   formatPp,
   formatRupees,
   formatYears,
+  formatYearsOfMonths,
   ordinal,
 } from "./format";
 
@@ -65,8 +66,10 @@ function corpusExtremes(fund: FundArtifact, answer: Answer): { highest: DateResu
   let highest = fund.dates[0] ?? answer.result;
   let lowest = highest;
   for (const date of fund.dates) {
-    if (date.corpus > highest.corpus) highest = date;
-    if (date.corpus < lowest.corpus) lowest = date;
+    // Tie on the date, not on array position: the pipeline's convention is the lowest `d`, and
+    // relying on `dates` being sorted would make this quietly wrong the day it isn't.
+    if (date.corpus > highest.corpus || (date.corpus === highest.corpus && date.d < highest.d)) highest = date;
+    if (date.corpus < lowest.corpus || (date.corpus === lowest.corpus && date.d < lowest.d)) lowest = date;
   }
   return { highest, lowest };
 }
@@ -92,7 +95,12 @@ function headlineFor(fund: FundArtifact, answer: Answer): string {
 
   // A full-confidence fund has at least 24 rolling windows, so "across 3-year stretches" is
   // always describing something that was actually measured.
-  const tiebreak = `Any date in your window has done about the same in this fund. The ${nth} is a tiebreak: across 3-year stretches it came out slightly ahead more often.`;
+  // D7 wrote "came out slightly ahead more often", which is a frequency claim — and the artifact
+  // publishes exactly that statistic as `w`. But the pick is made on `meanPct`, never on `w`, and
+  // the named date does not lead its window on `w` for 403 of the 591 funds that see this line.
+  // PLAN.md §6.5 puts `w` in "How confident is this?", so a reader opening that section would
+  // have caught the page contradicting itself. This says what actually chose the date.
+  const tiebreak = `Any date in your window has done about the same in this fund. The ${nth} is a tiebreak: across 3-year stretches it ranked a little higher on average.`;
   if (fund.verdict === "noise" || answer.edgePp <= MIN_EDGE_PP) return tiebreak;
 
   const wideSpread = fund.spreadPp > SPREAD_THRESHOLD_PP;
@@ -130,18 +138,22 @@ function caveatsFor(fund: FundArtifact): string[] {
     );
   }
 
-  // D21. The thresholds are absolute, but the spread they judge shrinks as history grows, so a
-  // short fund clears them on sampling noise alone. The number stays; the copy says what it is.
-  //
-  // Except where the headline already led with the month count: a reduced fund would otherwise
-  // open "This fund has 40 months of history, too little to tell whether the date matters" and
-  // follow it with "This fund has 40 months of history, fewer than eight years" — the same fact
-  // twice, which reads as padding and teaches the reader to skip the second sentence. A trimmed
-  // fund's headline claims nothing about length, so it still needs this.
-  const headlineGaveLength = fund.confidence === "reduced" && fund.trimmedFrom === undefined;
-  if (fund.verdict !== "noise" && fund.instalments < SETTLED_INSTALMENTS && !headlineGaveLength) {
+  // D21, which states this without exception: a caveat whenever the verdict isn't noise and the
+  // fund has fewer than eight years of instalments. Its job is to defuse the SPREAD, not to
+  // report the month count — so where the headline has already given the length, only the
+  // opening clause changes. Dropping the sentence outright, an earlier attempt at the same
+  // duplication, took the spread figure and the explanation with it on 170 of the 299 funds
+  // that need them, including a 40-month fund whose page still showed "2.5% of final value".
+  if (fund.verdict !== "noise" && fund.instalments < SETTLED_INSTALMENTS) {
+    const headlineGaveLength = fund.confidence === "reduced" && fund.trimmedFrom === undefined;
+    const opening = headlineGaveLength
+      ? `A spread of ${formatPp(fund.spreadPp)}`
+      : `This fund has ${fund.instalments} months of history, fewer than eight years. A spread of ${formatPp(fund.spreadPp)}`;
+    // "is about what a history this short produces" would be false for the dozen funds carrying
+    // two to four times their own length-cohort's median spread — the very funds the caveat
+    // exists for. What is true at every magnitude is that it can't be told apart from noise.
     caveats.push(
-      `This fund has ${fund.instalments} months of history, fewer than eight years. A spread of ${formatPp(fund.spreadPp)} is about what a history that short produces on its own, so this verdict reflects the length of the history as much as the fund.`,
+      `${opening} is hard to tell apart from the noise a history this short produces, so this verdict reflects the length of the history as much as the fund.`,
     );
   }
 
@@ -161,9 +173,17 @@ function caveatsFor(fund: FundArtifact): string[] {
  */
 function rupeeLineFor(fund: FundArtifact, answer: Answer): string {
   const { highest, lowest } = corpusExtremes(fund, answer);
-  const shareOfValue = highest.corpus > 0 ? fund.spreadRupees / highest.corpus : 0;
+  // The gap between the two rows this sentence names, not fund.spreadRupees: the artifact rounds
+  // every corpus independently, so for 237 of 994 funds the published spread is not the
+  // difference of these two figures, and the sentence would fail a reader's own subtraction.
+  const gap = highest.corpus - lowest.corpus;
+  const shareOfValue = highest.corpus > 0 ? gap / highest.corpus : 0;
   const invested = fund.instalments * NOTIONAL_MONTHLY;
-  return `For a notional ${formatRupees(NOTIONAL_MONTHLY)} monthly SIP, the highest- and lowest-value dates (the ${ordinal(highest.d)} and ${ordinal(lowest.d)}) ended ${formatRupees(fund.spreadRupees)} apart on ${formatLakh(invested)} invested, ${formatPercentOfValue(shareOfValue)} of final value, over ${formatYears(fund.navFrom, fund.navTo)}.`;
+  // The span comes from the instalments, which is what the rupee figures were simulated over,
+  // not from the NAV history. The two differ for 457 funds — one showed ₹5.2 lakh invested
+  // "over 4.8 years", which at ₹10,000 a month is ₹5.76 lakh. Kotak hides it: its 164 months
+  // and its 13.7-year NAV span agree, which is why the worked example never disambiguated them.
+  return `For a notional ${formatRupees(NOTIONAL_MONTHLY)} monthly SIP, the highest- and lowest-value dates (the ${ordinal(highest.d)} and ${ordinal(lowest.d)}) ended ${formatRupees(gap)} apart on ${formatLakh(invested)} invested, ${formatPercentOfValue(shareOfValue)} of final value, over ${formatYearsOfMonths(fund.instalments)}.`;
 }
 
 /**

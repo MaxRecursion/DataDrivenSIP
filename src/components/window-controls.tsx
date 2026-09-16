@@ -13,7 +13,7 @@
  * sentence is what actually changed for the reader.
  */
 import { ordinal } from "../lib/format";
-import { MAX_BUFFER, type AppParams, type Salary } from "../lib/url";
+import { DEFAULT_BUFFER, MAX_BUFFER, type AppParams, type Salary } from "../lib/url";
 
 /** Salary can land on any calendar day; the window arithmetic folds 29-31 onto the 28-day circle. */
 const SALARY_DAYS = Array.from({ length: 31 }, (_, index) => index + 1);
@@ -61,7 +61,12 @@ export function WindowControls({ params, onChange }: WindowControlsProps) {
       </div>
 
       {/* Full width on a phone so it drops to its own line, inline once there is room for it. */}
-      <details className="w-full sm:w-auto">
+      {/*
+       * Open when the buffer isn't the default: the URL is the state, so a reader can arrive on
+       * ?buffer=6 by link or back button, and a collapsed control would leave the only on-screen
+       * explanation of a window shifted six days hidden behind a summary.
+       */}
+      <details open={params.buffer !== DEFAULT_BUFFER} className="w-full sm:w-auto">
         <summary className="cursor-pointer py-2 text-sm text-mute-text outline-none select-none focus-visible:ring-2 focus-visible:ring-teal">
           Adjust buffer
         </summary>

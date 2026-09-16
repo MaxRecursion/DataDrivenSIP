@@ -6,8 +6,9 @@ const windowFor = (salary: Salary, buffer: number) => safeWindow({ salary, buffe
 
 /**
  * A second, deliberately plodding implementation of "ten dates from here": step one day at a
- * time and roll 28 back to 1. It shares no arithmetic with the modulo in window.ts, so using
- * it as the expectation checks the formula rather than restating it.
+ * time and roll 28 back to 1. Only the normalisation of `start` borrows the modulo window.ts
+ * uses; the ten dates themselves come from stepping, so the wrap this exists to cross-check is
+ * derived a different way rather than restated.
  */
 function walk(start: number): number[] {
   let day = ((start - 1) % 28) + 1;

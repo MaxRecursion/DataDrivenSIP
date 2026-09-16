@@ -243,6 +243,49 @@ What is reduced for these funds is how much of the fund's life the page can spea
 much history exists, and the line now says that instead. The `trimmedFrom` caveat under the
 headline still names the date the series was cut at.
 
+**Amendment, 2026-09-16 (Phase 5 review): three sentences corrected after measurement.**
+
+An adversarial review measured each rendered sentence against all 994 published artifacts and
+found three that were not true of the funds they describe. All three are changes to approved
+copy, so they are recorded here rather than made quietly.
+
+1. **The tiebreak line no longer claims a frequency it never measured.** D7 wrote "it came out
+   slightly ahead more often", which is a claim about `w` — and the artifact publishes exactly
+   that statistic. But the pick is made on `meanPct`, never on `w`, and the named date does not
+   lead its window on `w` for **403 of the 591 funds** that render this line. §6.5 puts `w` in
+   "How confident is this?", so a reader opening that section would have caught the page
+   contradicting itself. It now reads "it ranked a little higher on average", which is what
+   `meanPct` measures and what actually chose the date.
+
+2. **The D21 caveat no longer asserts the spread is typical.** D21 asks for the comparison to be
+   *shown*, not asserted. The sentence claimed a spread "is about what a history that short
+   produces on its own" — false for the dozen funds carrying two to four times their own
+   length-cohort's median, which are precisely the funds it exists to defuse. It now says the
+   spread "is hard to tell apart from the noise a history this short produces", which holds at
+   every magnitude. Showing the real comparison needs a cohort median in the artifact; see below.
+
+3. **The rupee line's numbers now reconcile with each other.** Two defects in one sentence: the
+   printed gap was `spreadRupees` while the dates named were the corpus extremes, and the
+   artifact rounds each corpus independently, so for **237 funds** the stated gap was not the
+   difference of the two rows named. And "invested" came from the common month set while "over
+   N years" came from the NAV span, so for **457 funds** ₹10,000 × the stated years did not equal
+   the stated amount — worst case ₹5.2 lakh "over 4.8 years". Both now come from the month set
+   the rupee figures were simulated on. Kotak is unchanged at 13.7 years, which is why the
+   worked example never disambiguated the two spans.
+
+**Open, and deliberately not fixed in Phase 5**
+- **The pending-params script (§6.2) was never implemented.** A deep link with `?salary=15`
+  paints the prerendered default window and date before React re-renders the right one. It is a
+  Phase 4 deliverable, so it is raised rather than absorbed here.
+- **The D21 comparison needs a pipeline field** — the median spread for the fund's instalment
+  band — before "How confident is this?" can show it instead of asserting it (Phase 3 and 7).
+- **"0.8% of final value" never names its base.** The code obeys D1, and the sentence is written
+  verbatim in this plan, so it stands until amended.
+- **Trimmed funds are withheld from their verdict** by sitting in the reduced lane: five of the
+  eight have a noise verdict backed by 97–128 rolling windows. The `trimmedFrom` caveat already
+  states the scope limit independently, so letting them fall through to their normal row is
+  arguably the better answer.
+
 ### Data source and operations
 
 #### D8 — Two departures in how data is fetched

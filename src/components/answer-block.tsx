@@ -75,8 +75,13 @@ export function AnswerBlock({ copy, answerDate }: AnswerBlockProps) {
        * HTML and in the client render that follows a non-default ?salary=. Reserving four lines
        * at 360 px and three from 640 px up covers every branch of the D7 table, which keeps the
        * swap free of layout shift (PLAN.md §6.2, D13: CLS 0). It is a floor, not a cap.
+       *
+       * The floors are multiples of the line-height this paragraph actually uses: leading-relaxed
+       * is 1.625, so a line is 1.625rem, and four lines are 6.5rem — not the 6.1rem a 1.5
+       * line-height would give, which fell about six pixels short of the four-line case and let
+       * it push the rupee line, the controls and the footer down.
        */}
-      <p className="mt-4 min-h-[6.1rem] leading-relaxed text-ink sm:min-h-[4.6rem]">{copy.headline}</p>
+      <p className="mt-4 min-h-[6.5rem] leading-relaxed text-ink sm:min-h-[4.875rem]">{copy.headline}</p>
 
       {copy.caveats.map((caveat) => (
         <p key={caveat} className="mt-3 text-sm leading-relaxed text-mute-text">

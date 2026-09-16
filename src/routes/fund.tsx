@@ -131,7 +131,19 @@ export function FundPage() {
     // the right size: when the data lands only the marigold cell appears (PLAN.md §6.6).
     return (
       <section aria-busy="true">
-        <HeroGrid window={windowDates} answer={null} />
+        {/*
+         * Reserved rather than absent. The ready state puts the fund's name, house and category
+         * above the grid, so leaving the space out drops the grid and everything beneath it by
+         * about 110px the instant the JSON arrives — which is the one path that reaches this
+         * branch, a fund chosen from search rather than a seeded deep link (D13: CLS 0).
+         */}
+        <div className="min-h-[7.1rem]" />
+        <HeroGrid window={windowDates} answer={null} className="mt-6" />
+        {/*
+         * The grid is aria-hidden and the answer block isn't mounted yet, so without this the
+         * page is silent for the whole fetch — aria-busy with nothing to describe.
+         */}
+        <p className="sr-only">Loading this fund’s answer.</p>
       </section>
     );
   }

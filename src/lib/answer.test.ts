@@ -191,5 +191,35 @@ describe("pickAnswer against the published Kotak artifact", () => {
     // Each answer belongs to its own window, not merely to a different number.
     expect(safeWindow(DEFAULT_PARAMS)).toContain(onDefaults.date);
     expect(safeWindow({ salary: 15, buffer: DEFAULT_BUFFER })).toContain(onThe15th.date);
+    // PLAN.md §4 names both dates for this fixture. Asserting only that they differ would pass
+    // for any engine that moved the answer at all, including one that moved it wrongly.
+    expect(onDefaults.date).toBe(12);
+    expect(onThe15th.date).toBe(25);
+  });
+
+  it("ranks by average percentile before top-quartile share, the order §6.4 pins", () => {
+    // The 5th has the better average rank, the 6th the better quartile share. §6.4 puts meanPct
+    // first; without this case the two comparators could be swapped and every other test passes.
+    const fund = fundWith([
+      { d: 5, meanPct: 80, topQ: 0.1 },
+      { d: 6, meanPct: 70, topQ: 0.9 },
+    ]);
+
+    expect(pickAnswer(fund, safeWindow(DEFAULT_PARAMS)).date).toBe(5);
+  });
+
+  it("won't rank on percentiles a fund with no rolling windows shouldn't have", () => {
+    // `windows: 0` means the pipeline measured no rolling statistics, so percentiles on such an
+    // artifact describe nothing and XIRR is all there is to order by. This is what the
+    // `fund.windows > 0` half of the mode gate is for; the null check alone wouldn't catch it.
+    const fund = fundWith(
+      [
+        { d: 5, meanPct: 90, topQ: 0.9, xirr: 19 },
+        { d: 6, meanPct: 10, topQ: 0.1, xirr: 21 },
+      ],
+      { windows: 0 },
+    );
+
+    expect(pickAnswer(fund, safeWindow(DEFAULT_PARAMS)).date).toBe(6);
   });
 });

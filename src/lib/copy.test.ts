@@ -126,7 +126,7 @@ describe("the headline", () => {
   it("calls a noise verdict a tiebreak rather than inventing a reason to prefer the date", () => {
     const copy = copyFor({ verdict: "noise" }, answerOn(12, 0.031));
     expect(copy.headline).toBe(
-      "Any date in your window has done about the same in this fund. The 12th is a tiebreak: across 3-year stretches it came out slightly ahead more often.",
+      "Any date in your window has done about the same in this fund. The 12th is a tiebreak: across 3-year stretches it ranked a little higher on average.",
     );
   });
 
@@ -201,7 +201,7 @@ describe("the caveats", () => {
       answerOn(12, 0.0775),
     );
     expect(copy.caveats).toContain(
-      "This fund has 94 months of history, fewer than eight years. A spread of 0.30 pp is about what a history that short produces on its own, so this verdict reflects the length of the history as much as the fund.",
+      "This fund has 94 months of history, fewer than eight years. A spread of 0.30 pp is hard to tell apart from the noise a history this short produces, so this verdict reflects the length of the history as much as the fund.",
     );
   });
 
@@ -311,7 +311,7 @@ describe("copy for real published funds", () => {
   it("calls Kotak Mid Cap a tiebreak, because 0.112 pp across 164 months is noise", () => {
     const copy = realCopy(119775);
     expect(copy.headline).toBe(
-      "Any date in your window has done about the same in this fund. The 12th is a tiebreak: across 3-year stretches it came out slightly ahead more often.",
+      "Any date in your window has done about the same in this fund. The 12th is a tiebreak: across 3-year stretches it ranked a little higher on average.",
     );
     // Its metrics disagree, but a noise verdict has already said everything that implies.
     expect(copy.caveats).toEqual([]);
@@ -326,15 +326,18 @@ describe("copy for real published funds", () => {
     expect(copy.headline).toBe(
       "This fund has 40 months of history, too little to tell whether the date matters. The 4th fits your window.",
     );
-    // Marginal on a 0.767 pp spread, which is about what 40 months produces by itself — but the
-    // headline has already said "40 months of history", so D21's caveat would only repeat it
-    // word for word. What survives is the one thing the headline doesn't cover.
+    // D21 keeps its caveat on every non-noise fund under eight years, this one included: the
+    // sentence exists to defuse the 0.767 pp spread, not to report the month count. Because the
+    // headline already gave the length, only the opening clause drops — the spread figure and
+    // the explanation stay, which is what makes this page's "1.1% of final value" readable.
     expect(copy.caveats).toEqual([
       "The date with the highest XIRR and the date with the highest final value differ here, which points to noise.",
+      "A spread of 0.77 pp is hard to tell apart from the noise a history this short produces, so this verdict reflects the length of the history as much as the fund.",
     ]);
-    expect(copy.caveats.join(" ")).not.toContain("fewer than eight years");
+    // What must not come back is the duplicated month count, not the caveat itself.
+    expect(copy.caveats.join(" ")).not.toContain("40 months of history, fewer than eight years");
     expect(copy.rupeeLine).toBe(
-      "For a notional ₹10,000 monthly SIP, the highest- and lowest-value dates (the 1st and 27th) ended ₹4,954 apart on ₹4.0 lakh invested, 1.1% of final value, over 3.4 years.",
+      "For a notional ₹10,000 monthly SIP, the highest- and lowest-value dates (the 1st and 27th) ended ₹4,954 apart on ₹4.0 lakh invested, 1.1% of final value, over 3.3 years.",
     );
   });
 
@@ -347,7 +350,11 @@ describe("copy for real published funds", () => {
       "The date with the highest XIRR and the date with the highest final value differ here, which points to noise.",
     ]);
     expect(copy.rupeeLine).toContain("(the 11th and 27th)");
-    expect(copy.rupeeLine).toContain("over 20.5 years");
+    // 245 instalments over twelve, not the NAV span: ₹10,000 a month for the span this sentence
+    // states has to come to the amount it states, and the two spans differ for 457 funds.
+    expect(copy.rupeeLine).toContain("over 20.4 years");
+    // The gap between the two rows named, which the independently rounded spreadRupees is not.
+    expect(copy.rupeeLine).toContain("₹36,661");
   });
 
   it("states the edge for the one real meaningful fund with nothing to hedge (142110)", () => {
@@ -366,7 +373,7 @@ describe("copy for real published funds", () => {
     );
     expect(copy.caveats).toEqual([
       "The date with the highest XIRR and the date with the highest final value differ here, which points to noise.",
-      "This fund has 94 months of history, fewer than eight years. A spread of 0.30 pp is about what a history that short produces on its own, so this verdict reflects the length of the history as much as the fund.",
+      "This fund has 94 months of history, fewer than eight years. A spread of 0.30 pp is hard to tell apart from the noise a history this short produces, so this verdict reflects the length of the history as much as the fund.",
     ]);
   });
 

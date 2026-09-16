@@ -117,10 +117,27 @@ export function formatPp(pp: number): string {
   return `${pp < 0 ? MINUS : ""}${rounded} pp`;
 }
 
-/** Takes a fraction, not a percentage: 0.008 -> "0.8%". */
+/**
+ * Takes a fraction, not a percentage: 0.008 -> "0.8%".
+ *
+ * Mirrors formatPp's floor for the same reason: "0.0%" would tell the reader a real share is
+ * nothing at all. Exact zero keeps "0.0%", because that one is.
+ */
 export function formatPercentOfValue(fraction: number): string {
   assertFinite(fraction);
-  return withRealMinus(percentFormat.format(fraction === 0 ? 0 : fraction));
+  if (fraction === 0) return percentFormat.format(0);
+  const rendered = withRealMinus(percentFormat.format(fraction));
+  return rendered === "0.0%" || rendered === `${MINUS}0.0%` ? "<0.1%" : rendered;
+}
+
+/**
+ * The same figure as formatYears, measured in instalments instead of NAV days. A sentence whose
+ * rupee amounts come from the common month set has to date itself from that set too, or its own
+ * numbers won't reconcile: ₹10,000 a month over the span it states must equal the sum it states.
+ */
+export function formatYearsOfMonths(months: number): string {
+  assertFinite(months);
+  return `${(months / 12).toFixed(1)} years`;
 }
 
 /**

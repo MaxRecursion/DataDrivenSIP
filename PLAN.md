@@ -225,6 +225,24 @@ The honest comparison is sharper anyway, so "What actually matters" shows:
 **Wording.** No "best", "recommended", "safe" (next to investing it reads as risk-free),
 "real advantage" or "winner" in UI copy, titles or og tags. A test enforces this (§11).
 
+**Amendment, 2026-09-16 (Phase 5): a sixth headline row, for a cut history.**
+
+Row 1 keys on `confidence = reduced`, which D7 wrote when "reduced" could only mean a short
+history. D21 then made every fund carrying `trimmedFrom` reduced however long the surviving
+series is — so the eight trimmed funds rendered "This fund has 163 months of history, too
+little to tell whether the date matters". 163 months is 13.6 years: the sentence contradicts
+itself, and a reader who noticed would be right to stop believing the rest of the page.
+
+A trimmed fund gets its own row, taking precedence over the short-history one:
+
+| Condition | Headline copy |
+|---|---|
+| `confidence = reduced` and `trimmedFrom` set | "Part of this fund's history couldn't be used, so this reads on {months} months rather than the fund's whole life. The {nth} fits your window." |
+
+What is reduced for these funds is how much of the fund's life the page can speak for, not how
+much history exists, and the line now says that instead. The `trimmedFrom` caveat under the
+headline still names the date the series was cut at.
+
 ### Data source and operations
 
 #### D8 — Two departures in how data is fetched

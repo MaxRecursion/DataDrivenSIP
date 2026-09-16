@@ -46,20 +46,18 @@ export type StabilityResult = {
 };
 
 export function splitHalfStability(history: NavHistory): StabilityResult {
-  const halves = splitHalves(history);
-  const rates: number[][] = [];
-  const instalments: number[] = [];
+  // Both halves are always simulated, so the instalment counts are real even when one half
+  // has no solvable rate and the correlation itself is null.
+  const [first, second] = splitHalves(history).map((half) =>
+    SIP_DATES.map((d) => simulateDate(half, d, monthsForDate(half, d), half.last)),
+  );
+  const instalments: [number, number] = [
+    Math.min(...(first ?? []).map((simulation) => simulation.instalments)),
+    Math.min(...(second ?? []).map((simulation) => simulation.instalments)),
+  ];
 
-  for (const half of halves) {
-    const simulations = SIP_DATES.map((d) => simulateDate(half, d, monthsForDate(half, d), half.last));
-    instalments.push(Math.min(...simulations.map((simulation) => simulation.instalments)));
-    const solved = simulations.map((simulation) => simulation.xirr);
-    if (solved.some((rate) => rate === null)) return { stability: null, instalments: [instalments[0] ?? 0, instalments[1] ?? 0] };
-    rates.push(solved as number[]);
-  }
+  const rates = [first, second].map((simulations) => (simulations ?? []).map((simulation) => simulation.xirr));
+  if (rates.some((half) => half.some((rate) => rate === null))) return { stability: null, instalments };
 
-  return {
-    stability: spearman(rates[0] ?? [], rates[1] ?? []),
-    instalments: [instalments[0] ?? 0, instalments[1] ?? 0],
-  };
+  return { stability: spearman(rates[0] as number[], rates[1] as number[]), instalments };
 }

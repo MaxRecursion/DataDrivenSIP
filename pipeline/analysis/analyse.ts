@@ -22,13 +22,20 @@ export class AnalysisError extends Error {
   }
 }
 
-const round3 = (value: number) => Math.round(value * 1000) / 1000;
+/** Rounds half away from zero, so a negative stability rounds like its positive mirror. */
+const round3 = (value: number) => (Math.sign(value) * Math.round(Math.abs(value) * 1000)) / 1000;
 const argmax = (values: readonly number[]) =>
   values.reduce((best, value, index) => (value > (values[best] ?? -Infinity) ? index : best), 0);
 
 export function analyse(history: NavHistory, meta: FundMeta): FundArtifact {
   const perDate = simulateAll(history, "per-date");
   const common = simulateAll(history, "common");
+
+  // Without a month every date could invest in, the rupee comparisons have nothing to stand
+  // on: corpus, spreadRupees and metricsAgree would all be zero or meaningless.
+  if ((common[0]?.instalments ?? 0) === 0) {
+    throw new AnalysisError("no-common-months", "No month has a NAV within seven days of all 28 dates");
+  }
 
   const percentRates = perDate.map((simulation) => {
     if (simulation.xirr === null) {

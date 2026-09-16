@@ -15,13 +15,23 @@ export type NavHistory = {
   readonly last: DayNum;
 };
 
-/** Parses mfapi rows, dropping NAVs that are zero, negative or unparseable, and sorts ascending. */
+/**
+ * Parses mfapi rows and sorts them ascending. Rows whose NAV is zero, negative or
+ * unparseable are dropped, and so are rows whose date isn't a real DD-MM-YYYY date: upstream
+ * has been seen to emit odd payloads, and one bad row shouldn't cost the whole fund.
+ * When a date appears twice, the first row in the given order wins.
+ */
 export function parseNavRows(rows: readonly { date: string; nav: string }[]): NavRow[] {
   const byDay = new Map<DayNum, number>();
   for (const row of rows) {
     const nav = Number.parseFloat(row.nav);
     if (!Number.isFinite(nav) || nav <= 0) continue;
-    const day = dayFromNavDate(row.date);
+    let day: DayNum;
+    try {
+      day = dayFromNavDate(row.date);
+    } catch {
+      continue;
+    }
     if (!byDay.has(day)) byDay.set(day, nav);
   }
   return [...byDay.entries()].map(([day, nav]) => ({ day, nav })).sort((a, b) => a.day - b.day);

@@ -1,0 +1,1579 @@
+[
+  {
+    "name": "ms-support-example",
+    "source": "Microsoft Support, XIRR function, https://support.microsoft.com/en-us/office/xirr-function-de1242ec-6477-445b-b11b-a303ad9adc9d -- stated \"0.373362535 or 37.34%\" (=XIRR(A3:A7,B3:B7,0.1))",
+    "flows": [
+      {
+        "date": "2008-01-01",
+        "amount": -10000
+      },
+      {
+        "date": "2008-03-01",
+        "amount": 2750
+      },
+      {
+        "date": "2008-10-30",
+        "amount": 4250
+      },
+      {
+        "date": "2009-02-15",
+        "amount": 3250
+      },
+      {
+        "date": "2009-04-01",
+        "amount": 2750
+      }
+    ],
+    "expected": 0.37336253,
+    "verifiedBy": [
+      "float bisection 200 iterations on [-0.9999, 20] = 0.3733625335188314",
+      "float Brent-Dekker = 0.3733625335188315",
+      "decimal.js 60-significant-digit bisection (190 it) = 0.37336253351883151031",
+      "pyxirr 0.10.8 (Rust) xirr() = 0.3733625335095556",
+      "max pairwise |diff| among bisection/Brent/decimal = 1.11e-16 (< 1e-10); |pyxirr - decimal| = 9.28e-12",
+      "NPV sign changes on dense grid over (-1, 1000]: 1 (unique root)",
+      "published 0.373362535; |expected - published| = 5.00e-9"
+    ]
+  },
+  {
+    "name": "sip-12m-2024-leap-year",
+    "source": "synthetic: 12 x -10000 on the 7th (Sat/Sun -> next Monday) Jan..Dec 2024 (spans 29 Feb), terminal value on 2025-01-07 (tuned to ~18%)",
+    "flows": [
+      {
+        "date": "2024-01-08",
+        "amount": -10000
+      },
+      {
+        "date": "2024-02-07",
+        "amount": -10000
+      },
+      {
+        "date": "2024-03-07",
+        "amount": -10000
+      },
+      {
+        "date": "2024-04-08",
+        "amount": -10000
+      },
+      {
+        "date": "2024-05-07",
+        "amount": -10000
+      },
+      {
+        "date": "2024-06-07",
+        "amount": -10000
+      },
+      {
+        "date": "2024-07-08",
+        "amount": -10000
+      },
+      {
+        "date": "2024-08-07",
+        "amount": -10000
+      },
+      {
+        "date": "2024-09-09",
+        "amount": -10000
+      },
+      {
+        "date": "2024-10-07",
+        "amount": -10000
+      },
+      {
+        "date": "2024-11-07",
+        "amount": -10000
+      },
+      {
+        "date": "2024-12-09",
+        "amount": -10000
+      },
+      {
+        "date": "2025-01-07",
+        "amount": 131427.91
+      }
+    ],
+    "expected": 0.18000003,
+    "verifiedBy": [
+      "float bisection 200 iterations on [-0.9999, 20] = 0.18000002660861347",
+      "float Brent-Dekker = 0.18000002660861347",
+      "decimal.js 60-significant-digit bisection (190 it) = 0.18000002660861324434",
+      "pyxirr 0.10.8 (Rust) xirr() = 0.18000002660861314",
+      "max pairwise |diff| among bisection/Brent/decimal = 2.22e-16 (< 1e-10); |pyxirr - decimal| = 1.11e-16",
+      "NPV sign changes on dense grid over (-1, 1000]: 1 (unique root)"
+    ]
+  },
+  {
+    "name": "sip-12m-deeply-negative-approx-minus-80pct",
+    "source": "synthetic: 12 x -10000 on the 15th (weekend-shifted) Jan..Dec 2021, heavy loss, terminal value on 2022-01-17 (tuned to ~-80%)",
+    "flows": [
+      {
+        "date": "2021-01-15",
+        "amount": -10000
+      },
+      {
+        "date": "2021-02-15",
+        "amount": -10000
+      },
+      {
+        "date": "2021-03-15",
+        "amount": -10000
+      },
+      {
+        "date": "2021-04-15",
+        "amount": -10000
+      },
+      {
+        "date": "2021-05-17",
+        "amount": -10000
+      },
+      {
+        "date": "2021-06-15",
+        "amount": -10000
+      },
+      {
+        "date": "2021-07-15",
+        "amount": -10000
+      },
+      {
+        "date": "2021-08-16",
+        "amount": -10000
+      },
+      {
+        "date": "2021-09-15",
+        "amount": -10000
+      },
+      {
+        "date": "2021-10-15",
+        "amount": -10000
+      },
+      {
+        "date": "2021-11-15",
+        "amount": -10000
+      },
+      {
+        "date": "2021-12-15",
+        "amount": -10000
+      },
+      {
+        "date": "2022-01-17",
+        "amount": 55117.75
+      }
+    ],
+    "expected": -0.80000001,
+    "verifiedBy": [
+      "float bisection 200 iterations on [-0.9999, 20] = -0.8000000127290545",
+      "float Brent-Dekker = -0.8000000127290545",
+      "decimal.js 60-significant-digit bisection (190 it) = -0.80000001272905449358",
+      "pyxirr 0.10.8 (Rust) xirr() = -0.8000000127290544",
+      "max pairwise |diff| among bisection/Brent/decimal = 0.00e+0 (< 1e-10); |pyxirr - decimal| = 1.11e-16",
+      "NPV sign changes on dense grid over (-1, 1000]: 1 (unique root)"
+    ]
+  },
+  {
+    "name": "closed-form-two-flow-7y",
+    "source": "synthetic closed form: r = (FV/PV)^(365/N) - 1 with PV=100000 on 2019-03-15, FV=250000 on 2026-03-16, N=2558 days (includes 2 leap days)",
+    "flows": [
+      {
+        "date": "2019-03-15",
+        "amount": -100000
+      },
+      {
+        "date": "2026-03-16",
+        "amount": 250000
+      }
+    ],
+    "expected": 0.13967731,
+    "verifiedBy": [
+      "float bisection 200 iterations on [-0.9999, 20] = 0.1396773079800756",
+      "float Brent-Dekker = 0.13967730798007558",
+      "decimal.js 60-significant-digit bisection (190 it) = 0.13967730798007549575",
+      "closed form (FV/PV)^(365/N)-1 in decimal.js = 0.13967730798007549575",
+      "pyxirr 0.10.8 (Rust) xirr() = 0.1396773079800755",
+      "max pairwise |diff| among bisection/Brent/decimal/closed-form = 1.11e-16 (< 1e-10); |pyxirr - decimal| = 0.00e+0",
+      "NPV sign changes on dense grid over (-1, 1000]: 1 (unique root)"
+    ]
+  },
+  {
+    "name": "irregular-multiyear-sip-stepup-skip-lump",
+    "source": "synthetic: 41-month SIP on the 10th Apr-2019..Aug-2022 (weekend-shifted), 10% yearly step-up, Apr-2020 instalment skipped, extra -25000 lump on 2020-03-24, terminal value on 2022-09-12 (tuned to ~14.37%)",
+    "flows": [
+      {
+        "date": "2019-04-10",
+        "amount": -5000
+      },
+      {
+        "date": "2019-05-10",
+        "amount": -5000
+      },
+      {
+        "date": "2019-06-10",
+        "amount": -5000
+      },
+      {
+        "date": "2019-07-10",
+        "amount": -5000
+      },
+      {
+        "date": "2019-08-12",
+        "amount": -5000
+      },
+      {
+        "date": "2019-09-10",
+        "amount": -5000
+      },
+      {
+        "date": "2019-10-10",
+        "amount": -5000
+      },
+      {
+        "date": "2019-11-11",
+        "amount": -5000
+      },
+      {
+        "date": "2019-12-10",
+        "amount": -5000
+      },
+      {
+        "date": "2020-01-10",
+        "amount": -5000
+      },
+      {
+        "date": "2020-02-10",
+        "amount": -5000
+      },
+      {
+        "date": "2020-03-10",
+        "amount": -5000
+      },
+      {
+        "date": "2020-03-24",
+        "amount": -25000
+      },
+      {
+        "date": "2020-05-11",
+        "amount": -5500
+      },
+      {
+        "date": "2020-06-10",
+        "amount": -5500
+      },
+      {
+        "date": "2020-07-10",
+        "amount": -5500
+      },
+      {
+        "date": "2020-08-10",
+        "amount": -5500
+      },
+      {
+        "date": "2020-09-10",
+        "amount": -5500
+      },
+      {
+        "date": "2020-10-12",
+        "amount": -5500
+      },
+      {
+        "date": "2020-11-10",
+        "amount": -5500
+      },
+      {
+        "date": "2020-12-10",
+        "amount": -5500
+      },
+      {
+        "date": "2021-01-11",
+        "amount": -5500
+      },
+      {
+        "date": "2021-02-10",
+        "amount": -5500
+      },
+      {
+        "date": "2021-03-10",
+        "amount": -5500
+      },
+      {
+        "date": "2021-04-12",
+        "amount": -6050
+      },
+      {
+        "date": "2021-05-10",
+        "amount": -6050
+      },
+      {
+        "date": "2021-06-10",
+        "amount": -6050
+      },
+      {
+        "date": "2021-07-12",
+        "amount": -6050
+      },
+      {
+        "date": "2021-08-10",
+        "amount": -6050
+      },
+      {
+        "date": "2021-09-10",
+        "amount": -6050
+      },
+      {
+        "date": "2021-10-11",
+        "amount": -6050
+      },
+      {
+        "date": "2021-11-10",
+        "amount": -6050
+      },
+      {
+        "date": "2021-12-10",
+        "amount": -6050
+      },
+      {
+        "date": "2022-01-10",
+        "amount": -6050
+      },
+      {
+        "date": "2022-02-10",
+        "amount": -6050
+      },
+      {
+        "date": "2022-03-10",
+        "amount": -6050
+      },
+      {
+        "date": "2022-04-11",
+        "amount": -6655
+      },
+      {
+        "date": "2022-05-10",
+        "amount": -6655
+      },
+      {
+        "date": "2022-06-10",
+        "amount": -6655
+      },
+      {
+        "date": "2022-07-11",
+        "amount": -6655
+      },
+      {
+        "date": "2022-08-10",
+        "amount": -6655
+      },
+      {
+        "date": "2022-09-12",
+        "amount": 319772.75
+      }
+    ],
+    "expected": 0.14370001,
+    "verifiedBy": [
+      "float bisection 200 iterations on [-0.9999, 20] = 0.14370000542521866",
+      "float Brent-Dekker = 0.14370000542521869",
+      "decimal.js 60-significant-digit bisection (190 it) = 0.14370000542521877502",
+      "pyxirr 0.10.8 (Rust) xirr() = 0.14370000542521866",
+      "max pairwise |diff| among bisection/Brent/decimal = 1.11e-16 (< 1e-10); |pyxirr - decimal| = 1.11e-16",
+      "NPV sign changes on dense grid over (-1, 1000]: 1 (unique root)"
+    ]
+  },
+  {
+    "name": "sip-24m-near-zero-negative",
+    "source": "synthetic: 24 x -2500 on the 3rd (weekend-shifted) Jan-2023..Dec-2024, terminal slightly below invested, on 2025-01-03 (tuned to ~-0.07%)",
+    "flows": [
+      {
+        "date": "2023-01-03",
+        "amount": -2500
+      },
+      {
+        "date": "2023-02-03",
+        "amount": -2500
+      },
+      {
+        "date": "2023-03-03",
+        "amount": -2500
+      },
+      {
+        "date": "2023-04-03",
+        "amount": -2500
+      },
+      {
+        "date": "2023-05-03",
+        "amount": -2500
+      },
+      {
+        "date": "2023-06-05",
+        "amount": -2500
+      },
+      {
+        "date": "2023-07-03",
+        "amount": -2500
+      },
+      {
+        "date": "2023-08-03",
+        "amount": -2500
+      },
+      {
+        "date": "2023-09-04",
+        "amount": -2500
+      },
+      {
+        "date": "2023-10-03",
+        "amount": -2500
+      },
+      {
+        "date": "2023-11-03",
+        "amount": -2500
+      },
+      {
+        "date": "2023-12-04",
+        "amount": -2500
+      },
+      {
+        "date": "2024-01-03",
+        "amount": -2500
+      },
+      {
+        "date": "2024-02-05",
+        "amount": -2500
+      },
+      {
+        "date": "2024-03-04",
+        "amount": -2500
+      },
+      {
+        "date": "2024-04-03",
+        "amount": -2500
+      },
+      {
+        "date": "2024-05-03",
+        "amount": -2500
+      },
+      {
+        "date": "2024-06-03",
+        "amount": -2500
+      },
+      {
+        "date": "2024-07-03",
+        "amount": -2500
+      },
+      {
+        "date": "2024-08-05",
+        "amount": -2500
+      },
+      {
+        "date": "2024-09-03",
+        "amount": -2500
+      },
+      {
+        "date": "2024-10-03",
+        "amount": -2500
+      },
+      {
+        "date": "2024-11-04",
+        "amount": -2500
+      },
+      {
+        "date": "2024-12-03",
+        "amount": -2500
+      },
+      {
+        "date": "2025-01-03",
+        "amount": 59956.15
+      }
+    ],
+    "expected": -0.00069993,
+    "verifiedBy": [
+      "float bisection 200 iterations on [-0.9999, 20] = -0.0006999253101785378",
+      "float Brent-Dekker = -0.0006999253101785677",
+      "decimal.js 60-significant-digit bisection (190 it) = -0.00069992531017856774961",
+      "pyxirr 0.10.8 (Rust) xirr() = -0.0006999253101783956",
+      "max pairwise |diff| among bisection/Brent/decimal = 2.99e-17 (< 1e-10); |pyxirr - decimal| = 1.72e-16",
+      "NPV sign changes on dense grid over (-1, 1000]: 1 (unique root)"
+    ]
+  },
+  {
+    "name": "two-flow-exact-zero",
+    "source": "synthetic closed form: -50000 on 2024-02-29, +50000 on 2026-02-28 -> r = 0 exactly (watch for \"-0.00%\" formatting)",
+    "flows": [
+      {
+        "date": "2024-02-29",
+        "amount": -50000
+      },
+      {
+        "date": "2026-02-28",
+        "amount": 50000
+      }
+    ],
+    "expected": 0,
+    "verifiedBy": [
+      "float bisection 200 iterations on [-0.9999, 20] = 3.828452503369878e-18",
+      "float Brent-Dekker = 5.785948922643098e-17",
+      "decimal.js 60-significant-digit bisection (190 it) = 1.6260689136928940392e-57",
+      "closed form (FV/PV)^(365/N)-1 in decimal.js = 0",
+      "pyxirr 0.10.8 (Rust) xirr() = 0",
+      "max pairwise |diff| among bisection/Brent/decimal/closed-form = 5.79e-17 (< 1e-10); |pyxirr - decimal| = 1.63e-57",
+      "NPV sign changes on dense grid over (-1, 1000]: 1 (unique root)"
+    ]
+  },
+  {
+    "name": "lump-plus-sip-deeply-negative-approx-minus-95pct",
+    "source": "synthetic: -500000 lump + 11 x -20000 monthly 2008, near-total loss, terminal value on 2009-01-07 (tuned to ~-95%, near spec bracket floor -0.99)",
+    "flows": [
+      {
+        "date": "2008-01-07",
+        "amount": -500000
+      },
+      {
+        "date": "2008-02-07",
+        "amount": -20000
+      },
+      {
+        "date": "2008-03-07",
+        "amount": -20000
+      },
+      {
+        "date": "2008-04-07",
+        "amount": -20000
+      },
+      {
+        "date": "2008-05-07",
+        "amount": -20000
+      },
+      {
+        "date": "2008-06-09",
+        "amount": -20000
+      },
+      {
+        "date": "2008-07-07",
+        "amount": -20000
+      },
+      {
+        "date": "2008-08-07",
+        "amount": -20000
+      },
+      {
+        "date": "2008-09-08",
+        "amount": -20000
+      },
+      {
+        "date": "2008-10-07",
+        "amount": -20000
+      },
+      {
+        "date": "2008-11-07",
+        "amount": -20000
+      },
+      {
+        "date": "2008-12-08",
+        "amount": -20000
+      },
+      {
+        "date": "2009-01-07",
+        "amount": 90659.07
+      }
+    ],
+    "expected": -0.95,
+    "verifiedBy": [
+      "float bisection 200 iterations on [-0.9999, 20] = -0.9500000004002218",
+      "float Brent-Dekker = -0.9500000004002217",
+      "decimal.js 60-significant-digit bisection (190 it) = -0.95000000040022180988",
+      "pyxirr 0.10.8 (Rust) xirr() = -0.9500000004002218",
+      "max pairwise |diff| among bisection/Brent/decimal = 1.11e-16 (< 1e-10); |pyxirr - decimal| = 0.00e+0",
+      "NPV sign changes on dense grid over (-1, 1000]: 1 (unique root)"
+    ]
+  },
+  {
+    "name": "sip-163m-13y-realistic-scale",
+    "source": "synthetic: 163 x -10000 on the 26th (weekend-shifted) Feb-2013..Aug-2026, terminal value on 2026-09-14 (tuned to ~20.39%; magnitude like acceptance #3, NOT real fund data)",
+    "flows": [
+      {
+        "date": "2013-02-26",
+        "amount": -10000
+      },
+      {
+        "date": "2013-03-26",
+        "amount": -10000
+      },
+      {
+        "date": "2013-04-26",
+        "amount": -10000
+      },
+      {
+        "date": "2013-05-27",
+        "amount": -10000
+      },
+      {
+        "date": "2013-06-26",
+        "amount": -10000
+      },
+      {
+        "date": "2013-07-26",
+        "amount": -10000
+      },
+      {
+        "date": "2013-08-26",
+        "amount": -10000
+      },
+      {
+        "date": "2013-09-26",
+        "amount": -10000
+      },
+      {
+        "date": "2013-10-28",
+        "amount": -10000
+      },
+      {
+        "date": "2013-11-26",
+        "amount": -10000
+      },
+      {
+        "date": "2013-12-26",
+        "amount": -10000
+      },
+      {
+        "date": "2014-01-27",
+        "amount": -10000
+      },
+      {
+        "date": "2014-02-26",
+        "amount": -10000
+      },
+      {
+        "date": "2014-03-26",
+        "amount": -10000
+      },
+      {
+        "date": "2014-04-28",
+        "amount": -10000
+      },
+      {
+        "date": "2014-05-26",
+        "amount": -10000
+      },
+      {
+        "date": "2014-06-26",
+        "amount": -10000
+      },
+      {
+        "date": "2014-07-28",
+        "amount": -10000
+      },
+      {
+        "date": "2014-08-26",
+        "amount": -10000
+      },
+      {
+        "date": "2014-09-26",
+        "amount": -10000
+      },
+      {
+        "date": "2014-10-27",
+        "amount": -10000
+      },
+      {
+        "date": "2014-11-26",
+        "amount": -10000
+      },
+      {
+        "date": "2014-12-26",
+        "amount": -10000
+      },
+      {
+        "date": "2015-01-26",
+        "amount": -10000
+      },
+      {
+        "date": "2015-02-26",
+        "amount": -10000
+      },
+      {
+        "date": "2015-03-26",
+        "amount": -10000
+      },
+      {
+        "date": "2015-04-27",
+        "amount": -10000
+      },
+      {
+        "date": "2015-05-26",
+        "amount": -10000
+      },
+      {
+        "date": "2015-06-26",
+        "amount": -10000
+      },
+      {
+        "date": "2015-07-27",
+        "amount": -10000
+      },
+      {
+        "date": "2015-08-26",
+        "amount": -10000
+      },
+      {
+        "date": "2015-09-28",
+        "amount": -10000
+      },
+      {
+        "date": "2015-10-26",
+        "amount": -10000
+      },
+      {
+        "date": "2015-11-26",
+        "amount": -10000
+      },
+      {
+        "date": "2015-12-28",
+        "amount": -10000
+      },
+      {
+        "date": "2016-01-26",
+        "amount": -10000
+      },
+      {
+        "date": "2016-02-26",
+        "amount": -10000
+      },
+      {
+        "date": "2016-03-28",
+        "amount": -10000
+      },
+      {
+        "date": "2016-04-26",
+        "amount": -10000
+      },
+      {
+        "date": "2016-05-26",
+        "amount": -10000
+      },
+      {
+        "date": "2016-06-27",
+        "amount": -10000
+      },
+      {
+        "date": "2016-07-26",
+        "amount": -10000
+      },
+      {
+        "date": "2016-08-26",
+        "amount": -10000
+      },
+      {
+        "date": "2016-09-26",
+        "amount": -10000
+      },
+      {
+        "date": "2016-10-26",
+        "amount": -10000
+      },
+      {
+        "date": "2016-11-28",
+        "amount": -10000
+      },
+      {
+        "date": "2016-12-26",
+        "amount": -10000
+      },
+      {
+        "date": "2017-01-26",
+        "amount": -10000
+      },
+      {
+        "date": "2017-02-27",
+        "amount": -10000
+      },
+      {
+        "date": "2017-03-27",
+        "amount": -10000
+      },
+      {
+        "date": "2017-04-26",
+        "amount": -10000
+      },
+      {
+        "date": "2017-05-26",
+        "amount": -10000
+      },
+      {
+        "date": "2017-06-26",
+        "amount": -10000
+      },
+      {
+        "date": "2017-07-26",
+        "amount": -10000
+      },
+      {
+        "date": "2017-08-28",
+        "amount": -10000
+      },
+      {
+        "date": "2017-09-26",
+        "amount": -10000
+      },
+      {
+        "date": "2017-10-26",
+        "amount": -10000
+      },
+      {
+        "date": "2017-11-27",
+        "amount": -10000
+      },
+      {
+        "date": "2017-12-26",
+        "amount": -10000
+      },
+      {
+        "date": "2018-01-26",
+        "amount": -10000
+      },
+      {
+        "date": "2018-02-26",
+        "amount": -10000
+      },
+      {
+        "date": "2018-03-26",
+        "amount": -10000
+      },
+      {
+        "date": "2018-04-26",
+        "amount": -10000
+      },
+      {
+        "date": "2018-05-28",
+        "amount": -10000
+      },
+      {
+        "date": "2018-06-26",
+        "amount": -10000
+      },
+      {
+        "date": "2018-07-26",
+        "amount": -10000
+      },
+      {
+        "date": "2018-08-27",
+        "amount": -10000
+      },
+      {
+        "date": "2018-09-26",
+        "amount": -10000
+      },
+      {
+        "date": "2018-10-26",
+        "amount": -10000
+      },
+      {
+        "date": "2018-11-26",
+        "amount": -10000
+      },
+      {
+        "date": "2018-12-26",
+        "amount": -10000
+      },
+      {
+        "date": "2019-01-28",
+        "amount": -10000
+      },
+      {
+        "date": "2019-02-26",
+        "amount": -10000
+      },
+      {
+        "date": "2019-03-26",
+        "amount": -10000
+      },
+      {
+        "date": "2019-04-26",
+        "amount": -10000
+      },
+      {
+        "date": "2019-05-27",
+        "amount": -10000
+      },
+      {
+        "date": "2019-06-26",
+        "amount": -10000
+      },
+      {
+        "date": "2019-07-26",
+        "amount": -10000
+      },
+      {
+        "date": "2019-08-26",
+        "amount": -10000
+      },
+      {
+        "date": "2019-09-26",
+        "amount": -10000
+      },
+      {
+        "date": "2019-10-28",
+        "amount": -10000
+      },
+      {
+        "date": "2019-11-26",
+        "amount": -10000
+      },
+      {
+        "date": "2019-12-26",
+        "amount": -10000
+      },
+      {
+        "date": "2020-01-27",
+        "amount": -10000
+      },
+      {
+        "date": "2020-02-26",
+        "amount": -10000
+      },
+      {
+        "date": "2020-03-26",
+        "amount": -10000
+      },
+      {
+        "date": "2020-04-27",
+        "amount": -10000
+      },
+      {
+        "date": "2020-05-26",
+        "amount": -10000
+      },
+      {
+        "date": "2020-06-26",
+        "amount": -10000
+      },
+      {
+        "date": "2020-07-27",
+        "amount": -10000
+      },
+      {
+        "date": "2020-08-26",
+        "amount": -10000
+      },
+      {
+        "date": "2020-09-28",
+        "amount": -10000
+      },
+      {
+        "date": "2020-10-26",
+        "amount": -10000
+      },
+      {
+        "date": "2020-11-26",
+        "amount": -10000
+      },
+      {
+        "date": "2020-12-28",
+        "amount": -10000
+      },
+      {
+        "date": "2021-01-26",
+        "amount": -10000
+      },
+      {
+        "date": "2021-02-26",
+        "amount": -10000
+      },
+      {
+        "date": "2021-03-26",
+        "amount": -10000
+      },
+      {
+        "date": "2021-04-26",
+        "amount": -10000
+      },
+      {
+        "date": "2021-05-26",
+        "amount": -10000
+      },
+      {
+        "date": "2021-06-28",
+        "amount": -10000
+      },
+      {
+        "date": "2021-07-26",
+        "amount": -10000
+      },
+      {
+        "date": "2021-08-26",
+        "amount": -10000
+      },
+      {
+        "date": "2021-09-27",
+        "amount": -10000
+      },
+      {
+        "date": "2021-10-26",
+        "amount": -10000
+      },
+      {
+        "date": "2021-11-26",
+        "amount": -10000
+      },
+      {
+        "date": "2021-12-27",
+        "amount": -10000
+      },
+      {
+        "date": "2022-01-26",
+        "amount": -10000
+      },
+      {
+        "date": "2022-02-28",
+        "amount": -10000
+      },
+      {
+        "date": "2022-03-28",
+        "amount": -10000
+      },
+      {
+        "date": "2022-04-26",
+        "amount": -10000
+      },
+      {
+        "date": "2022-05-26",
+        "amount": -10000
+      },
+      {
+        "date": "2022-06-27",
+        "amount": -10000
+      },
+      {
+        "date": "2022-07-26",
+        "amount": -10000
+      },
+      {
+        "date": "2022-08-26",
+        "amount": -10000
+      },
+      {
+        "date": "2022-09-26",
+        "amount": -10000
+      },
+      {
+        "date": "2022-10-26",
+        "amount": -10000
+      },
+      {
+        "date": "2022-11-28",
+        "amount": -10000
+      },
+      {
+        "date": "2022-12-26",
+        "amount": -10000
+      },
+      {
+        "date": "2023-01-26",
+        "amount": -10000
+      },
+      {
+        "date": "2023-02-27",
+        "amount": -10000
+      },
+      {
+        "date": "2023-03-27",
+        "amount": -10000
+      },
+      {
+        "date": "2023-04-26",
+        "amount": -10000
+      },
+      {
+        "date": "2023-05-26",
+        "amount": -10000
+      },
+      {
+        "date": "2023-06-26",
+        "amount": -10000
+      },
+      {
+        "date": "2023-07-26",
+        "amount": -10000
+      },
+      {
+        "date": "2023-08-28",
+        "amount": -10000
+      },
+      {
+        "date": "2023-09-26",
+        "amount": -10000
+      },
+      {
+        "date": "2023-10-26",
+        "amount": -10000
+      },
+      {
+        "date": "2023-11-27",
+        "amount": -10000
+      },
+      {
+        "date": "2023-12-26",
+        "amount": -10000
+      },
+      {
+        "date": "2024-01-26",
+        "amount": -10000
+      },
+      {
+        "date": "2024-02-26",
+        "amount": -10000
+      },
+      {
+        "date": "2024-03-26",
+        "amount": -10000
+      },
+      {
+        "date": "2024-04-26",
+        "amount": -10000
+      },
+      {
+        "date": "2024-05-27",
+        "amount": -10000
+      },
+      {
+        "date": "2024-06-26",
+        "amount": -10000
+      },
+      {
+        "date": "2024-07-26",
+        "amount": -10000
+      },
+      {
+        "date": "2024-08-26",
+        "amount": -10000
+      },
+      {
+        "date": "2024-09-26",
+        "amount": -10000
+      },
+      {
+        "date": "2024-10-28",
+        "amount": -10000
+      },
+      {
+        "date": "2024-11-26",
+        "amount": -10000
+      },
+      {
+        "date": "2024-12-26",
+        "amount": -10000
+      },
+      {
+        "date": "2025-01-27",
+        "amount": -10000
+      },
+      {
+        "date": "2025-02-26",
+        "amount": -10000
+      },
+      {
+        "date": "2025-03-26",
+        "amount": -10000
+      },
+      {
+        "date": "2025-04-28",
+        "amount": -10000
+      },
+      {
+        "date": "2025-05-26",
+        "amount": -10000
+      },
+      {
+        "date": "2025-06-26",
+        "amount": -10000
+      },
+      {
+        "date": "2025-07-28",
+        "amount": -10000
+      },
+      {
+        "date": "2025-08-26",
+        "amount": -10000
+      },
+      {
+        "date": "2025-09-26",
+        "amount": -10000
+      },
+      {
+        "date": "2025-10-27",
+        "amount": -10000
+      },
+      {
+        "date": "2025-11-26",
+        "amount": -10000
+      },
+      {
+        "date": "2025-12-26",
+        "amount": -10000
+      },
+      {
+        "date": "2026-01-26",
+        "amount": -10000
+      },
+      {
+        "date": "2026-02-26",
+        "amount": -10000
+      },
+      {
+        "date": "2026-03-26",
+        "amount": -10000
+      },
+      {
+        "date": "2026-04-27",
+        "amount": -10000
+      },
+      {
+        "date": "2026-05-26",
+        "amount": -10000
+      },
+      {
+        "date": "2026-06-26",
+        "amount": -10000
+      },
+      {
+        "date": "2026-07-27",
+        "amount": -10000
+      },
+      {
+        "date": "2026-08-26",
+        "amount": -10000
+      },
+      {
+        "date": "2026-09-14",
+        "amount": 7416019.06
+      }
+    ],
+    "expected": 0.2039,
+    "verifiedBy": [
+      "float bisection 200 iterations on [-0.9999, 20] = 0.20390000003372688",
+      "float Brent-Dekker = 0.20390000003372702",
+      "decimal.js 60-significant-digit bisection (190 it) = 0.20390000003372692269",
+      "pyxirr 0.10.8 (Rust) xirr() = 0.2039000000337268",
+      "max pairwise |diff| among bisection/Brent/decimal = 1.39e-16 (< 1e-10); |pyxirr - decimal| = 1.39e-16",
+      "NPV sign changes on dense grid over (-1, 1000]: 1 (unique root)"
+    ]
+  },
+  {
+    "name": "libreoffice-help-example",
+    "source": "LibreOffice Help, XIRR, https://help.libreoffice.org/latest/en-US/text/scalc/01/04060118.html -- stated \"0.1828 or 18.28%\" (LibreOffice Calc, not Excel)",
+    "flows": [
+      {
+        "date": "2001-01-01",
+        "amount": -10000
+      },
+      {
+        "date": "2001-02-01",
+        "amount": 2000
+      },
+      {
+        "date": "2001-03-15",
+        "amount": 2500
+      },
+      {
+        "date": "2001-05-12",
+        "amount": 5000
+      },
+      {
+        "date": "2001-08-10",
+        "amount": 1000
+      }
+    ],
+    "expected": 0.18284349,
+    "verifiedBy": [
+      "float bisection 200 iterations on [-0.9999, 20] = 0.18284348582078358",
+      "float Brent-Dekker = 0.1828434858207836",
+      "decimal.js 60-significant-digit bisection (190 it) = 0.18284348582078359766",
+      "pyxirr 0.10.8 (Rust) xirr() = 0.18284348582078358",
+      "max pairwise |diff| among bisection/Brent/decimal = 2.78e-17 (< 1e-10); |pyxirr - decimal| = 2.78e-17",
+      "NPV sign changes on dense grid over (-1, 1000]: 1 (unique root)",
+      "published 0.1828; |expected - published| = 4.35e-5"
+    ]
+  },
+  {
+    "name": "exceljet-example-unordered-dates",
+    "source": "ExcelJet, XIRR function, https://exceljet.net/functions/xirr-function -- stated \"=XIRR(B5:B10,C5:C10) // returns .0788\"; flows read from the page screenshot; dates deliberately NOT chronological (first row is earliest)",
+    "flows": [
+      {
+        "date": "2022-01-01",
+        "amount": -1000
+      },
+      {
+        "date": "2022-06-01",
+        "amount": 100
+      },
+      {
+        "date": "2022-12-01",
+        "amount": 200
+      },
+      {
+        "date": "2022-03-01",
+        "amount": 250
+      },
+      {
+        "date": "2022-09-01",
+        "amount": 250
+      },
+      {
+        "date": "2022-12-30",
+        "amount": 250
+      }
+    ],
+    "expected": 0.07876331,
+    "verifiedBy": [
+      "float bisection 200 iterations on [-0.9999, 20] = 0.07876330884553923",
+      "float Brent-Dekker = 0.07876330884553939",
+      "decimal.js 60-significant-digit bisection (190 it) = 0.078763308845539398196",
+      "pyxirr 0.10.8 (Rust) xirr() = 0.07876330884540444",
+      "max pairwise |diff| among bisection/Brent/decimal = 1.67e-16 (< 1e-10); |pyxirr - decimal| = 1.35e-13",
+      "NPV sign changes on dense grid over (-1, 1000]: 1 (unique root)",
+      "published 0.0788; |expected - published| = 3.67e-5"
+    ]
+  },
+  {
+    "name": "techonthenet-example-1-high-rate",
+    "source": "TechOnTheNet, MS Excel XIRR, https://www.techonthenet.com/excel/formulas/xirr.php -- Excel screenshot + text state 2.660242057",
+    "flows": [
+      {
+        "date": "2016-01-01",
+        "amount": -7500
+      },
+      {
+        "date": "2016-02-01",
+        "amount": 3000
+      },
+      {
+        "date": "2016-04-15",
+        "amount": 5000
+      },
+      {
+        "date": "2016-08-01",
+        "amount": 1200
+      },
+      {
+        "date": "2017-03-26",
+        "amount": 4000
+      }
+    ],
+    "expected": 2.66024204,
+    "verifiedBy": [
+      "float bisection 200 iterations on [-0.9999, 20] = 2.660242036088702",
+      "float Brent-Dekker = 2.6602420360887025",
+      "decimal.js 60-significant-digit bisection (190 it) = 2.660242036088702228",
+      "pyxirr 0.10.8 (Rust) xirr() = 2.660242036084324",
+      "max pairwise |diff| among bisection/Brent/decimal = 4.44e-16 (< 1e-10); |pyxirr - decimal| = 4.38e-12",
+      "NPV sign changes on dense grid over (-1, 1000]: 1 (unique root)",
+      "published 2.660242057; |expected - published| = 1.70e-8"
+    ]
+  },
+  {
+    "name": "techonthenet-example-2-high-rate",
+    "source": "TechOnTheNet, MS Excel XIRR, https://www.techonthenet.com/excel/formulas/xirr.php -- Excel screenshot states 2.186309695; initial -5000 dated Apr 30, 2016 (date only in screenshot images/xirr001.png, missing from page text)",
+    "flows": [
+      {
+        "date": "2016-04-30",
+        "amount": -5000
+      },
+      {
+        "date": "2016-05-31",
+        "amount": 800
+      },
+      {
+        "date": "2016-09-01",
+        "amount": 1300
+      },
+      {
+        "date": "2016-12-31",
+        "amount": 600
+      },
+      {
+        "date": "2017-01-31",
+        "amount": 7500
+      }
+    ],
+    "expected": 2.18630968,
+    "verifiedBy": [
+      "float bisection 200 iterations on [-0.9999, 20] = 2.186309682375772",
+      "float Brent-Dekker = 2.1863096823757724",
+      "decimal.js 60-significant-digit bisection (190 it) = 2.1863096823757725329",
+      "pyxirr 0.10.8 (Rust) xirr() = 2.186309682375766",
+      "max pairwise |diff| among bisection/Brent/decimal = 4.44e-16 (< 1e-10); |pyxirr - decimal| = 6.22e-15",
+      "NPV sign changes on dense grid over (-1, 1000]: 1 (unique root)",
+      "published 2.186309695; |expected - published| = 1.50e-8"
+    ]
+  },
+  {
+    "name": "google-sheets-help-example-deeply-negative",
+    "source": "Google Docs Editors Help, XIRR, https://support.google.com/docs/answer/3093266 -- sample formula XIRR({-4000,200,250,300},{DATE(2012,1,1),DATE(2012,6,23),DATE(2013,5,12),DATE(2014,2,9)},0.09); NO result stated, expected is computed only",
+    "flows": [
+      {
+        "date": "2012-01-01",
+        "amount": -4000
+      },
+      {
+        "date": "2012-06-23",
+        "amount": 200
+      },
+      {
+        "date": "2013-05-12",
+        "amount": 250
+      },
+      {
+        "date": "2014-02-09",
+        "amount": 300
+      }
+    ],
+    "expected": -0.64408553,
+    "verifiedBy": [
+      "float bisection 200 iterations on [-0.9999, 20] = -0.6440855342116854",
+      "float Brent-Dekker = -0.6440855342116852",
+      "decimal.js 60-significant-digit bisection (190 it) = -0.64408553421168527364",
+      "pyxirr 0.10.8 (Rust) xirr() = -0.6440855342117093",
+      "max pairwise |diff| among bisection/Brent/decimal = 1.11e-16 (< 1e-10); |pyxirr - decimal| = 2.41e-14",
+      "NPV sign changes on dense grid over (-1, 1000]: 1 (unique root)"
+    ]
+  },
+  {
+    "name": "excel-qa-negative-13pct-default-guess-fails",
+    "source": "Microsoft Q&A https://learn.microsoft.com/en-us/answers/questions/4941025 (community answer): Excel =XIRR(B1:B32,A1:A32,-12.5%) \"returns about -13.4232640848495%\"; with default guess Excel showed 0.00% = ~2.98E-09 (error state). Flows = pyxirr tests/samples/minus_0_13.csv (32 rows, row-by-row identical to the Q&A post, sum -618.07, final +9518.08 on 2015-12-31; rows NOT chronological, first row is earliest; two rows share 2015-05-04)",
+    "flows": [
+      {
+        "date": "2015-05-04",
+        "amount": -200
+      },
+      {
+        "date": "2015-05-07",
+        "amount": -75
+      },
+      {
+        "date": "2015-05-15",
+        "amount": -620
+      },
+      {
+        "date": "2015-05-04",
+        "amount": -0.01
+      },
+      {
+        "date": "2015-05-06",
+        "amount": -100
+      },
+      {
+        "date": "2015-05-14",
+        "amount": -299.99
+      },
+      {
+        "date": "2015-05-19",
+        "amount": -20
+      },
+      {
+        "date": "2015-05-26",
+        "amount": -100
+      },
+      {
+        "date": "2015-05-27",
+        "amount": -340
+      },
+      {
+        "date": "2015-06-01",
+        "amount": -500
+      },
+      {
+        "date": "2015-06-05",
+        "amount": -100
+      },
+      {
+        "date": "2015-06-18",
+        "amount": -1008.52
+      },
+      {
+        "date": "2015-06-22",
+        "amount": -65
+      },
+      {
+        "date": "2015-06-22",
+        "amount": -120
+      },
+      {
+        "date": "2015-06-22",
+        "amount": -450
+      },
+      {
+        "date": "2015-06-30",
+        "amount": -450.75
+      },
+      {
+        "date": "2015-07-06",
+        "amount": -80
+      },
+      {
+        "date": "2015-07-13",
+        "amount": -130
+      },
+      {
+        "date": "2015-07-16",
+        "amount": -1050
+      },
+      {
+        "date": "2015-07-31",
+        "amount": -1000
+      },
+      {
+        "date": "2015-08-10",
+        "amount": -65
+      },
+      {
+        "date": "2015-08-17",
+        "amount": -400
+      },
+      {
+        "date": "2015-09-14",
+        "amount": -100
+      },
+      {
+        "date": "2015-09-16",
+        "amount": -956.88
+      },
+      {
+        "date": "2015-09-28",
+        "amount": -117
+      },
+      {
+        "date": "2015-10-01",
+        "amount": -50
+      },
+      {
+        "date": "2015-10-02",
+        "amount": -1130
+      },
+      {
+        "date": "2015-10-29",
+        "amount": -70
+      },
+      {
+        "date": "2015-11-02",
+        "amount": -188
+      },
+      {
+        "date": "2015-11-06",
+        "amount": -250
+      },
+      {
+        "date": "2015-12-29",
+        "amount": -100
+      },
+      {
+        "date": "2015-12-31",
+        "amount": 9518.08
+      }
+    ],
+    "expected": -0.13423264,
+    "verifiedBy": [
+      "float bisection 200 iterations on [-0.9999, 20] = -0.1342326407978881",
+      "float Brent-Dekker = -0.13423264079788802",
+      "decimal.js 60-significant-digit bisection (190 it) = -0.13423264079788839472",
+      "pyxirr 0.10.8 (Rust) xirr() = -0.13423264079788869",
+      "max pairwise |diff| among bisection/Brent/decimal = 3.89e-16 (< 1e-10); |pyxirr - decimal| = 2.78e-16",
+      "NPV sign changes on dense grid over (-1, 1000]: 1 (unique root)",
+      "published -0.134232640848495; |expected - published| = 8.48e-10"
+    ]
+  }
+]

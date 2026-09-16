@@ -1,8 +1,8 @@
 import { formatNavDate } from "@/lib/format";
 
 type FooterProps = {
-  /** Latest NAV date in the data, as YYYY-MM-DD. Omitted until data exists. */
-  navAsOf?: string;
+  /** Latest NAV date in the data, as YYYY-MM-DD. Absent until data exists. */
+  navAsOf?: string | undefined;
   source?: string;
 };
 

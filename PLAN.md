@@ -403,13 +403,28 @@ changed published numbers. These are the fixes. Two items at the end are yours.
 - A fund's own `navTo` can be older than the site-wide `navAsOf`; Phase 5 renders the fund's
   own date on its page.
 
-**Needs your decision**
-- `spreadPp > 0.25` is an absolute threshold on a max-minus-min of 28 estimates whose noise
-  shrinks as history grows, so the verdict partly grades history length. Median spread is
-  0.508 pp for funds with 36–47 instalments and 0.062 pp past 150; every "meaningful" fund
-  has 103 instalments or fewer, and none of the 432 funds with 150 or more is meaningful.
-  This isn't an engine bug — a constant-rate synthetic NAV gives exactly 0.000 — and
-  CLAUDE.md freezes the thresholds, so it stays as specified unless you decide otherwise.
+**The threshold question, decided 2026-09-16**
+
+`spreadPp > 0.25` is an absolute threshold on a max-minus-min of 28 estimates whose noise
+shrinks as history grows, so the verdict partly grades history length. Median spread is
+0.508 pp for funds with 36–47 instalments and 0.062 pp past 150; every "meaningful" fund has
+103 instalments or fewer, and none of the 432 funds with 150 or more is meaningful. It isn't
+an engine bug: a constant-rate synthetic NAV gives exactly 0.000.
+
+**The thresholds don't move.** Re-tuning them is the one thing the spec forbids outright, and
+a length-aware threshold would be a change to the spec, not a fix to the engine. Left alone,
+though, the app would tell someone looking at a 40-month fund that the date matters, when
+most of that spread is sampling noise. That's the dishonesty the spec exists to prevent, and
+it lives in the copy rather than in the number:
+
+- **A caveat whenever the verdict isn't noise and the fund has fewer than 96 instalments**
+  (eight years): the spread is reported next to what a history that short produces anyway.
+  Implemented in `copy.ts` at Phase 5, with the instalment count already in the artifact.
+- **"How confident is this?" shows the comparison** rather than asserting it: this fund's
+  spread, its instalment count, and the median spread among funds of similar length, so a
+  reader can see the effect instead of taking our word for it.
+
+If a length-aware threshold is ever wanted, it comes back here as a spec change.
 
 #### D13 — Lighthouse target
 

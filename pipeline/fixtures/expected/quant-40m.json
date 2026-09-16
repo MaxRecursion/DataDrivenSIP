@@ -238,5 +238,8 @@
   "metricsAgree": false,
   "verdict": "marginal",
   "windows": 5,
+  "instalmentLow": 9511,
+  "instalmentHigh": 17143,
+  "cohortSpreadPp": null,
   "confidence": "reduced"
 }

@@ -87,6 +87,13 @@ export function analyse(history: NavHistory, meta: FundMeta, options: AnalyseOpt
     metricsAgree: argmax(dates.map((date) => date.xirr)) === argmax(dates.map((date) => date.corpus)),
     verdict: verdictOf(spreadPp, roundedStability),
     windows: rolling.windows,
+    // Pooled across every date and month of the common set, so the range doesn't depend on
+    // which date the reader's salary happens to allow.
+    instalmentLow: Math.round(Math.min(...common.map((simulation) => simulation.lowestInstalmentValue))),
+    instalmentHigh: Math.round(Math.max(...common.map((simulation) => simulation.highestInstalmentValue))),
+    // Filled in once every fund has been analysed: a typical spread is a fact about the whole
+    // data set, not about one fund, so it cannot be known here (cohort.ts).
+    cohortSpreadPp: null,
     // A cut history is never full confidence: part of the fund's life is missing.
     confidence: options.trimmedFrom === undefined ? confidenceOf(rolling.windows, halfInstalments) : "reduced",
     ...(options.trimmedFrom === undefined ? {} : { trimmedFrom: isoFromDay(options.trimmedFrom) }),

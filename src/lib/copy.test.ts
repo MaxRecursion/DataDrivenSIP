@@ -43,6 +43,11 @@ const fundWith = (over: Partial<FundArtifact> = {}): FundArtifact => ({
   verdict: "noise",
   windows: 128,
   confidence: "full",
+  // Kotak's real figures (PLAN.md D7): one ₹10,000 instalment is worth between these today,
+  // and 0.062 pp is the typical spread among funds with this much history.
+  instalmentLow: 9_856,
+  instalmentHigh: 161_228,
+  cohortSpreadPp: 0.062,
   ...over,
 });
 

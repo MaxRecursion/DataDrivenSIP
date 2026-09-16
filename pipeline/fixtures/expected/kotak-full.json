@@ -238,5 +238,8 @@
   "metricsAgree": false,
   "verdict": "noise",
   "windows": 128,
+  "instalmentLow": 9746,
+  "instalmentHigh": 172903,
+  "cohortSpreadPp": null,
   "confidence": "full"
 }

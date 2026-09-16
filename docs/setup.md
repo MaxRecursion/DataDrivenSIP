@@ -32,12 +32,33 @@ fails. The failure is harmless, but waiting avoids the confusion.
 **You need** a free Cloudflare account. Sign up at <https://dash.cloudflare.com/sign-up>
 if you don't have one.
 
+### It must be a Pages project, not a Worker
+
+Cloudflare's dashboard now pushes Git imports towards **Workers**, so it's easy to end up
+with a Worker by mistake. A Worker's URL looks like
+`yourproject.youraccount.workers.dev`; a Pages URL looks like `yourproject.pages.dev`.
+
+The difference matters here. When a visitor opens a fund code that doesn't exist:
+
+- **Pages** returns a real 404, because the build writes `dist/data/404.html`, and the app
+  shows "not covered".
+- **Workers static assets** ignores that file, returns the page shell with a 200, and
+  attaches the one-year immutable cache header. The visitor's browser then caches HTML at
+  a JSON URL for a year.
+
+This was tested during Phase 0. If you already created a Worker, leave it or delete it, but
+create the Pages project separately.
+
 ### Create the project
 
 1. Go to <https://dash.cloudflare.com> and open **Workers & Pages** in the left sidebar.
    It may sit under **Compute**.
-2. Click **Create application**, choose **Pages**, then **Connect to Git** (sometimes shown
-   as **Import an existing Git repository**).
+2. Click **Create application** and look for a **Pages** tab or a "Looking to deploy Pages?"
+   link, then choose **Connect to Git** (sometimes **Import an existing Git repository**).
+   If the Pages option is hidden, go straight to
+   <https://dash.cloudflare.com/?to=/:account/pages/new/provider/github>.
+   Stop if the flow is about to create a Worker: the final screen should say Pages, and the
+   resulting URL should end in `.pages.dev`.
 3. Click **Connect GitHub**, or **+ Add account** if you've connected GitHub before. GitHub
    opens the **Cloudflare Workers and Pages** app page.
    - Choose the **MaxRecursion** account.

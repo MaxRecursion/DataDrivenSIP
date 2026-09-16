@@ -1,0 +1,17 @@
+{
+  // Static assets only: there is no `main`, so no server code runs and the app stays a
+  // static site (CLAUDE.md: no backend, no SSR runtime). Cloudflare Workers Builds deploys
+  // this on every push, and `wrangler dev` serves the same routing locally for the e2e tests.
+  //
+  // `single-page-application` makes an unknown path serve index.html, which is how /f/{code}
+  // deep links work. It also means a missing /data/**.json returns the shell with a 200
+  // rather than a 404, so fund data is fetched from a path that carries the data version
+  // (PLAN.md D20) and the client checks the content type before parsing.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "sip-date-planner",
+  "compatibility_date": "2026-09-15",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  }
+}

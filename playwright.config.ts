@@ -18,8 +18,9 @@ export default defineConfig({
     { name: "mobile", use: { ...devices["Pixel 7"] } },
   ],
   webServer: {
-    // Cloudflare Pages' own routing and _headers handling, not Vite's preview server (PLAN.md §10).
-    command: `pnpm exec wrangler pages dev dist --ip 127.0.0.1 --port ${port} --compatibility-date=2026-09-15`,
+    // The same runtime and routing that production uses: Workers static assets from
+    // wrangler.jsonc, including _headers and the SPA fallback (PLAN.md D20).
+    command: `pnpm exec wrangler dev --port ${port} --ip 127.0.0.1`,
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     env: { WRANGLER_SEND_METRICS: "false" },

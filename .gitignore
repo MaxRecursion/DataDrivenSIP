@@ -1,0 +1,19 @@
+node_modules/
+dist/
+.prerender/
+.probe/
+.wrangler/
+
+# Fontshare fonts are fetched at build time and must never be committed (ITF FFL 2.0).
+public/fonts/
+
+pipeline/.cache/
+
+test-results/
+playwright-report/
+blob-report/
+.lighthouseci/
+
+*.tsbuildinfo
+.DS_Store
+.env*

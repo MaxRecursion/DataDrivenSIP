@@ -1,0 +1,17 @@
+{
+  "directory": "public/fonts/v1",
+  "fonts": [
+    {
+      "file": "cabinet-grotesk-700.woff2",
+      "url": "https://cdn.fontshare.com/wf/XMXWOHABYLQDJ42L65EFRYNVRY37HQCB/B2O4O6V3JMFM2WDCYQI3A47L5U4THDUL/WN5274VQ3AUBDFP74GB4EC4XYJ3EKVNE.woff2",
+      "sha256": "52208453fddad17efb2ec2d98729e18556d6c5b64ad22171f8e8b071802314d3",
+      "bytes": 20300
+    },
+    {
+      "file": "satoshi-variable.woff2",
+      "url": "https://cdn.fontshare.com/wf/NWBQYJIM7GCZ5XWD7D26ARB3VDY55ZRT/K63EV2KZIGKLE7RANQ2U42S6SVHU5RJ7/X6XYTKIVDUW7GZTZPZNN4EUM5KH54KHF.woff2",
+      "sha256": "e739aff9b4d02c264341d6d4872edcda28e79373aeda936f659566a1cd3eb47f",
+      "bytes": 42588
+    }
+  ]
+}

@@ -1,0 +1,360 @@
+[
+  {
+    "name": "root-above-bracket-400pct",
+    "source": "synthetic closed form: -1000 on 2025-01-01, +5000 on 2026-01-01 (365 d) -> r = 4.0 exactly",
+    "flows": [
+      {
+        "date": "2025-01-01",
+        "amount": -1000
+      },
+      {
+        "date": "2026-01-01",
+        "amount": 5000
+      }
+    ],
+    "expectedEngine": null,
+    "reason": "no-sign-change-in-bracket (root 4.0 > 3.0)",
+    "trueRootsInMinus1ToInf": [
+      {
+        "brent": 3.9999999999999996,
+        "decimal": "4"
+      }
+    ],
+    "pyxirr": {
+      "default": 4,
+      "g-0.5": 4
+    },
+    "specLiteralWithSignCheck": {
+      "rate": null,
+      "reason": "no-sign-change-in-bracket",
+      "fLo": 498999.99999999953,
+      "fHi": 250
+    },
+    "specOk": true,
+    "npvAtLo": 498999.99999999953,
+    "npvAtHi": 250,
+    "naiveAssumeDecreasingNoCheck": 3,
+    "newton01": {
+      "status": "converged",
+      "iter": 8,
+      "r": 3.9999999999999996
+    }
+  },
+  {
+    "name": "root-below-bracket-pyxirr-minus_0_99",
+    "source": "pyxirr repo tests/samples/minus_0_99.csv (expected -0.9989769231734277 in tests/test_scheduled.rs; provenance of that value UNVERIFIED as Excel)",
+    "flows": [
+      {
+        "date": "2021-06-09",
+        "amount": -134.09
+      },
+      {
+        "date": "2021-08-11",
+        "amount": 40.86
+      }
+    ],
+    "expectedEngine": null,
+    "reason": "no-sign-change-in-bracket (root -0.99898 < -0.99)",
+    "trueRootsInMinus1ToInf": [
+      {
+        "brent": -0.9989769231734277,
+        "decimal": "-0.9989769231734277"
+      }
+    ],
+    "pyxirr": {
+      "default": -0.9989769231734277,
+      "g-0.5": -0.9989769231734277
+    },
+    "specLiteralWithSignCheck": {
+      "rate": null,
+      "reason": "no-sign-change-in-bracket",
+      "fLo": -43.62015593775831,
+      "fHi": -101.92517755897914
+    },
+    "specOk": true,
+    "npvAtLo": -43.62015593775831,
+    "npvAtHi": -101.92517755897914,
+    "naiveAssumeDecreasingNoCheck": -0.99,
+    "newton01": {
+      "status": "left-domain(r<=-1)",
+      "iter": 1,
+      "r": -14.788171725502572
+    }
+  },
+  {
+    "name": "root-below-bracket-pyxirr-minus_0_993",
+    "source": "pyxirr repo tests/samples/minus_0_993.csv (expected -0.993785049929284; provenance UNVERIFIED as Excel)",
+    "flows": [
+      {
+        "date": "2021-06-08",
+        "amount": -1000000
+      },
+      {
+        "date": "2022-06-29",
+        "amount": 5000
+      },
+      {
+        "date": "2023-06-08",
+        "amount": -3
+      },
+      {
+        "date": "2023-06-30",
+        "amount": 0
+      }
+    ],
+    "expectedEngine": null,
+    "reason": "no-sign-change-in-bracket (root -0.99379 < -0.99)",
+    "trueRootsInMinus1ToInf": [
+      {
+        "brent": -0.9995965225383258,
+        "decimal": "-0.9995965225383257"
+      },
+      {
+        "brent": -0.993785049949483,
+        "decimal": "-0.9937850499494831"
+      }
+    ],
+    "pyxirr": {
+      "default": -0.993785049949483,
+      "g-0.5": -0.993785049949483
+    },
+    "specLiteralWithSignCheck": {
+      "rate": null,
+      "reason": "no-sign-change-in-bracket",
+      "fLo": -378313.84060163837,
+      "fHi": -998846.0144082195
+    },
+    "specOk": true,
+    "npvAtLo": -378313.84060163837,
+    "npvAtHi": -998846.0144082195,
+    "naiveAssumeDecreasingNoCheck": -0.99,
+    "newton01": {
+      "status": "left-domain(r<=-1)",
+      "iter": 1,
+      "r": -229.19072130841886
+    }
+  },
+  {
+    "name": "two-roots-inside-bracket",
+    "source": "synthetic: -100 on 2020-01-01, +230 on 2020-12-31 (365 d), -132 on 2021-12-31 (730 d); -132x^2+230x-100=0 with x=1/(1+r) gives r=0.10, 0.20 exactly",
+    "flows": [
+      {
+        "date": "2020-01-01",
+        "amount": -100
+      },
+      {
+        "date": "2020-12-31",
+        "amount": 230
+      },
+      {
+        "date": "2021-12-31",
+        "amount": -132
+      }
+    ],
+    "expectedEngine": null,
+    "reason": "even number of roots (0.10 and 0.20) -> same NPV sign at both bracket ends",
+    "trueRootsInMinus1ToInf": [
+      {
+        "brent": 0.10000000000000085,
+        "decimal": "0.1"
+      },
+      {
+        "err": "decimal: not bracketed"
+      }
+    ],
+    "pyxirr": {
+      "default": 0.09999999999999892,
+      "g-0.5": 0.10000000000000064
+    },
+    "specLiteralWithSignCheck": {
+      "rate": null,
+      "reason": "no-sign-change-in-bracket",
+      "fLo": -1297099.9999999977,
+      "fHi": -50.75
+    },
+    "specOk": true,
+    "npvAtLo": -1297099.9999999977,
+    "npvAtHi": -50.75,
+    "naiveAssumeDecreasingNoCheck": -0.99,
+    "newton01": {
+      "status": "converged",
+      "iter": 1,
+      "r": 0.10000000000000173
+    }
+  },
+  {
+    "name": "all-outflows-no-positive",
+    "source": "synthetic",
+    "flows": [
+      {
+        "date": "2024-01-01",
+        "amount": -1000
+      },
+      {
+        "date": "2024-06-01",
+        "amount": -1000
+      }
+    ],
+    "expectedEngine": null,
+    "reason": "no-positive-flow (Excel documents #NUM!)",
+    "trueRootsInMinus1ToInf": [],
+    "pyxirr": {
+      "default": "ERR InvalidPaymentsError",
+      "g-0.5": "ERR InvalidPaymentsError"
+    },
+    "specLiteralWithSignCheck": {
+      "rate": null,
+      "reason": "no-sign-change-in-bracket",
+      "fLo": -7805.76129075594,
+      "fHi": -1561.408685009183
+    },
+    "specOk": true,
+    "npvAtLo": -7805.76129075594,
+    "npvAtHi": -1561.408685009183,
+    "naiveAssumeDecreasingNoCheck": -0.99,
+    "newton01": {
+      "status": "nonfinite",
+      "iter": 15,
+      "r": 3.210398070970907e+253
+    }
+  },
+  {
+    "name": "sip-12m-sign-inverted",
+    "source": "sip-12m-2024-leap-year with every amount negated",
+    "flows": [
+      {
+        "date": "2024-01-08",
+        "amount": 10000
+      },
+      {
+        "date": "2024-02-07",
+        "amount": 10000
+      },
+      {
+        "date": "2024-03-07",
+        "amount": 10000
+      },
+      {
+        "date": "2024-04-08",
+        "amount": 10000
+      },
+      {
+        "date": "2024-05-07",
+        "amount": 10000
+      },
+      {
+        "date": "2024-06-07",
+        "amount": 10000
+      },
+      {
+        "date": "2024-07-08",
+        "amount": 10000
+      },
+      {
+        "date": "2024-08-07",
+        "amount": 10000
+      },
+      {
+        "date": "2024-09-09",
+        "amount": 10000
+      },
+      {
+        "date": "2024-10-07",
+        "amount": 10000
+      },
+      {
+        "date": "2024-11-07",
+        "amount": 10000
+      },
+      {
+        "date": "2024-12-09",
+        "amount": 10000
+      },
+      {
+        "date": "2025-01-07",
+        "amount": -131427.91
+      }
+    ],
+    "expectedEngine": 0.18000003,
+    "reason": "NPV(r) is multiplied by -1; root unchanged; NPV increasing in r -> engine must not assume decreasing",
+    "trueRootsInMinus1ToInf": [
+      {
+        "brent": 0.18000002660861347,
+        "decimal": "0.1800000266086132"
+      }
+    ],
+    "pyxirr": {
+      "default": 0.18000002629710332,
+      "g-0.5": 0.18000002660854966
+    },
+    "specLiteralWithSignCheck": {
+      "rate": 0.18000002660861347,
+      "iterations": 54
+    },
+    "specOk": true,
+    "npvAtLo": -11018463.28948775,
+    "npvAtHi": 36022.93584036985,
+    "naiveAssumeDecreasingNoCheck": 3,
+    "newton01": {
+      "status": "converged",
+      "iter": 4,
+      "r": 0.18000002660861328
+    }
+  },
+  {
+    "name": "first-row-not-earliest",
+    "source": "exceljet example rotated so the 2022-12-30 +250 row is first",
+    "flows": [
+      {
+        "date": "2022-12-30",
+        "amount": 250
+      },
+      {
+        "date": "2022-01-01",
+        "amount": -1000
+      },
+      {
+        "date": "2022-06-01",
+        "amount": 100
+      },
+      {
+        "date": "2022-12-01",
+        "amount": 200
+      },
+      {
+        "date": "2022-03-01",
+        "amount": 250
+      },
+      {
+        "date": "2022-09-01",
+        "amount": 250
+      }
+    ],
+    "expectedEngine": 0.07876331,
+    "reason": "Excel support page and LibreOffice/OpenFormula say #NUM! when a date precedes the first row date, but Microsoft MS-OI29500 2.1.1070 says in Office dates can precede the start date. Root is mathematically invariant to t0, so an engine that sorts (or tolerates negative years) returns the same rate.",
+    "trueRootsInMinus1ToInf": [
+      {
+        "brent": 0.07876330884553923,
+        "decimal": "0.0787633088455394"
+      }
+    ],
+    "pyxirr": {
+      "default": 0.07876330884540444,
+      "g-0.5": 0.07876330857183017
+    },
+    "specLiteralWithSignCheck": {
+      "rate": 0.07876330884553917,
+      "iterations": 100,
+      "fLoSign": 1
+    },
+    "specOk": true,
+    "npvAtLo": 445.7552895090787,
+    "npvAtHi": -2085.1862868853077,
+    "naiveAssumeDecreasingNoCheck": 0.07876330884553917,
+    "newton01": {
+      "status": "converged",
+      "iter": 3,
+      "r": 0.07876330884553927
+    }
+  }
+]

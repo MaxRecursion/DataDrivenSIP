@@ -58,7 +58,7 @@ describe("writeArtifacts", () => {
     expect(first.dataVersion.startsWith("2026-09-11.")).toBe(true);
   });
 
-  it("keeps the two most recent versions and prunes the rest", async () => {
+  it("keeps the newest versions, counting the one just written, and prunes the rest", async () => {
     const dir = out();
     for (const stale of ["2026-09-01.aaaaaaaa", "2026-09-02.bbbbbbbb", "2026-09-03.cccccccc"]) {
       mkdirSync(join(dir, stale, "funds"), { recursive: true });

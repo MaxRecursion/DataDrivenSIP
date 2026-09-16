@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { dayFromIso } from "./analysis/dates";
 import { buildHistory, parseNavRows, type NavRow } from "./analysis/nav";
-import { checkHistory, checkScheme, filterSchemes, trimAtDiscontinuity } from "./eligibility";
+import { checkHistory, checkScheme, filterSchemes, trimHistory } from "./eligibility";
 import type { SchemeSummary } from "./sources/types";
 
 const TODAY = dayFromIso("2026-09-16");
@@ -58,12 +58,25 @@ describe("checkScheme: product rules", () => {
     [{ name: "SBI Overnight Fund - Direct Plan - Growth" }, "overnight-or-liquid"],
     [{ name: "Axis Liquid Fund - Direct Plan - Growth" }, "overnight-or-liquid"],
     [{ name: "Bharat Bond FOF - April 2030 - Direct Plan - Growth" }, "target-maturity"],
+    [{ name: "Kotak CRISIL-IBX AAA Financial Services Sep 2027 Index Fund - Direct Plan - Growth" }, "target-maturity"],
+    [{ name: "Aditya Birla Sun Life NBFC-HFC Sep 2026 Index Fund - Direct Plan - Growth" }, "target-maturity"],
     [{ name: "SBI CPSE Bond Plus SDL Sep 2026 50:50 Index Fund Direct Growth" }, "target-maturity"],
     [{ name: "Edelweiss Nifty PSU Bond Plus SDL Index Fund 2027 Direct Growth" }, "target-maturity"],
   ])("drops %j", (over, reason) => {
     const result = checkScheme(scheme(over as Partial<SchemeSummary>), TODAY);
     expect(result.ok).toBe(false);
     expect(result.reason).toBe(reason);
+  });
+
+  it("keeps a fund of funds that merely holds an ETF or a liquid scheme", () => {
+    // These are ordinary open-ended schemes you can start a SIP in with the AMC.
+    for (const name of [
+      "HDFC Gold ETF Fund of Fund - Direct Plan - Growth",
+      "Mirae Asset S&P 500 Top 50 ETF FoF - Direct Plan - Growth",
+      "Alphagrep Liquid Omni FOF - Direct Plan - Growth",
+    ]) {
+      expect(checkScheme(scheme({ name }), TODAY).ok).toBe(true);
+    }
   });
 
   it("keeps an ordinary index fund that merely has a year in a different sense", () => {
@@ -138,8 +151,15 @@ describe("checkHistory: rules that need the NAVs themselves", () => {
     return buildHistory(rows);
   };
 
-  it("needs at least 36 months", () => {
-    expect(checkHistory(daily("2023-09-16", "2026-09-16", (i) => 10 + i * 0.01)).ok).toBe(true);
+  // 37, not 36: a fund with exactly 36 months yields no rolling window at all, so it would be
+  // graded on spread alone with nothing behind it.
+  it("needs 37 months, one more than a single rolling window", () => {
+    expect(checkHistory(daily("2023-08-16", "2026-09-16", (i) => 10 + i * 0.01)).ok).toBe(true);
+
+    const exactlyThirtySix = checkHistory(daily("2023-09-16", "2026-09-16", (i) => 10 + i * 0.01));
+    expect(exactlyThirtySix.ok).toBe(false);
+    expect(exactlyThirtySix.reason).toBe("too-short");
+
     const short = checkHistory(daily("2023-10-16", "2026-09-16", (i) => 10 + i * 0.01));
     expect(short.ok).toBe(false);
     expect(short.reason).toBe("too-short");
@@ -157,7 +177,7 @@ describe("checkHistory: rules that need the NAVs themselves", () => {
   });
 });
 
-describe("trimAtDiscontinuity", () => {
+describe("trimHistory", () => {
   const series = (from: string, to: string, nav: (index: number, day: number) => number) => {
     const start = dayFromIso(from);
     const end = dayFromIso(to);
@@ -168,15 +188,34 @@ describe("trimAtDiscontinuity", () => {
 
   it("leaves an ordinary series alone", () => {
     const clean = series("2020-01-01", "2026-09-15", (i) => 100 * 1.0002 ** i);
-    const result = trimAtDiscontinuity(clean);
+    const result = trimHistory(clean);
     expect(result.trimmedAt).toBeNull();
     expect(result.history.rows).toHaveLength(clean.rows.length);
+  });
+
+  it("keeps a fund that trebles in a day, which a lower threshold used to throw years away for", () => {
+    // Real cases: a 225% and a 108% single-day move, both on funds with a decade of history.
+    const step = dayFromIso("2019-04-11");
+    const result = trimHistory(series("2013-01-02", "2026-09-15", (i, day) => (day < step ? 20 : 65) * 1.0001 ** i));
+    expect(result.trimmedAt).toBeNull();
+  });
+
+  it("cuts at a hole months long, because those instalments never happened", () => {
+    const start = dayFromIso("2013-04-05");
+    const resumes = dayFromIso("2015-05-04");
+    const rows: NavRow[] = [];
+    for (let day = start; day <= dayFromIso("2013-05-29"); day++) rows.push({ day, nav: 10 });
+    for (let day = resumes; day <= dayFromIso("2026-09-15"); day++) rows.push({ day, nav: 13 });
+    const result = trimHistory(buildHistory(rows));
+    expect(result.reason).toBe("gap");
+    expect(result.trimmedAt).toBe(resumes);
+    expect(result.history.first).toBe(resumes);
   });
 
   it("keeps a violent but believable market move", () => {
     // A 20% single-day fall is a crash, not a re-denomination.
     const crash = dayFromIso("2020-03-23");
-    const result = trimAtDiscontinuity(
+    const result = trimHistory(
       series("2019-01-01", "2026-09-15", (i, day) => (day < crash ? 100 : 80) * 1.0001 ** i),
     );
     expect(result.trimmedAt).toBeNull();
@@ -185,7 +224,7 @@ describe("trimAtDiscontinuity", () => {
   it("cuts a hundredfold NAV re-denomination, keeping only what follows", () => {
     // The shape seen in real money market funds: 13 becomes 1,336 overnight.
     const jump = dayFromIso("2013-04-22");
-    const result = trimAtDiscontinuity(
+    const result = trimHistory(
       series("2013-01-02", "2026-09-15", (i, day) => (day < jump ? 13 : 1336) * 1.0001 ** i),
     );
     expect(result.trimmedAt).toBe(jump);
@@ -195,7 +234,7 @@ describe("trimAtDiscontinuity", () => {
 
   it("leaves too little history behind when the jump is recent, so the fund is dropped", () => {
     const jump = dayFromIso("2025-01-02");
-    const trimmed = trimAtDiscontinuity(
+    const trimmed = trimHistory(
       series("2013-01-02", "2026-09-15", (i, day) => (day < jump ? 13 : 1336) * 1.0001 ** i),
     );
     const check = checkHistory(trimmed.history);

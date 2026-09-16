@@ -6,13 +6,13 @@
  * time we don't need and cost determinism we do.
  */
 import { analyse, AnalysisError, type FundMeta } from "./analysis/analyse";
-import type { DayNum } from "./analysis/dates";
+import { dayFromNavDate, type DayNum } from "./analysis/dates";
 import { buildHistory, parseNavRows } from "./analysis/nav";
 import { mergeRows, readEntry, writeEntry } from "./cache";
 import {
   checkHistory,
   filterSchemes,
-  trimAtDiscontinuity,
+  trimHistory,
   type ExclusionReason,
   type HistoryRejection,
 } from "./eligibility";
@@ -88,8 +88,8 @@ export async function runPipeline(options: PipelineOptions): Promise<PipelineRep
       const parsed = parseNavRows(rows).filter((row) => options.asOf === undefined || row.day <= options.asOf);
       if (parsed.length === 0) return { scheme, drop: "not-found" as const };
 
-      // Anything before a NAV re-denomination belongs to a different series.
-      const { history, trimmedAt } = trimAtDiscontinuity(buildHistory(parsed));
+      // Anything before a re-denomination or a months-long hole belongs to a different series.
+      const { history, trimmedAt } = trimHistory(buildHistory(parsed));
       const check = checkHistory(history);
       if (!check.ok) return { scheme, drop: check.reason };
 
@@ -99,7 +99,8 @@ export async function runPipeline(options: PipelineOptions): Promise<PipelineRep
         house: scheme.house,
         category: scheme.category,
       };
-      return { scheme, artifact: analyse(history, meta), trimmed: trimmedAt !== null };
+      const artifact = analyse(history, meta, trimmedAt === null ? {} : { trimmedFrom: trimmedAt });
+      return { scheme, artifact, trimmed: trimmedAt !== null };
     } catch (error) {
       const reason = error instanceof AnalysisError ? error.reason : (error as Error).message;
       return { scheme, failure: reason };
@@ -147,36 +148,52 @@ async function rowsFor(scheme: SchemeSummary, options: PipelineOptions): Promise
   const { cacheDir, source, full } = options;
   if (!cacheDir) return source.history(scheme.code);
 
-  // A full refresh refetches whole histories but still fills the cache, so the next nightly
-  // run has something to build a tail onto.
-  const cached = full ? null : await readEntry(cacheDir, scheme.code);
-  if (!cached) {
+  const fetchWhole = async (): Promise<RawNavRow[] | null> => {
     const fresh = await source.history(scheme.code);
+    // A full refresh still fills the cache, so the next nightly run isn't cold.
     if (fresh?.length) {
       await writeEntry(cacheDir, { code: scheme.code, latestDate: fresh[0]?.date ?? "", rows: fresh });
     }
     return fresh;
-  }
+  };
 
-  // The cache key is the latest NAV date: unchanged means nothing to fetch.
-  const newest = cached.rows[0]?.date;
-  if (newest && scheme.latestNavDate !== null && newest === cached.latestDate) {
-    const upstreamUnchanged = cached.latestDate === formatForCompare(scheme.latestNavDate);
-    if (upstreamUnchanged) return cached.rows;
-  }
+  const cached = full ? null : await readEntry(cacheDir, scheme.code);
+  const cachedNewest = cached ? dayOf(cached.rows[0]?.date) : null;
+  if (!cached || cachedNewest === null) return fetchWhole();
 
-  const since = Math.max(0, (scheme.latestNavDate ?? options.today) - TAIL_DAYS);
-  const tail = await source.history(scheme.code, since);
+  // The cache key is the latest NAV date: unchanged means nothing to fetch at all.
+  const upstreamNewest = scheme.latestNavDate ?? options.today;
+  if (upstreamNewest === cachedNewest) return cached.rows;
+
+  // The tail has to reach back to what the cache already holds, not merely to the newest day
+  // upstream: a cache older than the tail window would otherwise leave a permanent hole in
+  // the merged history. Anything staler than the window is refetched whole, which doubles as
+  // the periodic full refresh.
+  if (upstreamNewest - cachedNewest > TAIL_DAYS) return fetchWhole();
+
+  const tail = await source.history(scheme.code, cachedNewest - TAIL_DAYS);
   if (tail === null) return null;
 
   const merged = mergeRows(cached.rows, tail);
-  const rows = merged.conflict ? ((await source.history(scheme.code)) ?? merged.rows) : merged.rows;
-  await writeEntry(cacheDir, { code: scheme.code, latestDate: rows[0]?.date ?? cached.latestDate, rows });
-  return rows;
+  const tailOldest = dayOf(tail.at(-1)?.date);
+  // A tail that starts after the cache ends, or that corrects a day we already had, means the
+  // merge can't be trusted; take the whole history instead.
+  const joins = tailOldest !== null && tailOldest <= cachedNewest + 1;
+  if (merged.conflict || !joins) return fetchWhole();
+
+  await writeEntry(cacheDir, {
+    code: scheme.code,
+    latestDate: merged.rows[0]?.date ?? cached.latestDate,
+    rows: merged.rows,
+  });
+  return merged.rows;
 }
 
-function formatForCompare(day: DayNum): string {
-  const date = new Date(day * 86_400_000);
-  const pad = (value: number) => String(value).padStart(2, "0");
-  return `${pad(date.getUTCDate())}-${pad(date.getUTCMonth() + 1)}-${date.getUTCFullYear()}`;
+function dayOf(date: string | undefined): DayNum | null {
+  if (!date) return null;
+  try {
+    return dayFromNavDate(date);
+  } catch {
+    return null;
+  }
 }

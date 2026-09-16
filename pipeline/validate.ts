@@ -49,6 +49,13 @@ export function validateArtifact(input: unknown): ValidationIssue[] {
   if (!finite(artifact.windows) || artifact.windows < 0 || !Number.isInteger(artifact.windows)) {
     add("windows is not a whole count");
   }
+  if (artifact.trimmedFrom !== undefined) {
+    if (typeof artifact.trimmedFrom !== "string" || !ISO_DATE.test(artifact.trimmedFrom)) {
+      add("trimmedFrom is not YYYY-MM-DD");
+    }
+    // A cut history can never claim full confidence.
+    if (artifact.confidence !== "reduced") add("a trimmed history must be reduced confidence");
+  }
 
   const dates = artifact.dates;
   if (!Array.isArray(dates) || dates.length !== SIP_DATES.length) {

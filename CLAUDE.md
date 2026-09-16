@@ -30,6 +30,10 @@ Two halves that never mix:
   Write the test before the function. Kotak Mid Cap (119775) is the golden fixture and
   acceptance criterion 3 is the oracle: if the engine disagrees, the engine is wrong.
 - Date math is UTC-only. Never construct a local-time `Date` in analysis code.
+- Published NAV histories are cleaned before analysis (`PLAN.md` D21): single bad prints are
+  dropped, and the series is cut at a re-denomination or a hole longer than 60 days. A fund
+  whose history was cut carries `trimmedFrom` and is always reduced confidence, because the
+  page must never present a truncated series as the fund's whole life.
 - "Transform and opacity only" covers CSS too: no `transition-colors`, `transition-all`,
   shadow/height transitions or keyframes. Colour fills and rings are pre-painted overlays
   whose opacity animates. State changes that aren't animated are fine.

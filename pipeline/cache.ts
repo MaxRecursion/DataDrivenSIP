@@ -46,9 +46,23 @@ export function mergeRows(
   cached: readonly RawNavRow[],
   fresh: readonly RawNavRow[],
 ): { rows: RawNavRow[]; conflict: boolean } {
-  const byDate = new Map(cached.map((row) => [row.date, row]));
-  let conflict = false;
+  if (fresh.length === 0) return { rows: [...cached], conflict: false };
 
+  const freshDays = fresh.map(day).filter((value) => Number.isFinite(value));
+  const from = Math.min(...freshDays);
+  const to = Math.max(...freshDays);
+  const freshDates = new Set(fresh.map((row) => row.date));
+
+  const byDate = new Map<string, RawNavRow>();
+  for (const row of cached) {
+    const at = day(row);
+    // A day inside the range the tail covers, which the tail didn't return, was withdrawn
+    // upstream. Keeping it would feed a NAV that no longer exists into every later run.
+    if (Number.isFinite(at) && at >= from && at <= to && !freshDates.has(row.date)) continue;
+    byDate.set(row.date, row);
+  }
+
+  let conflict = false;
   for (const row of fresh) {
     const existing = byDate.get(row.date);
     if (existing && existing.nav !== row.nav) conflict = true;

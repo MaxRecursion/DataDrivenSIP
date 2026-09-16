@@ -6,7 +6,7 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { dayFromIso } from "./analysis/dates";
+import { dayFromIso, dayFromNavDate } from "./analysis/dates";
 import { readEntry, writeEntry } from "./cache";
 import { runPipeline } from "./run";
 import { fixtureSource } from "./sources/fixture";
@@ -28,13 +28,15 @@ async function kotakFixture(): Promise<{ scheme: SchemeSummary; rows: RawNavRow[
   return { scheme, rows };
 }
 
+/** Honours `since` the way the real source does, so a tail fetch really is only a tail. */
 function countingSource(scheme: SchemeSummary, rows: RawNavRow[]) {
   const calls: { code: number; since: number | undefined }[] = [];
   const source: NavSource = {
     listSchemes: async () => [scheme],
     history: async (code, since) => {
       calls.push({ code, since });
-      return rows;
+      if (since === undefined) return rows;
+      return rows.filter((row) => dayFromNavDate(row.date) >= since);
     },
   };
   return { source, calls };
@@ -80,6 +82,33 @@ describe("runPipeline with a cache", () => {
     expect(calls).toHaveLength(1);
     expect(calls[0]?.since).toBeDefined();
     expect(calls[0]?.since).toBeLessThan(moved.latestNavDate ?? 0);
+    expect(report.analysed).toBe(1);
+  });
+
+  it("refetches the whole history when the cache is staler than the tail window", async () => {
+    // A tail reaching back only from the newest day upstream would leave the days between
+    // permanently missing from the cached history.
+    const { scheme, rows } = await kotakFixture();
+    const newestDay = scheme.latestNavDate;
+    if (newestDay === null) throw new Error("fixture has no date");
+    const cacheDir = mkdtempSync(join(tmpdir(), "sip-cache-run-"));
+    const stale = rows.filter((row) => dayFromNavDate(row.date) <= newestDay - 40);
+    const staleNewest = stale[0];
+    if (!staleNewest) throw new Error("fixture too short");
+    await writeEntry(cacheDir, { code: scheme.code, latestDate: staleNewest.date, rows: stale });
+
+    const { source, calls } = countingSource(scheme, rows);
+    const report = await runPipeline({
+      source,
+      outDir: mkdtempSync(join(tmpdir(), "sip-data-")),
+      cacheDir,
+      ...options,
+    });
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.since).toBeUndefined();
+    const written = await readEntry(cacheDir, scheme.code);
+    expect(written?.rows).toHaveLength(rows.length);
     expect(report.analysed).toBe(1);
   });
 

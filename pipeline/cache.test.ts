@@ -47,6 +47,22 @@ describe("mergeRows", () => {
     expect(merged.rows).toEqual(cached);
   });
 
+  it("drops a cached day the tail no longer returns, because upstream withdrew it", () => {
+    const tail = rows([
+      ["11-09-2026", "169.773"],
+      ["09-09-2026", "170.878"],
+    ]);
+    const merged = mergeRows(cached, tail);
+    expect(merged.rows.map((row) => row.date)).toEqual(["11-09-2026", "09-09-2026"]);
+    expect(merged.conflict).toBe(false);
+  });
+
+  it("keeps cached days from outside the range the tail covers", () => {
+    const tail = rows([["11-09-2026", "169.773"]]);
+    const merged = mergeRows(cached, tail);
+    expect(merged.rows.map((row) => row.date)).toEqual(["11-09-2026", "10-09-2026", "09-09-2026"]);
+  });
+
   it("handles an empty cache and empty fetches", () => {
     expect(mergeRows([], cached).rows).toEqual(cached);
     expect(mergeRows(cached, []).rows).toEqual(cached);

@@ -2,7 +2,7 @@
  * Puts one fund's artifact together (PLAN.md §4, §5). Pure: no I/O, no clock, no randomness.
  */
 import type { DateResult, FundArtifact } from "../../shared/artifacts";
-import { isoFromDay } from "./dates";
+import { isoFromDay, type DayNum } from "./dates";
 import type { NavHistory } from "./nav";
 import { rollingStats } from "./rolling";
 import { simulateAll, SIP_DATES } from "./simulate";
@@ -27,7 +27,12 @@ const round3 = (value: number) => (Math.sign(value) * Math.round(Math.abs(value)
 const argmax = (values: readonly number[]) =>
   values.reduce((best, value, index) => (value > (values[best] ?? -Infinity) ? index : best), 0);
 
-export function analyse(history: NavHistory, meta: FundMeta): FundArtifact {
+export type AnalyseOptions = {
+  /** The day the published history was cut at, when it doesn't start at the fund's first NAV. */
+  trimmedFrom?: DayNum;
+};
+
+export function analyse(history: NavHistory, meta: FundMeta, options: AnalyseOptions = {}): FundArtifact {
   const perDate = simulateAll(history, "per-date");
   const common = simulateAll(history, "common");
 
@@ -77,9 +82,13 @@ export function analyse(history: NavHistory, meta: FundMeta): FundArtifact {
     spreadPp,
     spreadRupees: Math.round(Math.max(...corpuses) - Math.min(...corpuses)),
     stability: roundedStability,
-    metricsAgree: argmax(percentRates) === argmax(corpuses),
+    // Compare the values the artifact actually publishes: deciding this on unrounded rates
+    // makes the flag contradict the numbers a reader can see.
+    metricsAgree: argmax(dates.map((date) => date.xirr)) === argmax(dates.map((date) => date.corpus)),
     verdict: verdictOf(spreadPp, roundedStability),
     windows: rolling.windows,
-    confidence: confidenceOf(rolling.windows, halfInstalments),
+    // A cut history is never full confidence: part of the fund's life is missing.
+    confidence: options.trimmedFrom === undefined ? confidenceOf(rolling.windows, halfInstalments) : "reduced",
+    ...(options.trimmedFrom === undefined ? {} : { trimmedFrom: isoFromDay(options.trimmedFrom) }),
   };
 }

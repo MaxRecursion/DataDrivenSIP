@@ -6,7 +6,7 @@
  * first, then the index, then meta, so a half-finished run is never pointed at.
  */
 import { createHash } from "node:crypto";
-import { mkdir, readdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, readdir, rename, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { FundArtifact, IndexRow, Meta } from "../shared/artifacts";
 import { checkArtifactSize, checkIndexSize, validateArtifact } from "./validate";
@@ -15,7 +15,10 @@ export type WriteOptions = {
   artifacts: readonly FundArtifact[];
   builtAt: string;
   pipelineVersion: string;
-  /** Older versions stay briefly so a page loaded moments ago can still fetch its data. */
+  /**
+   * How many versions to retain in total, the new one included. Older ones stay briefly so a
+   * page loaded during a previous build can still fetch its data.
+   */
   keepVersions?: number;
   source?: string;
 };
@@ -28,6 +31,12 @@ export type WriteResult = {
 };
 
 const VERSION_DIR = /^\d{4}-\d{2}-\d{2}\./;
+
+async function writeAtomic(path: string, contents: string): Promise<void> {
+  const temp = `${path}.tmp`;
+  await writeFile(temp, contents);
+  await rename(temp, path);
+}
 
 /** The date most funds were last priced on. */
 function navAsOfFrom(artifacts: readonly FundArtifact[]): string {
@@ -45,7 +54,7 @@ function navAsOfFrom(artifacts: readonly FundArtifact[]): string {
 }
 
 export async function writeArtifacts(outDir: string, options: WriteOptions): Promise<WriteResult> {
-  const { artifacts, builtAt, pipelineVersion, keepVersions = 2, source = "mfapi.in" } = options;
+  const { artifacts, builtAt, pipelineVersion, keepVersions = 3, source = "mfapi.in" } = options;
   if (artifacts.length === 0) throw new Error("Refusing to publish an empty data set");
 
   const sorted = [...artifacts].sort((a, b) => a.code - b.code);
@@ -61,35 +70,40 @@ export async function writeArtifacts(outDir: string, options: WriteOptions): Pro
   const digest = createHash("sha256").update(payloads.join("\n")).digest("hex").slice(0, 8);
   const dataVersion = `${navAsOf}.${digest}`;
 
-  const fundsDir = join(outDir, dataVersion, "funds");
-  await mkdir(fundsDir, { recursive: true });
-  await Promise.all(sorted.map((artifact, index) => writeFile(join(fundsDir, `${artifact.code}.json`), payloads[index] ?? "")));
-
+  // Everything that can fail happens before a single file is written, so a rejected run never
+  // leaves a half-built version directory behind for pruning to trip over.
   const index: IndexRow[] = sorted.map((artifact) => [artifact.code, artifact.name, artifact.house, artifact.category]);
   const indexJson = JSON.stringify(index);
   const indexIssues = checkIndexSize(indexJson);
   if (indexIssues.length > 0) throw new Error(indexIssues.map((issue) => issue.problem).join("; "));
-  await writeFile(join(outDir, "index.json"), indexJson);
 
-  const meta: Meta = {
-    builtAt,
-    fundCount: sorted.length,
-    navAsOf,
-    pipelineVersion,
-    dataVersion,
-    source,
-  };
-  await writeFile(join(outDir, "meta.json"), `${JSON.stringify(meta, null, 2)}\n`);
+  const fundsDir = join(outDir, dataVersion, "funds");
+  try {
+    await mkdir(fundsDir, { recursive: true });
+    await Promise.all(
+      sorted.map((artifact, index_) => writeFile(join(fundsDir, `${artifact.code}.json`), payloads[index_] ?? "")),
+    );
+  } catch (error) {
+    await rm(join(outDir, dataVersion), { recursive: true, force: true });
+    throw error;
+  }
 
-  const versions = (await readdir(outDir, { withFileTypes: true }))
-    .filter((entry) => entry.isDirectory() && VERSION_DIR.test(entry.name))
+  const meta: Meta = { builtAt, fundCount: sorted.length, navAsOf, pipelineVersion, dataVersion, source };
+  // Written through a temp file and renamed, so a reader never sees half an index.
+  await writeAtomic(join(outDir, "index.json"), indexJson);
+  await writeAtomic(join(outDir, "meta.json"), `${JSON.stringify(meta, null, 2)}\n`);
+
+  const older = (await readdir(outDir, { withFileTypes: true }))
+    .filter((entry) => entry.isDirectory() && VERSION_DIR.test(entry.name) && entry.name !== dataVersion)
     .map((entry) => entry.name)
     .sort()
     .reverse();
-  const keep = new Set([dataVersion, ...versions.slice(0, Math.max(1, keepVersions))]);
-  const kept = versions.filter((version) => keep.has(version));
+  // keepVersions counts every version retained, the new one included.
+  const kept = [dataVersion, ...older.slice(0, Math.max(0, keepVersions - 1))];
   await Promise.all(
-    versions.filter((version) => !keep.has(version)).map((version) => rm(join(outDir, version), { recursive: true, force: true })),
+    older
+      .filter((version) => !kept.includes(version))
+      .map((version) => rm(join(outDir, version), { recursive: true, force: true })),
   );
 
   return { dataVersion, fundCount: sorted.length, navAsOf, versionsKept: kept };

@@ -56,12 +56,20 @@ async function main(): Promise<void> {
   const concurrency = flag("concurrency");
   const useFixtures = flag("source") === "fixture";
 
+  // A partial run publishes a partial set, and its meta.json would become the baseline that
+  // disarms the next run's fund-count guard. Keep it away from the real output directory.
+  if ((codes?.length || limit) && flag("out") === undefined) {
+    console.error("GUARD: --codes and --limit write a partial data set, so they need an explicit --out");
+    process.exit(1);
+  }
+
   const previous = await previousFundCount(outDir);
   const report = await runPipeline({
     source: useFixtures ? fixtureSource() : mfapiSource(),
     outDir,
     cacheDir,
-    today: dayFromIso(todayInIndia()),
+    // --as-of fixes the whole run, the scheme list included, not just which NAVs are read.
+    today: asOf ? dayFromIso(asOf) : dayFromIso(todayInIndia()),
     builtAt: new Date().toISOString(),
     pipelineVersion: PIPELINE_VERSION,
     ...(asOf ? { asOf: dayFromIso(asOf) } : {}),

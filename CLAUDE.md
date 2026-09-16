@@ -59,7 +59,13 @@ them on 2026-09-15, so `PLAN.md` is the source of truth.
     strings go to WAAPI.
   - Motion doesn't manage `will-change`.
   - `reducedMotion="user"` still animates opacity.
-- Cloudflare Pages (verified locally with `wrangler pages dev`):
+- Hosting is Cloudflare **Workers static assets**, not Pages (PLAN.md D20). Verified on the
+  live Worker and with `wrangler dev`: `_headers` is honoured, `/f/{code}` falls back to the
+  shell, and a missing `/data/**.json` returns index.html with a 200 and whatever cache
+  header matched. That is why data URLs carry the data version and the client checks the
+  content type before parsing.
+- Pages facts below stay true if the project ever moves back (verified with
+  `wrangler pages dev`):
   - `/* /index.html 200` in `_redirects` is rejected as an infinite loop.
   - SPA fallback works as long as there's no top-level `404.html`.
   - A missing JSON file returns `index.html` with 200 unless a nested `data/404.html`

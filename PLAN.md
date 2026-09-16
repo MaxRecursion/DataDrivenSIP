@@ -301,6 +301,10 @@ can't be automated.
 
 #### D12 — Three spec hosting items don't work on Cloudflare as written
 
+> **Superseded by D20 (2026-09-16):** the site runs on Cloudflare Workers static assets, not
+> Pages. The Cloudflare behaviours described below are still accurate, and the og-tags
+> decision still stands. Only the product changed.
+
 Verified locally with `wrangler pages dev`, which uses Pages' routing code. Parity with
 production gets confirmed at Phase 1 (D19).
 
@@ -312,8 +316,9 @@ production gets confirmed at Phase 1 (D19).
   with 200 **and** the immutable header.
   - Fetch `/data/funds/{code}.json?v={dataVersion}`, with `dataVersion` baked into the HTML
     at build time.
-  - The build writes `dist/data/404.html` so missing data returns a real 404. This is
-    Pages-only behaviour; the pipeline never touches that file.
+  - ~~The build writes `dist/data/404.html` so missing data returns a real 404.~~ Pages-only,
+    and dropped under D20: Workers ignores a nested 404.html, so the data path carries the
+    version instead.
   - The client also checks `content-type`.
 - **Client-side og: tags are invisible to link previews.** WhatsApp, Slack, X and LinkedIn
   crawlers read raw HTML. That's documented by Facebook and Slack and widely reported for
@@ -324,6 +329,35 @@ production gets confirmed at Phase 1 (D19).
   - This is build-time generation only; there's no server runtime. About 2,000 files, well
     under Pages' 20,000 limit.
   - Hydration details are in §6.2.
+
+#### D20 — Hosting pivot to Workers static assets (supersedes D12's product choice)
+
+Decided 2026-09-16. The dashboard's Git import creates Workers projects, the Pages flow
+proved hard to reach, and Cloudflare directs its investment at Workers. The site is live at
+`sip-date-planner.kulkarniakshay1989.workers.dev`, built by Workers Builds from this repo.
+
+**What stays the same**
+- `wrangler.jsonc` has no `main`, so no server code runs. Still a static site, still no
+  backend.
+- `_headers` is honoured. Verified on the live Worker and with `wrangler dev`.
+- `/f/{code}` falls back to the shell, so deep links work without a `_redirects` file.
+- Per-fund HTML for og tags still works: an exact file match wins over the fallback.
+
+**What changes**
+- **A missing `/data/**.json` returns the shell with a 200**, plus whatever cache header
+  matched, where Pages returned a 404. Measured on the live Worker:
+  `content-type: text/html` with `max-age=31536000, immutable`.
+- **Fund data moves to a versioned path**, `/data/{dataVersion}/funds/{code}.json`, instead
+  of a `?v=` query on a stable URL. A wrong code can still be cached, but only under a
+  version the next nightly build retires, rather than for a year.
+- The client treating a non-JSON content type as "not covered" (§6.2) becomes the primary
+  guard rather than a backstop.
+- `scripts/write-static.ts` and its nested `data/404.html` are gone, since Workers ignores
+  them.
+- e2e hosting tests run against `wrangler dev` instead of `wrangler pages dev`.
+
+**Cost accepted:** an unknown fund code is a 200 with HTML rather than a 404. Nothing else
+in the plan depends on that 404.
 
 #### D13 — Lighthouse target
 
@@ -428,15 +462,15 @@ pyxirr).
 - **pnpm pinning.** `packageManager` is pinned exactly (`pnpm@10.34.5`); Cloudflare's
   preinstalled pnpm switches to it. `onlyBuiltDependencies` covers esbuild and workerd.
 
-#### D19 — Connect Cloudflare Pages at Phase 1, not Phase 8
+#### D19 — Connect Cloudflare at Phase 1, not Phase 8 — done
 
-The real Pages build has never run in research: pnpm switching, `fonts:fetch`, ~2,000
-prerendered files, production routing. Leaving it to the last phase hides risk until the
-end.
+Deploying only at the last phase would hide the risks in the real build: pnpm switching,
+`fonts:fetch`, thousands of prerendered files, production routing.
 
-**Recommendation:** you connect the repo to a Pages project at the Phase 1 gate. Every PR
-then gets a preview deployment, and I verify routing, headers and 404 behaviour against real
-Cloudflare early.
+**Done 2026-09-16.** The repo is connected to Workers Builds (D20), production and preview
+URLs are live, and the build runs on every push. One piece of tidying remains: an earlier
+stray Worker named `datadrivensip` has no config, so it fails on every pull request and
+should be deleted.
 
 ---
 
@@ -465,7 +499,7 @@ Cloudflare early.
 ## 2. Architecture
 
 ```
-          nightly GitHub Action (00:30 UTC, D9)                  Cloudflare Pages
+          nightly GitHub Action (00:30 UTC, D9)                Cloudflare Workers
 ┌──────────────────────────────────────────────┐  git push   ┌─────────────────────────┐
 │ pipeline/                                     │ ──────────▶ │ pnpm build               │
 │  sources/mfapi ─▶ eligibility ─▶ fetch+cache  │             │  fonts:fetch (FFL)       │
@@ -739,8 +773,6 @@ About 16 KB gzipped.
   - `<script type="application/json" id="fund">`
   - `data-version`
   - page markup rendered with **default** params
-
-It also writes `dist/data/404.html`.
 
 **On load (`entry-client.tsx`).**
 - **Prerendered path with default params:** `hydrateRoot`, reading the inline JSON with no
@@ -1075,15 +1107,15 @@ The Lighthouse CI gate is D13.
 
 ## 10. Hosting and CI
 
-**Cloudflare Pages.** Build `pnpm build` = `fonts:fetch && vite build && vite build --ssr
-... && prerender`. Output goes to `dist/`. No env vars: Node comes from `.node-version`, and
-pnpm follows `packageManager`. You connect it at Phase 1 (D19), so every PR gets a preview
-deployment.
+**Cloudflare Workers static assets (D20).** Build `pnpm build` = `fonts:fetch && vite build`,
+plus the prerender step from Phase 4. Output goes to `dist/`, and `wrangler.jsonc` publishes
+it with no server code. No env vars: Node comes from `.node-version`, pnpm follows
+`packageManager`. Workers Builds deploys `main` and gives every branch a preview URL.
 
-**`public/_headers`.** No `/*` rule, because overlapping values get comma-joined.
+**`public/_headers`.** Honoured by Workers static assets. No `/*` rule, so nothing overlaps.
 
 ```
-/data/funds/*
+/data/:version/funds/*
   Cache-Control: public, max-age=31536000, immutable
 /data/index.json
   Cache-Control: public, max-age=3600
@@ -1095,8 +1127,10 @@ deployment.
   Cache-Control: public, max-age=31536000, immutable
 ```
 
-Fund JSON cache-busts with `?v={dataVersion}`. The build writes `dist/data/404.html`. There's
-no top-level `404.html`, so the SPA fallback stays, and no `_redirects`.
+Fund data is fetched from `/data/{dataVersion}/funds/{code}.json`, with `dataVersion` baked
+into the HTML at build time; `index.json` and `meta.json` keep stable paths and revalidate.
+There's no `_redirects` file: `not_found_handling: "single-page-application"` in
+`wrangler.jsonc` provides the fallback.
 
 ### `.github/workflows/ci.yml` (PRs and pushes to `main`)
 
@@ -1109,9 +1143,10 @@ no top-level `404.html`, so the SPA fallback stays, and no `_redirects`.
    - synthetic marginal and meaningful funds, never deployed
    - a missing code
 5. `size-limit`.
-6. Playwright e2e against `wrangler pages dev dist`.
+6. Playwright e2e against `wrangler dev`, the runtime production uses.
 7. Lighthouse CI per D13.
-8. On PRs, a smoke test against the Pages preview URL: routing, headers, `data/404`.
+8. On PRs, a smoke test against the Workers preview URL: routing, headers, and a missing
+   fund file returning the shell rather than JSON.
 
 ### `.github/workflows/data.yml`
 
@@ -1228,7 +1263,7 @@ Rule tests fail CI if any of these appear:
 | 3 | Pipeline reproduces Kotak | `--source fixture --as-of 2026-09-11` pipeline run matches the frozen artifact (D2) | 2, 3 |
 | 4 | Salary change changes the date | Unit (window 3–12 → 12th; `salary=15` → 25th) + e2e | 5 |
 | 5 | 40-month fund → reduced confidence, no crash | 151713 golden + e2e deep link shows the reduced copy | 2, 5 |
-| 6 | Deep links render on cold load | e2e on `wrangler pages dev` and the Pages preview, fresh context, with and without params | 4, 8 |
+| 6 | Deep links render on cold load | e2e on `wrangler dev` and the Workers preview, fresh context, with and without params | 4, 8 |
 | 7 | No frame over 8.33 ms | D11: CDP trace gate + your 120 Hz device trace | 6 |
 | 8 | Reduced motion bypasses the sequence | e2e: zero animations, final state at t=0 | 6 |
 | 9 | Bundle-size and Lighthouse CI pass | CI run link (D13) | 8 |
@@ -1259,8 +1294,8 @@ I stop at each gate with the evidence listed.
   - clean typecheck, test and build
   - measured size table and proposed limits
   - CI green on a PR
-  - **you connect Cloudflare Pages** (D19), and I verify the preview's routing, headers and
-    `data/404`
+  - **Cloudflare connected** (D19, D20): routing, headers and the data-miss behaviour
+    verified against the branch's preview URL
 
 ### Phase 2 — Analysis engine (tests first)
 
@@ -1292,9 +1327,9 @@ I stop at each gate with the evidence listed.
   with fuzzy fallback, debounce with Enter flush, `/` shortcut, not-covered and error
   states.
 - **Minimal prerender:** `entry-prerender`, per-fund HTML with inline JSON and og tags,
-  hydrate vs `createRoot`, the pending-params script, `dist/data/404.html`.
+  hydrate vs `createRoot`, and the pending-params script.
 - **Gate:** Playwright deep-link tests (with and without params, no hydration errors) pass
-  on `wrangler pages dev` and the Pages preview.
+  on `wrangler dev` and the Workers preview.
 
 ### Phase 5 — Hero grid and safe window (static)
 
@@ -1339,8 +1374,9 @@ I stop at each gate with the evidence listed.
 
 ### Needs you
 
-- **Phase 1:** create the Cloudflare Pages project and connect this repo (D19). In GitHub,
-  set Settings → Actions → Workflow permissions to read and write.
+- **Phase 1 — done:** Workers Builds is connected (D20) and Actions has write permission.
+  Still outstanding: delete the stray `datadrivensip` Worker, which has no config and fails
+  on every pull request.
 - **Phase 6:** test the reveal on a real 120 Hz device (D11).
 - **Before launch:** legal review of the AMFI terms and the copy (D16).
 - **Optional:**

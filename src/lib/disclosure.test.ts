@@ -3,11 +3,6 @@ import meta from "../../public/data/meta.json";
 import type { DateResult, FundArtifact } from "../../shared/artifacts";
 import { pickAnswer } from "./answer";
 import { disclosureCopy } from "./disclosure";
-import { safeWindow } from "./window";
-import { DEFAULT_PARAMS } from "./url";
-
-const WINDOW = safeWindow(DEFAULT_PARAMS);
-
 const dateAt = (d: number, over: Partial<DateResult> = {}): DateResult => ({
   d,
   xirr: 12,
@@ -40,9 +35,9 @@ const fundWith = (over: Partial<FundArtifact> = {}): FundArtifact => ({
   ...over,
 });
 
-const copyFor = (over: Partial<FundArtifact> = {}, window = WINDOW) => {
+const copyFor = (over: Partial<FundArtifact> = {}) => {
   const fund = fundWith(over);
-  return disclosureCopy(fund, pickAnswer(fund, window), window);
+  return disclosureCopy(fund, pickAnswer(fund));
 };
 
 const everyLine = (copy: ReturnType<typeof disclosureCopy>) => [
@@ -72,7 +67,7 @@ const published = (code: number): FundArtifact => {
 
 const realCopy = (code: number) => {
   const fund = published(code);
-  return disclosureCopy(fund, pickAnswer(fund, WINDOW), WINDOW);
+  return disclosureCopy(fund, pickAnswer(fund), );
 };
 
 describe("the chart caption", () => {
@@ -123,7 +118,7 @@ describe("the confidence section", () => {
 
   it("measures the answer's quartile share against the 25% chance would give it", () => {
     const fund = fundWith({ dates: Array.from({ length: 28 }, (_, i) => dateAt(i + 1, { topQ: 0.6, meanPct: i === 11 ? 99 : 10 })) });
-    const line = disclosureCopy(fund, pickAnswer(fund, WINDOW), WINDOW).confidence[2];
+    const line = disclosureCopy(fund, pickAnswer(fund), ).confidence[2];
     expect(line).toContain("60.0%");
     expect(line).toContain("25.0%");
   });
@@ -135,7 +130,7 @@ describe("the confidence section", () => {
       dateAt(i + 1, { meanPct: i === 11 ? 99 : 50, w: i === 4 ? 40 : 1 }),
     );
     const fund = fundWith({ dates });
-    const line = disclosureCopy(fund, pickAnswer(fund, WINDOW), WINDOW).confidence[3];
+    const line = disclosureCopy(fund, pickAnswer(fund), ).confidence[3];
 
     expect(line).toContain("the 5th led 40");
     expect(line).toContain("not the same as the one that led most often");
@@ -157,27 +152,29 @@ describe("the confidence section", () => {
 });
 
 describe("what actually matters", () => {
-  it("prices the date in rupees, against a typical date in the same window", () => {
+  it("prices the date in rupees, against a typical date of the month", () => {
     const dates = Array.from({ length: 28 }, (_, i) =>
-      dateAt(i + 1, { meanPct: i === 11 ? 99 : 50, corpus: i === 11 ? 1_000_630 : 1_000_000 }),
+      dateAt(i + 1, { xirr: i === 11 ? 13 : 12, corpus: i === 11 ? 1_000_630 : 1_000_000 }),
     );
-    const [edge] = disclosureCopy(fundWith({ dates }), pickAnswer(fundWith({ dates }), WINDOW), WINDOW).matters;
+    const fund = fundWith({ dates });
+    const [edge] = disclosureCopy(fund, pickAnswer(fund)).matters;
 
     expect(edge).toContain("₹630");
     expect(edge).toContain("₹16.4 lakh invested");
   });
 
   it("says so rather than inventing a gain when the named date ended with less", () => {
-    // The pick ranks over rolling stretches, so the date it names can end behind on the single
-    // all-history total. Printing that as a gain would be a straightforward lie.
+    // The date is named on its rate of return, and the highest rate does not have to be the
+    // highest rupee total — an early instalment at a low NAV can outweigh it. Printing that
+    // as a gain would be a straightforward lie.
     const dates = Array.from({ length: 28 }, (_, i) =>
-      dateAt(i + 1, { meanPct: i === 11 ? 99 : 50, corpus: i === 11 ? 999_000 : 1_000_000 }),
+      dateAt(i + 1, { xirr: i === 11 ? 13 : 12, corpus: i === 11 ? 999_000 : 1_000_000 }),
     );
     const fund = fundWith({ dates });
-    const [edge] = disclosureCopy(fund, pickAnswer(fund, WINDOW), WINDOW).matters;
+    const [edge] = disclosureCopy(fund, pickAnswer(fund)).matters;
 
     expect(edge).toContain("less");
-    expect(edge).toContain("not on this one total");
+    expect(edge).toContain("a rate and a rupee total can disagree");
   });
 
   it("never lets the average instalment stand without its range", () => {
@@ -195,10 +192,12 @@ describe("what actually matters", () => {
     expect(copyFor().matters[2]).toContain("costs more than the date does");
   });
 
-  it("closes on the window, which is the one rule the whole page is built around", () => {
-    const never = copyFor().matters.at(-1);
-    expect(never).toContain("10 your salary allows");
-    expect(never).toContain("before your salary arrives");
+  it("closes on the one thing the arithmetic cannot know: whether the money is there", () => {
+    // The page no longer asks when the reader is paid, so it cannot pick a date around it —
+    // which makes saying so more important, not less.
+    const timing = copyFor().matters.at(-1);
+    expect(timing).toContain("funded on whichever date you pick");
+    expect(timing).toContain("costs far more than any date here is worth");
   });
 });
 

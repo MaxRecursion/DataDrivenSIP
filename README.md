@@ -1,6 +1,6 @@
 # SIP Date Planner
 
-Which date of the month should you run your SIP for a given fund, and does the date
+What is the best day of the month to run your SIP for a given fund, and does the day
 actually matter?
 
 For most funds it barely does. Across 994 Indian mutual funds the spread between the
@@ -16,16 +16,17 @@ Two halves that never mix.
 
 **`/pipeline`** runs nightly on Node 22. It fetches published NAV histories, cleans them,
 simulates a monthly SIP on every date from the 1st to the 28th, and solves each one's XIRR
-by bisection. It then ranks each date against the other 27 across rolling three-year
-windows, because a single all-history rate is the number those percentiles exist to
-distrust. The result is one precomputed JSON file per fund.
+by bisection. It also ranks each date against the other 27 across rolling three-year
+windows — not to choose the day, but so the page can show whether the day it named earned its
+rate or got it from one good run. The result is one precomputed JSON file per fund.
 
 **`/src`** is a Vite and React SPA that fetches one of those files and renders it. It never
 parses a NAV history and never solves an XIRR. Everything it shows was computed before the
 page was served, so the answer appears in well under 150 ms and the whole app is static.
 
-The date it names is always one your salary has already arrived for. That window is set by
-your pay day and a buffer you control, both of which live in the URL.
+The day it names is the one with the greatest full-history XIRR, and the calendar shades every
+other day by how it compares to the day you are reading on. Nothing is configurable: a fund URL
+is just the fund.
 
 ## What it will not do
 

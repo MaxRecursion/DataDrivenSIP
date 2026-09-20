@@ -1,8 +1,13 @@
 # SIP Date Planner
 
-A static web app that answers "which date of the month should I run my SIP for fund X?"
-with one concrete date, and grades its own confidence honestly. `PLAN.md` holds the
-design and phase plan; read it before starting any phase.
+A static web app that answers "what is the best day of the month to do a SIP for fund X?"
+with one concrete date, and grades its own confidence honestly.
+
+**The product changed on 2026-09-21.** The date is now simply the SIP day with the greatest
+full-history XIRR, chosen from all 28. The salary window, the buffer, and selection by
+rolling-window rank are gone — removed deliberately, not lost. `PLAN.md` predates that
+change and carries an amendment at its head saying which of its sections no longer hold;
+read both before starting any phase.
 
 Two halves that never mix:
 
@@ -15,7 +20,7 @@ Two halves that never mix:
 - No backend, no database, no runtime XIRR for the headline answer
 - Bisection for XIRR, never Newton-Raphson
 - SIP dates 1–28 only
-- Never select a date outside the safe window
+- The answer is the highest full-history XIRR of the 28, ties going to the earliest date
 - `verdict: "noise"` is a correct result — never tune thresholds to avoid it
 - Animate transform and opacity only
 - No fund ranking, ever
@@ -39,23 +44,25 @@ Two halves that never mix:
   whose opacity animates. State changes that aren't animated are fine.
 - Under `prefers-reduced-motion: reduce` the reveal sequence doesn't run at all.
 - No ranking, sorting or comparing funds by returns anywhere: UI, copy, index order, URLs,
-  metadata. Never write "best fund", "top performing" or "recommended fund". Typeahead
-  results are ordered by text-match relevance only.
-- State lives in the URL (`/f/{code}?salary=&buffer=`). No Redux, Zustand, React Query,
-  analytics SDKs or auth.
+  metadata. Never write "best fund", "top performing" or "recommended fund". "Best" is fine of a
+  DAY — it is the question the product asks — and `scripts/check-rules.ts` draws exactly that
+  line. Typeahead results are ordered by text-match relevance only.
+- The URL is `/f/{code}` and carries no state beyond which fund is shown. No Redux, Zustand,
+  React Query, analytics SDKs or auth.
 - The compliance footer and visible `navAsOf` appear on every page.
-- **The grid shows one number and the answer is decided by another, and the page must never
-  let that pass silently.** Cells print each date's XIRR; the pick is made on `meanPct` —
-  average rank across rolling 3-year windows — then `topQ`, then XIRR, then window order.
-  They disagree often. On Parag Parikh Flexi Cap the 24th is named while the 28th shows the
-  higher XIRR, because the 24th averages the 79th percentile against the 28th's 58th and led
-  28 rolling stretches to its 4. A reader who spots that and concludes the app contradicted
-  itself is reading it reasonably, so any change here has to keep the explanation reachable.
-- Every date 1–28 carries its own figure, not only the ten the salary allows. Brightness is the
-  ramp and nothing else: it cannot also mark the window, because the deepest cell of the month is
-  often outside it (Mahindra Manulife's 22nd against a last-working-day window) and washing the
-  other ten reads as "these are worse". The window is an outline, the answer a thicker one, and
-  the answer still only ever comes from inside the window.
+- **The grid and the answer are the same number now, and that is worth protecting.** Cells print
+  each date's full-history XIRR and the named day is the greatest of them, so the picture and the
+  sentence cannot disagree. They used to: the pick ran on `meanPct` — average rank across rolling
+  3-year windows — while the cells showed XIRR, and on Parag Parikh Flexi Cap the page named the
+  24th while the 28th showed the higher figure. That confused a reader badly enough to be worth
+  recording. `meanPct`, `topQ` and `w` are still published and still discussed in "How confident
+  is this?", but nothing may put them back into the selection without changing the headline too.
+- The shading is a comparison to today, not a ranking of the month. Today's date in Asia/Kolkata,
+  clamped to the 28th, is the baseline and paints neutral; dates above it are green and below it
+  red. Each direction scales to its own extreme, so the deepest red is the month's worst date
+  even when the reds span a hundredth of a point and the greens span a third of one.
+- There is no salary window, no buffer and no `?salary=`/`?buffer=`. Old links still resolve —
+  the query string is ignored rather than redirected — and nothing in the URL changes the answer.
 - **The calendar is clock-dependent, so it renders after mount, never in the prerendered
   HTML**, with its height reserved so nothing shifts. Dates 29–31 appear inert and carry no
   data: SIP dates are 1–28, which is the whole reason the engine stops there.

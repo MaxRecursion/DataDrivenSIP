@@ -1,5 +1,37 @@
 # SIP Date Planner — design and implementation plan
 
+
+> ## Amendment, 2026-09-21 — the product changed
+>
+> The page now answers "what is the best day of the month to do a SIP for this fund?" and
+> nothing else. The named day is simply the SIP date from 1 to 28 with the greatest
+> full-history XIRR, ties going to the earliest date.
+>
+> This plan predates that decision and is kept for the reasoning behind everything else — the
+> engine, the pipeline, the artifacts, hosting, motion, performance and compliance are all
+> unchanged and still authoritative. What no longer holds:
+>
+> - **D6 (the safe window)** and everything built on it. There is no salary day, no buffer, no
+>   ten-date window and no `?salary=`/`?buffer=`. `src/lib/window.ts` and
+>   `src/components/window-controls.tsx` are deleted; a fund URL is `/f/{code}` and any query
+>   string on it is ignored rather than redirected.
+> - **§6.4's selection order.** `meanPct`, then `topQ`, then XIRR, then window position is
+>   replaced by XIRR alone. The rolling-window statistics are still computed, still published in
+>   the artifact and still shown in "How confident is this?" — they just no longer choose.
+> - **§6.1's URL state** is now the fund code alone, so the pending-params script in
+>   `index.html` and its stylesheet rule are gone: every prerendered page is correct for every
+>   URL that can reach it.
+> - **D7's headline table.** Every row still exists in precedence order and still refuses to
+>   describe a short history as a date effect, but each one now states the same fact — which day
+>   had the highest full-history XIRR — and then qualifies it. No row says "your window".
+> - **§7's hero grid** is a real month, shaded red and green against today's date rather than
+>   showing a salary window. §8.2 row 3's window wave now carries the colour fills instead.
+> - **Criterion 4** ("salary change changes the date") no longer describes anything the product
+>   does. What replaced it: the named day is the highest-XIRR day of all 28, and salary or buffer
+>   in the URL cannot change it. Both are covered in `e2e/answer.spec.ts`.
+>
+> `CLAUDE.md` is the shorter, current statement of the invariants.
+
 Status: **Approved 2026-09-15 ("approve all").** Every recommendation in §0 is accepted,
 including both D4 calls: drop all target-maturity funds, and exclude overnight and liquid
 funds. Phase 1 is in progress.

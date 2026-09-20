@@ -66,8 +66,8 @@ test("opening the curve draws a chart that names the same date as the answer", a
   await expect(answerBar).toHaveCount(1);
   expect(heading).toContain(String(await answerBar.getAttribute("data-bar-date")));
 
-  // Ten dates are in the window, however the window wraps.
-  await expect(page.locator("[data-bar-date][data-in-window]")).toHaveCount(10);
+  // One bar per SIP date, and the chart compares those and nothing else.
+  await expect(page.locator("[data-bar-date]")).toHaveCount(28);
   expect(errors).toEqual([]);
 });
 
@@ -114,8 +114,8 @@ test("the missed instalment never appears as an average without its range", asyn
   await expect(body).toContainText("on average");
   await expect(body).toContainText(/anywhere from ₹[\d,]+ to ₹[\d,]+/);
   await expect(body).toContainText("not a promise");
-  // The rule the whole page is built around gets the last word.
-  await expect(body).toContainText("before your salary arrives");
+  // The one thing the arithmetic cannot know gets the last word.
+  await expect(body).toContainText("funded on whichever date you pick");
 });
 
 test("a keyboard alone opens a section", async ({ page }) => {
@@ -126,7 +126,9 @@ test("a keyboard alone opens a section", async ({ page }) => {
   await page.keyboard.press("Enter");
 
   await expect(trigger(page, TRIGGERS.matters)).toHaveAttribute("aria-expanded", "true");
-  await expect(page.locator("[data-disclosure='matters']")).toContainText("before your salary arrives");
+  await expect(page.locator("[data-disclosure='matters']")).toContainText(
+    "funded on whichever date you pick",
+  );
 });
 
 test("opening a section leaves the answer above it alone", async ({ page }) => {
@@ -134,11 +136,11 @@ test("opening a section leaves the answer above it alone", async ({ page }) => {
   await ready(page);
 
   const before = await page.locator("#answer-heading").textContent();
-  const litBefore = await page.locator("[data-date][data-in-window]").count();
+  const shadedBefore = await page.locator("[data-date][data-direction]").count();
 
   await trigger(page, TRIGGERS.curve).click();
   await expect(page.locator("[data-spread-chart]")).toBeVisible();
 
   expect(await page.locator("#answer-heading").textContent()).toBe(before);
-  expect(await page.locator("[data-date][data-in-window]").count()).toBe(litBefore);
+  expect(await page.locator("[data-date][data-direction]").count()).toBe(shadedBefore);
 });

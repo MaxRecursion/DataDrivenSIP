@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   MAX_SIP_DATE,
   addMonths,
+  baselineDate,
   buildMonth,
   daysInMonth,
   monthLabel,
@@ -133,5 +134,38 @@ describe("sameMonth", () => {
   it("compares the year as well as the month", () => {
     expect(sameMonth({ year: 2026, month: 0 }, { year: 2026, month: 0 })).toBe(true);
     expect(sameMonth({ year: 2026, month: 0 }, { year: 2027, month: 0 })).toBe(false);
+  });
+});
+
+describe("baselineDate", () => {
+  it("reads the day of the month in Asia/Kolkata, not in UTC", () => {
+    // 19:00 UTC on the 20th is 00:30 on the 21st in Kolkata, which is +5:30. A UTC read would
+    // compare the whole calendar against the wrong date for five and a half hours every night.
+    expect(baselineDate(new Date("2026-09-20T19:00:00Z"))).toBe(21);
+    expect(baselineDate(new Date("2026-09-20T18:00:00Z"))).toBe(20);
+  });
+
+  it("clamps the days that are not SIP dates back to the 28th", () => {
+    // A reader looking at this on the 31st is compared against the 28th, because there is no
+    // 31st to compare against and every date on the grid has to have a figure.
+    for (const day of [29, 30, 31]) {
+      expect(baselineDate(new Date(`2026-01-${day}T06:00:00Z`))).toBe(MAX_SIP_DATE);
+    }
+  });
+
+  it("leaves every real SIP date alone", () => {
+    for (const day of [1, 2, 14, 27, 28]) {
+      const stamp = String(day).padStart(2, "0");
+      expect(baselineDate(new Date(`2026-03-${stamp}T06:00:00Z`))).toBe(day);
+    }
+  });
+
+  it("is never outside the range the calendar can shade", () => {
+    // Every day of a leap year, so a clamp that drifted by one would show up here.
+    for (let offset = 0; offset < 366; offset++) {
+      const day = baselineDate(new Date(Date.UTC(2024, 0, 1 + offset, 6)));
+      expect(day).toBeGreaterThanOrEqual(1);
+      expect(day).toBeLessThanOrEqual(MAX_SIP_DATE);
+    }
   });
 });

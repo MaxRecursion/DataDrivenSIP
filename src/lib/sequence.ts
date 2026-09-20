@@ -7,7 +7,7 @@
  * would drift out of true silently.
  *
  * The controller exists because a reveal can be interrupted. A reader who picks a second fund,
- * presses Escape or changes their salary mid-flight must land on the finished state at once, not
+ * presses Escape or chooses another fund mid-flight must land on the finished state at once, not
  * watch the old animation play out or, worse, see two sequences fight. Every moving part is
  * registered against a generation token; bumping it abandons the old one and lands it.
  *
@@ -57,7 +57,7 @@ export function diagonalIndexAt(row: number, column: number): number {
 export const SCHEDULE: Record<string, Step> = {
   card: { start: 0, stagger: 0, count: 1, spring: SPEC_SPRING },
   cells: { start: 60, stagger: 8, count: DIAGONAL_COUNT, spring: SPEC_SPRING },
-  window: { start: 260, stagger: 12, count: 10, spring: SPEC_SPRING },
+  fills: { start: 260, stagger: 12, count: DIAGONAL_COUNT, spring: SPEC_SPRING },
   answer: { start: 400, stagger: 0, count: 1, spring: ANSWER_SPRING },
   ticker: { start: 500, stagger: 0, count: 1, spring: null, duration: TICKER_MS },
 };
@@ -72,7 +72,7 @@ export const VIBRATE_MS = 8;
  */
 export type Mode = "first" | "repeat";
 
-const REPEAT_STEPS = ["window", "answer", "ticker"] as const;
+const REPEAT_STEPS = ["fills", "answer", "ticker"] as const;
 
 export function stepsFor(mode: Mode): Array<[string, Step]> {
   const entries = Object.entries(SCHEDULE);

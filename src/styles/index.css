@@ -56,6 +56,7 @@
   --raised: #ffffff;
   --marigold: #f2a71b;
   --teal: #0e7c7b;
+  --loss: #d65445;
   --mute: #7c8699;
   /* D15: --mute fails AA for small text, so text uses this darker step. */
   --mute-text: #626b80;
@@ -72,6 +73,7 @@
   --color-mute: var(--mute);
   --color-mute-text: var(--mute-text);
   --color-line: var(--line);
+  --color-loss: var(--loss);
 
   /* shadcn semantic tokens, mapped onto the brand palette. */
   --color-background: var(--surface);
@@ -100,20 +102,6 @@
   font-kerning: none;
 }
 
-/*
- * Set by the inline script in index.html when the URL carries a non-default parameter, which
- * means the prerendered answer on this page is the wrong one (PLAN.md 6.2).
- *
- * `visibility`, not `display`: the grid keeps its height and the heading keeps its line, so
- * nothing moves when the real answer arrives and CLS stays 0. Only the two things that can
- * actually be wrong are hidden — the fund's name, the rupee line, the caveats and the footer
- * are facts about the fund rather than about the window, and stay on screen.
- */
-[data-params-pending] [data-hero-grid],
-[data-params-pending] #answer-heading,
-[data-params-pending] [data-answer-copy] {
-  visibility: hidden;
-}
 
 @layer base {
   html {

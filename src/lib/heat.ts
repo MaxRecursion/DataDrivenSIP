@@ -1,46 +1,75 @@
 /**
- * Shading the calendar by how each date did.
+ * Shading the calendar against today's date.
  *
- * One ramp: the strongest date of the month is the deepest green and the weakest is the palest,
- * scaled across this fund's own range so the whole ramp is used however small that range is.
+ * The question the page answers is "which day of the month", and the reader already runs their
+ * SIP on some day — so the useful comparison is against the one they are standing on. Today's
+ * date is the baseline: every other date is painted by how its full-history XIRR compares to
+ * the baseline date's, green above and red below.
  *
- * Relative, and only honest because of what sits next to it. A fund whose 28 dates span four
- * hundredths of a percentage point still fills the ramp end to end, so the caption states the
- * real distance — and every cell now prints its own XIRR, which is what keeps a pale green from
- * reading as "poor" when it is in fact 16.90% against a best of 16.94%. It is also what lets the
- * scale stay green for the five published funds that lost money on every date: the colour says
- * "strongest here", and the number underneath says what "here" was worth.
+ * The two sides are scaled separately rather than on one span. A fund whose dates run from
+ * −0.01 pp to +0.30 pp around the baseline would, on a shared scale, paint every red date at a
+ * thirtieth of the ramp and so paint them all the same. Scaling each side to its own extreme
+ * means the deepest red is always the worst date and the deepest green always the best, and
+ * neither side's detail is crushed by the other's range.
  *
- * Pure: no I/O, no clock, no randomness.
+ * Relative, and only honest because every cell prints its own XIRR beside the colour. A fund
+ * whose 28 dates span four hundredths of a percentage point still fills both ramps end to end;
+ * the number underneath is what stops a deep red reading as a loss when it is 20.31% against a
+ * baseline of 20.34%.
+ *
+ * Pure: no I/O, no clock, no randomness. The baseline date is passed in.
  */
 
+/** Which way a date sits against the baseline. `level` is the baseline itself, and its ties. */
+export type Direction = "up" | "down" | "level";
+
 export type Heat = {
-  /** How deep to paint, 0 to 1, against the strongest date in the same fund. */
+  direction: Direction;
+  /** How deep to paint, 0 to 1, against the furthest date on the same side. */
   intensity: number;
 };
 
 /**
- * The palest a date is painted. Not zero: a cell washed out to nothing reads as missing data
- * rather than as the bottom of a range, and every one of these dates is a date you could use.
+ * The palest a date that differs from the baseline is painted. Not zero: a cell washed out to
+ * nothing reads as missing data rather than as a small difference, and the difference is real.
  */
 export const MIN_INTENSITY = 0.12;
 
-/** Each date's shading, from each date's XIRR. Dates absent from the input are absent here. */
-export function heatForMonth(xirrByDate: ReadonlyMap<number, number>): Map<number, Heat> {
-  const values = [...xirrByDate.values()];
-  if (values.length === 0) return new Map();
+/**
+ * Each date's shading, from each date's XIRR and the baseline date's.
+ *
+ * A baseline missing from the input leaves every date level: there is nothing to compare
+ * against, and picking a substitute date would silently change what the colours mean.
+ */
+export function heatForMonth(
+  xirrByDate: ReadonlyMap<number, number>,
+  baseline: number,
+): Map<number, Heat> {
+  const level: Heat = { direction: "level", intensity: 0 };
+  const baselineXirr = xirrByDate.get(baseline);
+  if (baselineXirr === undefined) {
+    return new Map([...xirrByDate.keys()].map((date) => [date, level]));
+  }
 
-  const low = Math.min(...values);
-  const range = Math.max(...values) - low;
+  const deltas = [...xirrByDate].map(([date, xirr]) => [date, xirr - baselineXirr] as const);
+  const furthestUp = Math.max(0, ...deltas.map(([, delta]) => delta));
+  const furthestDown = Math.max(0, ...deltas.map(([, delta]) => -delta));
+
+  const depth = (distance: number, furthest: number): number =>
+    // `furthest` is only 0 when this date is the sole one on its side at distance 0, which is
+    // the level case and never reaches here.
+    furthest === 0 ? 1 : MIN_INTENSITY + (distance / furthest) * (1 - MIN_INTENSITY);
 
   return new Map(
-    [...xirrByDate].map(([date, xirr]) => [
-      date,
-      {
-        // Every date identical: none of them stands out, so none is painted as though it did.
-        intensity: range === 0 ? MIN_INTENSITY : MIN_INTENSITY + ((xirr - low) / range) * (1 - MIN_INTENSITY),
-      },
-    ]),
+    deltas.map(([date, delta]) => {
+      if (delta === 0) return [date, level];
+      return [
+        date,
+        delta > 0
+          ? { direction: "up" as const, intensity: depth(delta, furthestUp) }
+          : { direction: "down" as const, intensity: depth(-delta, furthestDown) },
+      ];
+    }),
   );
 }
 

@@ -1,19 +1,19 @@
 /**
- * One fund (PLAN.md §6.1, §6.4, §6.6): the window the reader's salary allows, the one date
- * inside it this fund's history points at, and the sentences that say how much that is worth.
+ * One fund: the SIP day with the highest full-history XIRR, and the sentences that say how
+ * much choosing it is actually worth.
  *
- * Everything visible is derived during render from two inputs — the artifact the pipeline
- * published and the parameters in the URL — and nothing is cached in between. A window, a pick
- * and its copy are pure functions of those two, so there is no third copy of the answer to fall
- * out of step with the address bar, and the back button lands on exactly what it left.
+ * Everything visible is derived during render from one input — the artifact the pipeline
+ * published — and nothing is cached in between. The pick and its copy are pure functions of
+ * that artifact, so there is no second copy of the answer to fall out of step with it, and the
+ * same fund always answers the same way however the reader arrived.
  *
  * The prerender inlines this fund's own data, so the first render reads it synchronously — on
  * the build machine and again in the browser — and both produce the same markup. An effect would
  * not do: effects don't run during renderToString, which would leave the cold HTML empty and
  * hand hydration a mismatch. Funds reached from search fall back to the effect.
  */
-import { useCallback, useEffect, useState } from "react";
-import { useNavigationType, useParams, useSearchParams } from "react-router";
+import { useEffect, useState } from "react";
+import { useNavigationType, useParams } from "react-router";
 import type { FundArtifact } from "../../shared/artifacts";
 import { ANSWER_HEADING_ID, AnswerBlock } from "../components/answer-block";
 import { HeroGrid } from "../components/hero-grid";
@@ -26,16 +26,13 @@ import { HeroGrid } from "../components/hero-grid";
  * created when a reader opens the section, long after hydration.
  */
 import Disclosures from "../components/disclosures";
-import { WindowControls } from "../components/window-controls";
 import { pickAnswer } from "../lib/answer";
 import { disclosureCopy } from "../lib/disclosure";
-import { heatForMonth, heatSpanPp } from "../lib/heat";
+import { heatSpanPp } from "../lib/heat";
 import { useReveal } from "../lib/use-reveal";
 import { answerCopy } from "../lib/copy";
 import { loadFund, peekFund } from "../lib/data";
 import { setHead } from "../lib/head";
-import { paramsToSearch, parseParams, type AppParams } from "../lib/url";
-import { safeWindow } from "../lib/window";
 import { usePublishNavDate } from "./layout";
 
 type State =
@@ -59,7 +56,6 @@ function initialState(code: string | undefined): State {
 export function FundPage() {
   const { code } = useParams();
   const [state, setState] = useState<State>(() => initialState(code));
-  const [search, setSearchParams] = useSearchParams();
 
   // Choosing a fund from search reuses this component rather than remounting it, so reset
   // during render instead of showing the previous fund until the next one arrives.
@@ -68,21 +64,6 @@ export function FundPage() {
     setShowing(code);
     setState(initialState(code));
   }
-
-  const params = parseParams(search);
-  // Not `window`: that name is the global this file must never touch during render.
-  const windowDates = safeWindow(params);
-
-  /**
-   * Salary and buffer replace the history entry (PLAN.md §6.1). Choosing a fund is a move
-   * between pages and pushes one; adjusting the window is the same page answering again, and a
-   * reader who tried three salary days shouldn't have to press back three times to leave.
-   * `paramsToSearch` drops defaults, so the plain URL stays plain.
-   */
-  const onParamsChange = useCallback(
-    (next: AppParams) => setSearchParams(paramsToSearch(next), { replace: true }),
-    [setSearchParams],
-  );
 
   useEffect(() => {
     const parsed = codeOf(code);
@@ -126,10 +107,9 @@ export function FundPage() {
   /**
    * Focus moves to the answer heading after a selection (PLAN.md §6.6), and only then. The three
    * ways this page renders are exactly the router's three navigation types, so nothing else has
-   * to be tracked: choosing a fund from the search PUSHes, a salary or buffer change REPLACEs
-   * (see `onParamsChange`), and a cold load or a back button is a POP. Focusing on a cold load
-   * would move a reader who had just started typing in the search field; focusing on a parameter
-   * change would pull focus out of the select they are still using.
+   * to be tracked: choosing a fund from the search PUSHes, and a cold load or a back button is
+   * a POP. Focusing on a cold load would move a reader who had just started typing in the
+   * search field.
    */
   const arrivedFromSearch = useNavigationType() === "PUSH";
   const answered = fund !== null;
@@ -157,7 +137,7 @@ export function FundPage() {
          * branch, a fund chosen from search rather than a seeded deep link (D13: CLS 0).
          */}
         <div className="min-h-[7.1rem]" />
-        <HeroGrid window={windowDates} answer={null} className="mt-6" />
+        <HeroGrid answer={null} className="mt-6" />
         {/*
          * The grid is aria-hidden and the answer block isn't mounted yet, so without this the
          * page is silent for the whole fetch — aria-busy with nothing to describe.
@@ -195,15 +175,14 @@ export function FundPage() {
    * prerender renders every fund page at build time — so the only way to reach it is with an
    * artifact that would have failed the build first, loudly, which is where it should fail.
    */
-  const answer = pickAnswer(state.fund, windowDates);
-  const copy = answerCopy(state.fund, answer, windowDates);
-  // The calendar shades and prints all 28 dates, not only the window: a reader comparing the
-  // month should be able to read every figure. Both come from the same XIRR, so the shading and
-  // the number in a cell can never tell different stories.
+  const answer = pickAnswer(state.fund);
+  const copy = answerCopy(state.fund, answer);
+  // One map of the figures the calendar prints and shades. The shading is relative to today's
+  // date, which is a clock read, so the grid resolves it after mount and derives the heat there;
+  // computing it here would bake the build machine's date into 994 prerendered pages.
   const values = new Map(state.fund.dates.map((row) => [row.d, row.xirr]));
-  const heat = heatForMonth(values);
   const spanPp = heatSpanPp(values);
-  const disclosure = disclosureCopy(state.fund, answer, windowDates);
+  const disclosure = disclosureCopy(state.fund, answer);
 
   return (
     <section>
@@ -212,18 +191,15 @@ export function FundPage() {
       <p className="text-sm text-mute-text">{state.fund.category}</p>
 
       <HeroGrid
-        window={windowDates}
         answer={answer.date}
         values={values}
-        heat={heat}
         spanPp={spanPp}
         reveal={reveal}
         className="mt-6"
       />
       <AnswerBlock copy={copy} answerDate={answer.date} reveal={reveal} />
-      <WindowControls params={params} onChange={onParamsChange} />
 
-      <Disclosures fund={state.fund} answer={answer} window={windowDates} copy={disclosure} />
+      <Disclosures fund={state.fund} answer={answer} copy={disclosure} />
     </section>
   );
 }

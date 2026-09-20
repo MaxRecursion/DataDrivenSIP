@@ -81,16 +81,15 @@ const paragraphs = (lines: string[]) =>
 type DisclosuresProps = {
   fund: FundArtifact;
   answer: Answer;
-  window: number[];
   copy: DisclosureCopy;
 };
 
-export default function Disclosures({ fund, answer, window: windowDates, copy }: DisclosuresProps) {
+export default function Disclosures({ fund, answer, copy }: DisclosuresProps) {
   return (
     <section className="mt-10">
       <Section id="curve" title="The full curve">
         <Suspense fallback={<div style={{ height: CHART_HEIGHT }} />}>
-          <SpreadChart fund={fund} window={windowDates} answer={answer.date} />
+          <SpreadChart fund={fund} answer={answer.date} />
         </Suspense>
         <p className="mt-3 text-sm leading-relaxed text-mute-text">{copy.chartCaption}</p>
       </Section>

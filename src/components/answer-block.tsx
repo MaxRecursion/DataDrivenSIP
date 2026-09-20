@@ -50,15 +50,10 @@ export function AnswerBlock({ copy, answerDate, reveal = null }: AnswerBlockProp
   return (
     <section className="mt-6 max-w-[65ch]">
       {/*
-       * The one polite live region on the page, and the screen-reader substitute for the grid,
-       * which is aria-hidden. They are deliberately the same element: this sentence already says
-       * what a salary or buffer change did ("Your window: 3rd to 12th. Your date: the 12th."),
-       * so a second region would read the same fact twice. role="status" carries an implicit
-       * polite, atomic live region, so the whole sentence is re-read rather than the diff.
-       *
-       * The announcement reaches here from window-controls.tsx the long way round, through the
-       * URL and a new pick, which is also the only way the visible answer changes. Content
-       * present at load isn't announced, so a cold page stays quiet.
+       * The screen-reader substitute for the grid, which is aria-hidden. role="status" carries
+       * an implicit polite, atomic live region, so the whole sentence is re-read rather than the
+       * diff when a reader moves from one fund to another. Content present at load isn't
+       * announced, so a cold page stays quiet.
        */}
       <p role="status" className="sr-only">
         {copy.srSummary}
@@ -75,19 +70,17 @@ export function AnswerBlock({ copy, answerDate, reveal = null }: AnswerBlockProp
       </h2>
 
       {/*
-       * The headline is the only line whose length depends on the window: the caveats and the
-       * rupee line are functions of the fund alone, so they render identically in the prerendered
-       * HTML and in the client render that follows a non-default ?salary=. Reserving four lines
-       * at 360 px and three from 640 px up covers every branch of the D7 table, which keeps the
-       * swap free of layout shift (PLAN.md §6.2, D13: CLS 0). It is a floor, not a cap.
+       * Every line here is a function of the fund alone, so the prerendered HTML and the client
+       * render are identical and nothing swaps under the reader. Reserving four lines at 360 px
+       * and three from 640 px up covers every branch of the headline table, which keeps the
+       * page free of layout shift (D13: CLS 0). It is a floor, not a cap.
        *
        * The floors are multiples of the line-height this paragraph actually uses: leading-relaxed
        * is 1.625, so a line is 1.625rem, and four lines are 6.5rem — not the 6.1rem a 1.5
        * line-height would give, which fell about six pixels short of the four-line case and let
        * it push the rupee line, the controls and the footer down.
        */}
-      {/* Marked because this sentence names the date: it is wrong on a prerendered page whose
-          URL asks for a different window, and is hidden until React re-renders (PLAN.md 6.2). */}
+      {/* Marked so the e2e suite can find the qualifying sentence apart from the heading. */}
       <p data-answer-copy className="mt-4 min-h-[6.5rem] leading-relaxed text-ink sm:min-h-[4.875rem]">
         {copy.headline}
       </p>

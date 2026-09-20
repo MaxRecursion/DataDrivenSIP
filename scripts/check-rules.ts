@@ -3,7 +3,8 @@
  * - animate transform and opacity only; no will-change in static styles; no scroll-triggered motion
  * - m components inside LazyMotion only: no motion.*, no domMax, no layout animations
  * - stripped extras stay stripped: tw-animate-css, the full cn engine, lucide-react, Recharts
- * - no advice-sounding words in user-facing copy
+ * - no advice-sounding words in user-facing copy. "Best" is allowed of a DAY, because that is
+ *   the question the product answers, and still banned of a fund: there is no ranking of funds
  * - no Inter or Geist
  *
  * It's a heuristic linter, not a proof. It follows local constants, spreads, conditionals and
@@ -60,7 +61,12 @@ const BANNED_MODULES: ReadonlyArray<readonly [RegExp, string, boolean]> = [
 
 const bounded = (pattern: string) => new RegExp(`(?<![\\w-])${pattern}(?![\\w-])`, "i");
 const BANNED_COPY: ReadonlyArray<readonly [string, RegExp]> = [
-  ["best", bounded("best")],
+  /*
+   * Not a bare "best". The product asks which is the best day of the month for one fund the
+   * reader has already chosen, so the word is its own headline. Ranking FUNDS is still forbidden
+   * everywhere, and that is the reading this catches.
+   */
+  ["best fund", bounded("best\\s+(?:fund|scheme|plan|performer|option)")],
   ["recommend", /(?<![\w-])recommend/i],
   ["safe", bounded("saf(?:e|er|est|ely)")],
   ["real advantage", bounded("real advantage")],

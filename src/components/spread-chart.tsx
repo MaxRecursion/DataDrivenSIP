@@ -1,6 +1,5 @@
 /**
- * The full curve (PLAN.md §6.5): every date's return as a bar, the window in teal and the
- * answered date in marigold.
+ * The full curve: every date's return as a bar, with the selected day in marigold.
  *
  * The y-axis is zoomed to this fund's own range, which is the only way a tenth of a percentage
  * point is visible at all — and is also exactly how a chart lies. The caption underneath states
@@ -25,42 +24,38 @@ const HEIGHT = 208;
 
 type SpreadChartProps = {
   fund: FundArtifact;
-  window: number[];
   answer: number;
 };
 
 /** The palette lives in one place; the canvas reads it rather than repeating the hex. */
-function palette(): { neutral: string; window: string; answer: string; axis: string } {
+function palette(): { neutral: string; answer: string; axis: string } {
   const style = getComputedStyle(document.documentElement);
   const read = (name: string, fallback: string) => style.getPropertyValue(name).trim() || fallback;
   return {
     neutral: read("--line", "#d6dbe4"),
-    window: read("--teal", "#0e7c7b"),
     answer: read("--marigold", "#f2a71b"),
     axis: read("--mute-text", "#626b80"),
   };
 }
 
-export default function SpreadChart({ fund, window: windowDates, answer }: SpreadChartProps) {
+export default function SpreadChart({ fund, answer }: SpreadChartProps) {
   const host = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const element = host.current;
     if (!element) return;
 
-    const allowed = new Set(windowDates);
     const colours = palette();
     const dates = fund.dates.map((row) => row.d);
     const rate = (predicate: (d: number) => boolean) =>
       fund.dates.map((row) => (predicate(row.d) ? row.xirr : null));
 
-    // Three series rather than one with per-bar fills: uPlot colours a series, so splitting the
-    // dates across three of them is how each group gets its own colour without reaching for the
+    // Two series rather than one with per-bar fills: uPlot colours a series, so splitting the
+    // selected day out is how it gets its own colour without reaching for the
     // bars path builder's display facets, which are far easier to get subtly wrong.
     const data: uPlot.AlignedData = [
       dates,
-      rate((d) => !allowed.has(d)),
-      rate((d) => allowed.has(d) && d !== answer),
+      rate((d) => d !== answer),
       rate((d) => d === answer),
     ];
 
@@ -116,9 +111,8 @@ export default function SpreadChart({ fund, window: windowDates, answer }: Sprea
       ],
       series: [
         {},
-        series("Other dates", colours.neutral),
-        series("Your window", colours.window),
-        series("Your date", colours.answer),
+        series("Other SIP days", colours.neutral),
+        series("Best SIP day", colours.answer),
       ],
     };
 
@@ -135,7 +129,7 @@ export default function SpreadChart({ fund, window: windowDates, answer }: Sprea
       observer.disconnect();
       chart.destroy();
     };
-  }, [fund, windowDates, answer]);
+  }, [fund, answer]);
 
   return (
     <div data-spread-chart="">
@@ -144,16 +138,14 @@ export default function SpreadChart({ fund, window: windowDates, answer }: Sprea
       {/* The text equivalent of the picture, and what the e2e suite reads. */}
       <ul className="sr-only">
         {fund.dates.map((row) => {
-          const inWindow = windowDates.includes(row.d);
           return (
             <li
               key={row.d}
               data-bar-date={row.d}
-              data-in-window={inWindow ? "" : undefined}
               data-answer={row.d === answer ? "" : undefined}
             >
               {ordinal(row.d)}: {formatPp(row.xirr)}
-              {row.d === answer ? ", your date" : inWindow ? ", in your window" : ""}
+              {row.d === answer ? ", best SIP day" : ""}
             </li>
           );
         })}
@@ -163,15 +155,11 @@ export default function SpreadChart({ fund, window: windowDates, answer }: Sprea
       <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-mute-text">
         <span className="flex items-center gap-1.5">
           <span className="size-3 shrink-0 rounded-sm bg-marigold" />
-          Your date, the {ordinal(answer)}
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="size-3 shrink-0 rounded-sm bg-teal" />
-          The rest of your window
+          Best SIP day, the {ordinal(answer)}
         </span>
         <span className="flex items-center gap-1.5">
           <span className="size-3 shrink-0 rounded-sm bg-line" />
-          Dates your salary rules out
+          Other SIP days
         </span>
       </p>
     </div>

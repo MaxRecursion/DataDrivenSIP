@@ -57,7 +57,8 @@ them on 2026-09-15, so `PLAN.md` is the source of truth.
   choices. Changing either can flip its verdict.
 - XIRR bisection must check that NPV has opposite signs at −0.99 and 3.0. Without that
   check, the loop silently returns a bracket end instead of null.
-- Motion 12:
+- Motion 12 (observations from Phase 0; the library was removed in Phase 6, and these are kept
+  only in case it is ever reconsidered):
   - `layoutId` needs `domMax`; under `domAnimation` it does nothing.
   - Separate `x`/`y`/`scale` keys run on the main thread; `opacity` and full `transform`
     strings go to WAAPI.
@@ -84,9 +85,18 @@ them on 2026-09-15, so `PLAN.md` is the source of truth.
 
 ## Stack is fixed
 
-Vite 6, React 19 + strict TS, shadcn/ui (Radix), Tailwind CSS v4 (`@theme`), `motion` v12
-via `LazyMotion` + `m`, uPlot (never shadcn charts or Recharts), React Router v7 declarative
-mode, Vitest, Playwright, pnpm. Don't add dependencies outside this list without asking.
+Vite 6, React 19 + strict TS, shadcn/ui (Radix), Tailwind CSS v4 (`@theme`), uPlot (never
+shadcn charts or Recharts), React Router v7 declarative mode, Vitest, Playwright, pnpm.
+Don't add dependencies outside this list without asking.
+
+**No animation library.** The reveal is hand-written on WAAPI in `src/components/animated.tsx`,
+with springs solved in `src/lib/spring.ts` and compiled to CSS `linear()` easings, and the
+schedule and its controller in `src/lib/sequence.ts`. `motion` was removed in Phase 6: measured
+at 67 KB gzipped it put total JS at 203 KB against §9's hard 180 KB limit, because `LazyMotion`
+pulls the animation engine in whichever entry `m` is imported from, so lazy features don't help.
+This follows D10a, which had already rejected `domMax` on the same grounds. The rule is
+unchanged and still enforced — animate opacity and full `transform` strings only — only the tool
+is different. Don't reintroduce an animation library without re-measuring the total.
 
 ## Workflow
 

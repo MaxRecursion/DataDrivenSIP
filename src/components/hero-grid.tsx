@@ -35,6 +35,13 @@ import { Animated } from "./animated";
  */
 const LIFT_PX = 2;
 
+/**
+ * How far back a date the salary rules out is washed. Light on purpose: every cell shows its
+ * real colour and its real figure, and this is only enough to keep the window findable — a
+ * reader drawn to the darkest cell still has to be able to see it is not one they may use.
+ */
+const OUT_OF_WINDOW_FADE = 0.38;
+
 /** SIP dates are 1-28 only (CLAUDE.md), which is exactly four rows of seven. */
 const DATES = Array.from({ length: 28 }, (_, index) => index + 1);
 
@@ -176,8 +183,10 @@ export function HeroGrid({
         {DATES.map((date) => {
           const inWindow = allowed.has(date);
           const isAnswer = answer === date;
-          // Only the dates the reader could actually choose carry a figure.
-          const edge = inWindow ? edges?.get(date) : undefined;
+          // Every date carries its figure, not only the ten the salary allows: a reader
+          // comparing the calendar should be able to read the whole month rather than infer the
+          // rest from the shading.
+          const edge = edges?.get(date);
 
           return (
             <div
@@ -223,7 +232,7 @@ export function HeroGrid({
                    */}
                   <div
                     className="absolute inset-0 rounded-lg bg-surface transition-opacity duration-200 motion-reduce:transition-none"
-                    style={{ opacity: inWindow ? 0 : 0.62 }}
+                    style={{ opacity: inWindow ? 0 : OUT_OF_WINDOW_FADE }}
                   />
                   {/* §8.2: the answer lands last and on its own spring (D10b). Its marigold and
                       its ring arrive together, so they are one element rather than two. */}
@@ -264,9 +273,10 @@ export function HeroGrid({
        */}
       {spanPp === undefined ? null : (
         <p className="mt-1 max-w-[65ch] text-xs text-mute-text">
-          Deepest red to deepest green across all 28 dates is {formatPp(spanPp)} of XIRR. Dates
-          your salary rules out are faded
+          Deepest red to deepest green across all 28 dates is {formatPp(spanPp)} of XIRR
           {edges === undefined ? "" : ", and each figure is that date’s XIRR against the middle of your window"}.
+          The ten your salary allows are the brighter cells, and the date named above is only
+          ever one of those.
         </p>
       )}
     </div>

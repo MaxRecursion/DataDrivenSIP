@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import kotakFixture from "../../pipeline/fixtures/expected/kotak-full.json";
 import type { DateResult, FundArtifact } from "../../shared/artifacts";
-import { pickAnswer, windowEdges } from "./answer";
+import { deviationsFromWindow, pickAnswer } from "./answer";
 import { DEFAULT_BUFFER, DEFAULT_PARAMS, MAX_BUFFER, type Salary } from "./url";
 import { WINDOW_LENGTH, safeWindow } from "./window";
 
@@ -224,14 +224,16 @@ describe("pickAnswer against the published Kotak artifact", () => {
   });
 });
 
-describe("windowEdges", () => {
-  it("covers the window's dates and says nothing about any other", () => {
+describe("deviationsFromWindow", () => {
+  it("covers the whole month, so every cell can print its own figure", () => {
     const dates = safeWindow(DEFAULT_PARAMS);
-    const edges = windowEdges(kotak, dates);
+    const all = deviationsFromWindow(kotak, dates);
 
-    expect([...edges.keys()].sort((a, b) => a - b)).toEqual([...dates].sort((a, b) => a - b));
-    // Dates outside the window are not choices the reader has, so the grid says nothing there.
-    expect(edges.has(15)).toBe(false);
+    expect(all.size).toBe(28);
+    // The 15th is outside the default window and still carries a figure: the grid shows the
+    // month, and the reader compares dates the salary rules out for themselves.
+    expect(dates).not.toContain(15);
+    expect(all.get(15)).toBeTypeOf("number");
   });
 
   it("agrees with the answer's own edge exactly, not merely to the printed decimal", () => {
@@ -240,29 +242,32 @@ describe("windowEdges", () => {
     for (const salary of ["last", 1, 15, 26, 28] as const) {
       const dates = safeWindow({ salary, buffer: DEFAULT_BUFFER });
       const answer = pickAnswer(kotak, dates);
-      expect(windowEdges(kotak, dates).get(answer.date)).toBe(answer.edgePp);
+      expect(deviationsFromWindow(kotak, dates).get(answer.date)).toBe(answer.edgePp);
     }
   });
 
   it("holds up on a window that wraps past the 28th", () => {
     const dates = safeWindow({ salary: 26, buffer: DEFAULT_BUFFER });
-    const edges = windowEdges(kotak, dates);
+    const all = deviationsFromWindow(kotak, dates);
 
     expect(dates).toContain(1);
-    expect(edges.size).toBe(WINDOW_LENGTH);
-    for (const date of dates) expect(edges.get(date)).toBeTypeOf("number");
+    expect(dates).toHaveLength(WINDOW_LENGTH);
+    for (const date of dates) expect(all.get(date)).toBeTypeOf("number");
   });
 
-  it("puts the middle of the window at or near zero, since that is the baseline", () => {
+  it("measures everything from the middle of the WINDOW, not of the month", () => {
+    // The baseline is the ten dates the salary allows, even though the map now carries all 28.
+    // Measuring the shading from one centre and the figures from another would let a cell read
+    // green while the number inside it read minus.
     const dates = safeWindow(DEFAULT_PARAMS);
-    const values = [...windowEdges(kotak, dates).values()].sort((a, b) => a - b);
-    const middle = (values[4] ?? 0) + (values[5] ?? 0);
+    const all = deviationsFromWindow(kotak, dates);
+    const inWindow = dates.map((date) => all.get(date) ?? 0).sort((a, b) => a - b);
 
-    // The two central values straddle the median, so together they cancel.
-    expect(Math.abs(middle)).toBeLessThan(1e-9);
+    // The two central window values straddle their own median, so together they cancel.
+    expect(Math.abs((inWindow[4] ?? 0) + (inWindow[5] ?? 0))).toBeLessThan(1e-9);
   });
 
   it("returns nothing rather than guessing when the artifact shares no date with the window", () => {
-    expect(windowEdges({ ...kotak, dates: [] }, safeWindow(DEFAULT_PARAMS)).size).toBe(0);
+    expect(deviationsFromWindow({ ...kotak, dates: [] }, safeWindow(DEFAULT_PARAMS)).size).toBe(0);
   });
 });

@@ -27,9 +27,9 @@ import { HeroGrid } from "../components/hero-grid";
  */
 import Disclosures from "../components/disclosures";
 import { WindowControls } from "../components/window-controls";
-import { deviationsFromWindow, pickAnswer } from "../lib/answer";
+import { pickAnswer } from "../lib/answer";
 import { disclosureCopy } from "../lib/disclosure";
-import { heatFromDeviations, heatSpanPp } from "../lib/heat";
+import { heatForMonth, heatSpanPp } from "../lib/heat";
 import { useReveal } from "../lib/use-reveal";
 import { answerCopy } from "../lib/copy";
 import { loadFund, peekFund } from "../lib/data";
@@ -147,7 +147,7 @@ export function FundPage() {
 
   if (state.status === "loading") {
     // The window comes from the URL, not the fund, so the grid is already correct and already
-    // the right size: when the data lands only the marigold cell appears (PLAN.md §6.6).
+    // the right size: when the data lands, the figures and the ring appear (PLAN.md §6.6).
     return (
       <section aria-busy="true">
         {/*
@@ -197,15 +197,12 @@ export function FundPage() {
    */
   const answer = pickAnswer(state.fund, windowDates);
   const copy = answerCopy(state.fund, answer, windowDates);
-  // Shares its arithmetic with the pick, so the marigold cell and the sentence under it are the
-  // same figure by construction rather than by two calculations happening to agree.
-  // Shading covers all 28 dates, not just the window: the calendar's job is to show what the
-  // whole month did, and fading is what says which ten the reader may actually use. It shades
-  // the same deviations the cells print, measured from the same middle, so a cell can never
-  // read green while the figure inside it reads minus.
-  const deviations = deviationsFromWindow(state.fund, windowDates);
-  const heat = heatFromDeviations(deviations);
-  const spanPp = heatSpanPp(deviations);
+  // The calendar shades and prints all 28 dates, not only the window: a reader comparing the
+  // month should be able to read every figure. Both come from the same XIRR, so the shading and
+  // the number in a cell can never tell different stories.
+  const values = new Map(state.fund.dates.map((row) => [row.d, row.xirr]));
+  const heat = heatForMonth(values);
+  const spanPp = heatSpanPp(values);
   const disclosure = disclosureCopy(state.fund, answer, windowDates);
 
   return (
@@ -217,9 +214,9 @@ export function FundPage() {
       <HeroGrid
         window={windowDates}
         answer={answer.date}
+        values={values}
         heat={heat}
         spanPp={spanPp}
-        edges={deviations}
         reveal={reveal}
         className="mt-6"
       />

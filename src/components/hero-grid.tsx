@@ -1,27 +1,38 @@
 /**
- * The hero grid (PLAN.md §7): 28 cells read like a calendar, shaded by what each date returned,
- * with the ten your salary allows outlined and the one answered date in marigold.
+ * The calendar (PLAN.md §7, extended): a real month, shaded by what each date returned.
  *
- * Four things about this markup are load-bearing beyond how it looks.
+ * Five things about this markup are load-bearing beyond how it looks.
  *
- * Every fill is a pre-painted overlay: an element always in the DOM whose OPACITY carries the
- * value, never its colour. That is what makes the shading continuous without twenty-eight
- * different background colours, and it leaves Phase 6 something it is allowed to animate.
+ * It is a real month, so it is clock-dependent, so it renders only after mount — never in the
+ * prerendered HTML, which would bake the build machine's month into every page (CLAUDE.md). Six
+ * week rows are always drawn, filled or not, so the height is identical before and after that
+ * and CLS stays 0.
  *
- * The shading is relative to this fund's own range, because that is the only place variation
- * lives — the median fund's 28 dates span 0.094 percentage points. A ramp stretched across that
- * would be a lie told in colour, so the caption states the real distance underneath. Same
- * discipline §6.5 puts on the chart's zoomed axis, for the same reason.
+ * Dates 29–31 are drawn and inert. SIP dates stop at 28 because February has no 29th in three
+ * years out of four, so a SIP set for the 30th is not a monthly instruction at all. Leaving them
+ * out would look like a bug; drawing them greyed says what is true.
  *
- * The window is an OUTLINE now that the fill carries the return. It has to stay visible: a
- * reader drawn to the darkest cell in the grid must be able to see that it is not one of the
- * dates their salary allows, or the picture argues against the one rule the app is built on.
+ * One green ramp, deepest for the strongest date of the month. It is relative to this fund's own
+ * range, so a fund whose dates span four hundredths of a point still fills it end to end — which
+ * is only honest because the caption states the real span and every cell prints its own XIRR.
  *
- * The grid is `aria-hidden` (§6.6). It restates in colour what the answer block states in words,
- * and that block carries the screen-reader summary.
+ * The ten dates the salary allows stay brighter than the rest, because the answer can only ever
+ * come from those, and a reader drawn to the deepest cell has to be able to see when it is not
+ * one they may use.
+ *
+ * Every fill is a pre-painted overlay whose opacity carries the value, so the reveal has
+ * something it is allowed to animate and no cell's colour is ever computed or swapped.
  */
-import type { CSSProperties } from "react";
-import { formatPp, formatSignedPp } from "../lib/format";
+import { useEffect, useState, type CSSProperties } from "react";
+import {
+  buildMonth,
+  monthOf,
+  monthsAhead,
+  weekdayLabels,
+  type CalendarMonth,
+  type MonthKey,
+} from "../lib/calendar";
+import { formatPp, formatXirr } from "../lib/format";
 import type { Heat } from "../lib/heat";
 import { SCHEDULE, diagonalIndexOf } from "../lib/sequence";
 import { ANSWER_SPRING, SPEC_SPRING } from "../lib/spring";
@@ -29,21 +40,8 @@ import type { Reveal } from "../lib/use-reveal";
 import { cn } from "../lib/utils";
 import { Animated } from "./animated";
 
-/**
- * §8.2's window wave: the ten cells the salary allows lift and stay lifted, so the window reads
- * as raised off the calendar rather than merely tinted. A transform, so it costs no layout.
- */
-const LIFT_PX = 2;
-
-/**
- * How far back a date the salary rules out is washed. Light on purpose: every cell shows its
- * real colour and its real figure, and this is only enough to keep the window findable — a
- * reader drawn to the darkest cell still has to be able to see it is not one they may use.
- */
-const OUT_OF_WINDOW_FADE = 0.38;
-
-/** SIP dates are 1-28 only (CLAUDE.md), which is exactly four rows of seven. */
-const DATES = Array.from({ length: 28 }, (_, index) => index + 1);
+/** Always drawn, so the calendar's height never depends on which month is showing. */
+const WEEK_ROWS = 6;
 
 /**
  * The strongest a cell paints. Ink holds 4.5:1 over a white card up to about here; past it the
@@ -52,233 +50,255 @@ const DATES = Array.from({ length: 28 }, (_, index) => index + 1);
  */
 const MAX_FILL = 0.85;
 
-/** How strongly amber paints a date sitting on the middle of the window. */
-const MID_FILL = 0.45;
+/**
+ * How far back a date the salary rules out is washed.
+ *
+ * A gentle recede, and deliberately not the signal. Brightness already carries XIRR across all 28
+ * dates, and it cannot carry the window too: on Mahindra Manulife the deepest cell of the month
+ * is the 22nd, which is outside a last-working-day window, while the ten dates that window does
+ * allow are the palest in the grid. Washing harder only made that read as "these ten are worse".
+ * The window is an outline instead — orthogonal to the ramp, so neither can lie about the other.
+ */
+const OUT_OF_WINDOW_FADE = 0.25;
 
 type HeroGridProps = {
-  /** The dates the user's window allows, from `safeWindow()`. Order is irrelevant here. */
+  /** The dates the user's window allows, from `safeWindow()`. */
   window: number[];
-  /**
-   * The answered date, from `pickAnswer()`, or null while the fund's data is still in flight.
-   * The null grid is the same size as the settled one, so the answer arriving moves nothing.
-   */
+  /** The answered date, or null while the fund's data is still in flight. */
   answer: number | null;
-  /** Each date's shading, from `heatForDates()`. Absent until the fund's data arrives. */
+  /** Each date's own XIRR, which the cells print and the shading ranks. */
+  values?: ReadonlyMap<number, number> | undefined;
+  /** Each date's shading, from `heatForMonth()`. */
   heat?: ReadonlyMap<number, Heat> | undefined;
   /** How far the shading actually runs, in percentage points, for the caption. */
   spanPp?: number | undefined;
-  /**
-   * Each window date's XIRR against the middle of the window, from `windowEdges()`. Printed
-   * under the date. Dates outside the window carry none: they are not choices the reader has.
-   */
-  edges?: ReadonlyMap<number, number> | undefined;
-  /**
-   * The reveal this grid is playing under, or null to render its final state with no animation
-   * at all — a cold deep link, a back button, or reduced motion (D10c, §8.3).
-   */
+  /** The reveal this grid is playing under, or null to render its final state (D10c, §8.3). */
   reveal?: Reveal;
-  /** Spacing from the caller. Cell sizing is fixed here and isn't meant to be overridden. */
   className?: string;
 };
 
-/**
- * One pre-painted fill. `on` picks its opacity and never whether it is rendered: a layer that
- * unmounted when it wasn't showing would leave Phase 6 nothing to fade.
- */
+/** A pre-painted fill. `on` picks its opacity and never whether it is rendered. */
 function Layer({ on, className }: { on: boolean; className: string }) {
   return (
     <div className={cn("absolute inset-0 rounded-lg", className, on ? "opacity-100" : "opacity-0")} />
   );
 }
 
-/**
- * The diverging fill: amber underneath, one ramp painted over it. The amber fades out as the
- * ramp fades in, so a date at the far end is pure colour over the white card — the composite the
- * contrast figures were measured on — and a date on the middle of the window is amber alone.
- *
- * Three stops out of nothing but opacity, so the grid still varies on the one channel Phase 6 is
- * allowed to animate. No cell's colour is ever computed or swapped.
- */
-function HeatLayers({ heat }: { heat: Heat | undefined }) {
-  const ramp = (heat?.intensity ?? 0) * MAX_FILL;
-  const amber = heat === undefined ? 0 : MID_FILL * (1 - heat.intensity);
-  // §8.1's response-to-action motion: a salary change re-shades every cell, and crossfading the
-  // overlays is what makes that read as the same grid answering again rather than a new one
-  // appearing. Opacity only, and instant for a reader who asked for reduced motion (§8.3).
-  const crossfade = "transition-opacity duration-200 motion-reduce:transition-none";
-
-  return (
-    <>
-      <div className={cn("absolute inset-0 rounded-lg bg-marigold", crossfade)} style={{ opacity: amber }} />
-      <div
-        className={cn("absolute inset-0 rounded-lg bg-loss", crossfade)}
-        style={{ opacity: heat?.tone === "loss" ? ramp : 0 }}
-      />
-      <div
-        className={cn("absolute inset-0 rounded-lg bg-teal", crossfade)}
-        style={{ opacity: heat?.tone === "gain" ? ramp : 0 }}
-      />
-    </>
-  );
-}
-
-/** The date itself. Ink at every step of the ramp, which is what the fill cap buys. */
-function Numeral({ className, date }: { className: string; date: number }) {
-  return (
-    <span
-      className={cn(
-        // `leading-none` with flex centring keeps the glyph centred in the cell whichever of
-        // Cabinet Grotesk and its metric-matched fallback is painting it.
-        "absolute inset-0 flex items-center justify-center font-display text-lg leading-none font-bold tabular text-ink sm:text-2xl",
-        className,
-      )}
-    >
-      {date}
-    </span>
-  );
-}
-
-/**
- * The edge under the date. Satoshi with tabular figures, not the Cabinet Grotesk of the numeral:
- * Cabinet has no tabular set (D18), so a column of these would not line up cell to cell.
- */
-function Delta({ text }: { text: string }) {
-  return (
-    <span className="tabular absolute inset-x-0 bottom-1 text-center text-[0.5625rem] leading-none font-medium text-ink sm:text-[0.6875rem]">
-      {text}
-    </span>
-  );
-}
-
-/** A legend swatch, painted the same way the cells are so it can't drift from them. */
-function Swatch({ className, style }: { className: string; style?: CSSProperties }) {
+function Swatch({ className, style }: { className: string; style?: CSSProperties | undefined }) {
   return <span className={cn("size-3 shrink-0 rounded-sm", className)} style={style} />;
+}
+
+/**
+ * The month the reader is looking at, resolved after mount. Null until then: reading a clock
+ * during render would put the build machine's month into 994 prerendered pages.
+ */
+function useVisibleMonths(): { months: MonthKey[]; ready: boolean } {
+  const [today, setToday] = useState<MonthKey | null>(null);
+  useEffect(() => setToday(monthOf(new Date())), []);
+  return { months: today ? monthsAhead(today) : [], ready: today !== null };
+}
+
+type CellProps = {
+  day: number;
+  sip: boolean;
+  inWindow: boolean;
+  isAnswer: boolean;
+  value: number | undefined;
+  heat: Heat | undefined;
+  playing: boolean;
+  cellsArrive: boolean;
+  generation: number | null;
+};
+
+function Cell({ day, sip, inWindow, isAnswer, value, heat, playing, cellsArrive, generation }: CellProps) {
+  // 29–31: a real day of the month that can never be a SIP date.
+  if (!sip) {
+    return (
+      <div
+        data-date={day}
+        data-unavailable=""
+        className="relative flex aspect-square items-center justify-center rounded-lg border border-line bg-raised"
+        title="SIP dates run from the 1st to the 28th, so every month has one"
+      >
+        <span className="font-display text-sm leading-none font-bold text-mute sm:text-lg">{day}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      data-date={day}
+      data-in-window={inWindow ? "" : undefined}
+      data-answer={isAnswer ? "" : undefined}
+      className="relative aspect-square rounded-lg bg-raised"
+    >
+      <Animated
+        className="absolute inset-0"
+        play={cellsArrive ? generation : null}
+        from={{ opacity: 0, transform: "scale(0.96)" }}
+        spring={SPEC_SPRING}
+        delayMs={SCHEDULE.cells!.start + SCHEDULE.cells!.stagger * diagonalIndexOf(day)}
+      >
+        {/* D15: raised on surface is 1.14:1, so an unshaded cell needs a hairline. The window's
+            outline replaces it rather than doubling it. */}
+        <Layer on={!inWindow} className="border border-line" />
+        <Layer on={inWindow} className="border-2 border-ink/25" />
+        <div
+          className="absolute inset-0 rounded-lg bg-teal transition-opacity duration-200 motion-reduce:transition-none"
+          style={{ opacity: (heat?.intensity ?? 0) * MAX_FILL }}
+        />
+        <div
+          className="absolute inset-0 rounded-lg bg-surface transition-opacity duration-200 motion-reduce:transition-none"
+          style={{ opacity: inWindow ? 0 : OUT_OF_WINDOW_FADE }}
+        />
+        {/* §8.2: the answer lands last, on its own spring (D10b). A thick ink ring rather than a
+            second fill, so the ramp underneath stays readable. */}
+        <Animated
+          className="absolute inset-0 rounded-lg border-[3px] border-ink"
+          play={playing && isAnswer ? generation : null}
+          from={{ opacity: 0, transform: "scale(0.8)" }}
+          spring={ANSWER_SPRING}
+          delayMs={SCHEDULE.answer!.start}
+          style={{ opacity: isAnswer ? 1 : 0 }}
+        />
+
+        <span className="absolute inset-x-0 top-1.5 text-center font-display text-sm leading-none font-bold text-ink sm:top-2 sm:text-lg">
+          {day}
+        </span>
+        {value === undefined ? null : (
+          <span className="tabular absolute inset-x-0 bottom-1 text-center text-[0.5625rem] leading-none font-medium text-ink sm:bottom-1.5 sm:text-xs">
+            {formatXirr(value)}
+          </span>
+        )}
+      </Animated>
+    </div>
+  );
 }
 
 export function HeroGrid({
   window: windowDates,
   answer,
+  values,
   heat,
   spanPp,
-  edges,
   reveal = null,
   className,
 }: HeroGridProps) {
-  const allowed = new Set(windowDates);
+  const { months, ready } = useVisibleMonths();
+  const [offset, setOffset] = useState(0);
+  const [navigated, setNavigated] = useState(false);
 
-  // D10e: a second selection skips the morph and the cell arrival, because a grid already on
-  // screen must not blink. The window wave and the answer landing still play.
+  const allowed = new Set(windowDates);
   const cellsArrive = reveal?.mode === "first";
   const playing = reveal !== null;
   const generation = reveal?.generation ?? null;
 
-  return (
-    <div aria-hidden="true" className={className}>
-      <div
-        data-hero-grid=""
-        // 6 px gaps at 360 px, 8 px from sm up. The cap keeps desktop cells near 64 px rather
-        // than letting seven of them stretch to the width of the text column.
-        className="grid w-full max-w-[496px] grid-cols-7 gap-1.5 sm:gap-2"
-      >
-        {DATES.map((date) => {
-          const inWindow = allowed.has(date);
-          const isAnswer = answer === date;
-          // Every date carries its figure, not only the ten the salary allows: a reader
-          // comparing the calendar should be able to read the whole month rather than infer the
-          // rest from the shading.
-          const edge = edges?.get(date);
+  const shown: CalendarMonth | null = months[offset] ? buildMonth(months[offset]) : null;
+  const weeks = shown?.weeks ?? [];
+  // Always six rows, filled or not, so the height never moves (CLS 0).
+  const padded = [...weeks, ...Array.from({ length: Math.max(0, WEEK_ROWS - weeks.length) }, () => [])];
 
-          return (
-            <div
-              key={date}
-              data-date={date}
-              // The grid is aria-hidden, so it has no roles to query. These are how the e2e suite
-              // reads which cells are lit without depending on class names or colours.
-              data-in-window={inWindow ? "" : undefined}
-              data-answer={isAnswer ? "" : undefined}
-              className="relative aspect-square rounded-lg bg-raised"
-            >
-              {/*
-               * Two nested layers, because a cell has two transforms to run and one element can
-               * hold only one: the wave lifts the window cells, the arrival scales every cell in.
-               * Full transform strings rather than Motion's separate x/scale keys, which run on
-               * the main thread (§8.1).
-               */}
-              <Animated
-                className="absolute inset-0"
-                play={playing && inWindow ? generation : null}
-                from={{ transform: "translateY(0px)" }}
-                to={{ transform: `translateY(${-LIFT_PX}px)` }}
-                spring={SPEC_SPRING}
-                delayMs={SCHEDULE.window!.start + SCHEDULE.window!.stagger * windowDates.indexOf(date)}
-                // The final state, so a cold render shows the window already lifted (§8.1).
-                style={inWindow ? { transform: `translateY(${-LIFT_PX}px)` } : undefined}
-              >
-                <Animated
-                  className="absolute inset-0"
-                  play={cellsArrive ? generation : null}
-                  from={{ opacity: 0, transform: "scale(0.96)" }}
-                  spring={SPEC_SPRING}
-                  delayMs={SCHEDULE.cells!.start + SCHEDULE.cells!.stagger * diagonalIndexOf(date)}
-                >
-                  {/* D15: raised on surface is 1.14:1, so an unshaded cell needs a hairline. */}
-                  <Layer on className="border border-line" />
-                  <HeatLayers heat={heat?.get(date)} />
-                  {/*
-                   * Dates the reader's salary rules out are washed back, so the window is the
-                   * vivid region of the grid. An ink outline was tried first and could not be
-                   * seen against a dark teal cell — and a reader drawn to the darkest cell has
-                   * to be able to tell it is not one they may use.
-                   */}
-                  <div
-                    className="absolute inset-0 rounded-lg bg-surface transition-opacity duration-200 motion-reduce:transition-none"
-                    style={{ opacity: inWindow ? 0 : OUT_OF_WINDOW_FADE }}
-                  />
-                  {/* §8.2: the answer lands last and on its own spring (D10b). Its marigold and
-                      its ring arrive together, so they are one element rather than two. */}
-                  <Animated
-                    className="absolute inset-0 rounded-lg border-2 border-ink bg-marigold"
-                    play={playing && isAnswer ? generation : null}
-                    from={{ opacity: 0, transform: "scale(0.8)" }}
-                    spring={ANSWER_SPRING}
-                    delayMs={SCHEDULE.answer!.start}
-                    style={{ opacity: isAnswer ? 1 : 0 }}
-                  />
-                  <Numeral className={edge === undefined ? "" : "pb-2 sm:pb-3"} date={date} />
-                  {edge === undefined ? null : <Delta text={formatSignedPp(edge)} />}
-                </Animated>
-              </Animated>
-            </div>
-          );
-        })}
+  return (
+    <div className={className}>
+      {/*
+       * The controls sit outside the hidden region. The cell grid duplicates, in colour, what the
+       * answer block says in prose, so it stays decorative — but a focusable button inside
+       * `aria-hidden` is invalid ARIA, and `‹` alone is not a name.
+       */}
+      <div className="mb-2 flex w-full max-w-[496px] items-center justify-between gap-2">
+        <button
+          type="button"
+          onClick={() => {
+            setNavigated(true);
+            setOffset((current) => Math.max(0, current - 1));
+          }}
+          disabled={offset === 0}
+          aria-label="Previous month"
+          className="rounded-lg px-2 py-1 text-sm text-mute-text transition-transform duration-100 active:scale-95 disabled:opacity-40 motion-reduce:transition-none focus-visible:ring-2 focus-visible:ring-teal"
+        >
+          <span aria-hidden="true">‹</span>
+        </button>
+        {/* Polite, so a keyboard user hears which month the presses landed on — but not on
+            mount, where the label's first appearance would announce a month nobody asked for. */}
+        <span aria-live={navigated ? "polite" : "off"} className="font-display text-sm font-bold text-ink">
+          {shown?.label ?? " "}
+        </span>
+        <button
+          type="button"
+          onClick={() => {
+            setNavigated(true);
+            setOffset((current) => Math.min(months.length - 1, current + 1));
+          }}
+          disabled={offset >= months.length - 1}
+          aria-label="Next month"
+          className="rounded-lg px-2 py-1 text-sm text-mute-text transition-transform duration-100 active:scale-95 disabled:opacity-40 motion-reduce:transition-none focus-visible:ring-2 focus-visible:ring-teal"
+        >
+          <span aria-hidden="true">›</span>
+        </button>
       </div>
 
-      <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-mute-text">
+      <div aria-hidden="true" data-hero-grid="">
+        <div className="grid w-full max-w-[496px] grid-cols-7 gap-1 sm:gap-2">
+          {weekdayLabels().map((label) => (
+            <span key={label} className="pb-1 text-center text-[0.625rem] text-mute-text">
+              {label}
+            </span>
+          ))}
+
+          {padded.flatMap((week, row) =>
+            Array.from({ length: 7 }, (_, column) => {
+              const slot = week[column];
+              const key = `${row}-${column}`;
+              if (!slot || slot.day === null) return <div key={key} className="aspect-square" />;
+              return (
+                <Cell
+                  key={key}
+                  day={slot.day}
+                  sip={slot.sip}
+                  inWindow={allowed.has(slot.day)}
+                  isAnswer={answer === slot.day}
+                  value={values?.get(slot.day)}
+                  heat={heat?.get(slot.day)}
+                  playing={playing}
+                  cellsArrive={cellsArrive}
+                  generation={generation}
+                />
+              );
+            }),
+          )}
+        </div>
+      </div>
+
+      <p className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-mute-text">
         <span className="flex items-center gap-1.5">
-          <Swatch className="bg-loss" style={{ opacity: MAX_FILL }} />
-          <Swatch className="bg-marigold" style={{ opacity: MID_FILL }} />
+          <Swatch className="bg-teal" style={{ opacity: 0.12 * MAX_FILL }} />
           <Swatch className="bg-teal" style={{ opacity: MAX_FILL }} />
-          Weakest, middle, strongest
+          Weakest to strongest
         </span>
         <span className="flex items-center gap-1.5">
-          <Swatch className="border-2 border-ink bg-marigold" />
+          <Swatch className="border-2 border-ink/25" />
+          Your window
+        </span>
+        <span className="flex items-center gap-1.5">
+          <Swatch className="border-[3px] border-ink" />
           Your date
+        </span>
+        <span className="flex items-center gap-1.5">
+          <Swatch className="border border-line bg-raised" />
+          Not a SIP date
         </span>
       </p>
 
-      {/*
-       * The caption the shading cannot do without. A ramp with no stated span invites the reader
-       * to supply their own, and theirs will be far larger than the truth — for most funds the
-       * whole picture covers a tenth of a percentage point.
-       */}
       {spanPp === undefined ? null : (
         <p className="mt-1 max-w-[65ch] text-xs text-mute-text">
-          Deepest red to deepest green across all 28 dates is {formatPp(spanPp)} of XIRR
-          {edges === undefined ? "" : ", and each figure is that date’s XIRR against the middle of your window"}.
-          The ten your salary allows are the brighter cells, and the date named above is only
-          ever one of those.
+          Each figure is that date’s XIRR, and palest to deepest across all 28 dates is{" "}
+          {formatPp(spanPp)}. The ten your salary allows are outlined, and the date named below is
+          only ever one of those — chosen on how it ranked over rolling 3-year stretches, which is
+          not always the date with the deepest fill here.
         </p>
       )}
+
+      {ready ? null : <span className="sr-only">Loading the calendar</span>}
     </div>
   );
 }

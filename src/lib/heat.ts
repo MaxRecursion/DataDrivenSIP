@@ -1,53 +1,44 @@
 /**
- * Shading the calendar by how each date did against the middle of the reader's window.
+ * Shading the calendar by how each date did.
  *
- * A diverging scale: the weakest date is the deepest red, the strongest the deepest green, and a
- * date sitting on the middle is amber. Intensity is proportional to how far from the middle that
- * date sits, measured against the furthest date in the same fund, so every fund uses the whole
- * ramp and the picture is about THIS fund rather than about how this fund compares to others.
+ * One ramp: the strongest date of the month is the deepest green and the weakest is the palest,
+ * scaled across this fund's own range so the whole ramp is used however small that range is.
  *
- * Two things are worth stating plainly, because a gradient is a very confident-looking object
- * and the grid is the most persuasive thing on the page.
- *
- * It shades DEVIATIONS, not absolute XIRR. Absolute XIRR never straddles zero inside a fund —
- * 989 of 994 published funds are positive on all 28 dates and the other 5 are negative on all 28
- * — so a red-to-green scale on the raw figure would paint every fund a single flat colour. The
- * deviation is what varies, and it is also the number printed in the cell, so the colour and the
- * label can never tell different stories.
- *
- * Because the scale is relative, a fund whose dates differ by a thousandth of a point still
- * fills the ramp end to end. That is only honest beside a statement of the real distance, which
- * is why `heatSpanPp` exists and why the caller must print it.
+ * Relative, and only honest because of what sits next to it. A fund whose 28 dates span four
+ * hundredths of a percentage point still fills the ramp end to end, so the caption states the
+ * real distance — and every cell now prints its own XIRR, which is what keeps a pale green from
+ * reading as "poor" when it is in fact 16.90% against a best of 16.94%. It is also what lets the
+ * scale stay green for the five published funds that lost money on every date: the colour says
+ * "strongest here", and the number underneath says what "here" was worth.
  *
  * Pure: no I/O, no clock, no randomness.
  */
 
-/** Red below the middle, green above it. Amber is the absence of both, not a third tone. */
-export type Tone = "gain" | "loss";
-
 export type Heat = {
-  tone: Tone;
-  /** How far from the middle, 0 to 1, against the furthest date in the same fund. */
+  /** How deep to paint, 0 to 1, against the strongest date in the same fund. */
   intensity: number;
 };
 
 /**
- * Each date's shading, from each date's deviation from the middle of the window
- * (`deviationsFromWindow`). Dates absent from the input are absent here too.
+ * The palest a date is painted. Not zero: a cell washed out to nothing reads as missing data
+ * rather than as the bottom of a range, and every one of these dates is a date you could use.
  */
-export function heatFromDeviations(deviations: ReadonlyMap<number, number>): Map<number, Heat> {
-  const furthest = Math.max(0, ...[...deviations.values()].map(Math.abs));
+export const MIN_INTENSITY = 0.12;
+
+/** Each date's shading, from each date's XIRR. Dates absent from the input are absent here. */
+export function heatForMonth(xirrByDate: ReadonlyMap<number, number>): Map<number, Heat> {
+  const values = [...xirrByDate.values()];
+  if (values.length === 0) return new Map();
+
+  const low = Math.min(...values);
+  const range = Math.max(...values) - low;
 
   return new Map(
-    [...deviations].map(([date, deviation]) => [
+    [...xirrByDate].map(([date, xirr]) => [
       date,
       {
-        // Exactly on the middle counts as a gain, since nothing was given up. It paints amber
-        // either way: at zero intensity neither ramp is applied at all.
-        tone: deviation < 0 ? "loss" : "gain",
-        // Every date identical: no shape to show, so they all sit at the middle rather than all
-        // going darkest on the accident of a zero division.
-        intensity: furthest === 0 ? 0 : Math.abs(deviation) / furthest,
+        // Every date identical: none of them stands out, so none is painted as though it did.
+        intensity: range === 0 ? MIN_INTENSITY : MIN_INTENSITY + ((xirr - low) / range) * (1 - MIN_INTENSITY),
       },
     ]),
   );
@@ -58,8 +49,21 @@ export function heatFromDeviations(deviations: ReadonlyMap<number, number>): Map
  * caller prints it, because a ramp with no stated span invites the reader to supply their own,
  * and theirs will be far too large.
  */
-export function heatSpanPp(deviations: ReadonlyMap<number, number>): number {
-  const values = [...deviations.values()];
+export function heatSpanPp(xirrByDate: ReadonlyMap<number, number>): number {
+  const values = [...xirrByDate.values()];
   if (values.length === 0) return 0;
   return Math.max(...values) - Math.min(...values);
+}
+
+/** The strongest date of the month, which the grid marks. Ties keep the earliest date. */
+export function strongestDate(xirrByDate: ReadonlyMap<number, number>): number | null {
+  let best: number | null = null;
+  let bestValue = Number.NEGATIVE_INFINITY;
+  for (const [date, xirr] of xirrByDate) {
+    if (xirr > bestValue || (xirr === bestValue && best !== null && date < best)) {
+      best = date;
+      bestValue = xirr;
+    }
+  }
+  return best;
 }

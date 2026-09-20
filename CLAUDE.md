@@ -44,6 +44,24 @@ Two halves that never mix:
 - State lives in the URL (`/f/{code}?salary=&buffer=`). No Redux, Zustand, React Query,
   analytics SDKs or auth.
 - The compliance footer and visible `navAsOf` appear on every page.
+- **The grid shows one number and the answer is decided by another, and the page must never
+  let that pass silently.** Cells print each date's XIRR; the pick is made on `meanPct` —
+  average rank across rolling 3-year windows — then `topQ`, then XIRR, then window order.
+  They disagree often. On Parag Parikh Flexi Cap the 24th is named while the 28th shows the
+  higher XIRR, because the 24th averages the 79th percentile against the 28th's 58th and led
+  28 rolling stretches to its 4. A reader who spots that and concludes the app contradicted
+  itself is reading it reasonably, so any change here has to keep the explanation reachable.
+- Every date 1–28 carries its own figure, not only the ten the salary allows. Brightness is the
+  ramp and nothing else: it cannot also mark the window, because the deepest cell of the month is
+  often outside it (Mahindra Manulife's 22nd against a last-working-day window) and washing the
+  other ten reads as "these are worse". The window is an outline, the answer a thicker one, and
+  the answer still only ever comes from inside the window.
+- **The calendar is clock-dependent, so it renders after mount, never in the prerendered
+  HTML**, with its height reserved so nothing shifts. Dates 29–31 appear inert and carry no
+  data: SIP dates are 1–28, which is the whole reason the engine stops there.
+- Rounding is a claim. `formatPp`'s floor exists so a real difference is never printed as
+  "0.00", and a ticker must not sit on a zero inside a sentence — "ended ₹0 apart" was on
+  screen for half a second before anyone noticed.
 
 ## Facts verified in Phase 0 research
 
@@ -104,6 +122,8 @@ is different. Don't reintroduce an animation library without re-measuring the to
 - Before every commit: `pnpm typecheck && pnpm test && pnpm build`.
 - Conventional commits (`feat:`, `fix:`, `test:`, `chore:`, `ci:`, `docs:`, `perf:`).
 - Phases 5–7: take Playwright screenshots, look at them, critique before calling the gate.
+- Screenshots run against `wrangler dev`, which serves `dist/`. Run `pnpm build` first or you
+  will critique the previous build and conclude your change did nothing.
 
 ## Copy rules
 

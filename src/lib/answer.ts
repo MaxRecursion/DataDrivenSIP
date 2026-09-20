@@ -115,13 +115,6 @@ export function deviationsFromWindow(fund: FundArtifact, window: number[]): Map<
   return new Map(fund.dates.map((result) => [result.d, edgeFrom(result.xirr, middle)]));
 }
 
-export function windowEdges(fund: FundArtifact, window: number[]): Map<number, number> {
-  const pool = candidates(fund, window);
-  if (pool.length === 0) return new Map();
-  const middle = doubledMedian(pool);
-  return new Map(pool.map(({ result }) => [result.d, edgeFrom(result.xirr, middle)]));
-}
-
 /**
  * The one date the page answers with, plus its distance from the middle of the window.
  *

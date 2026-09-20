@@ -27,7 +27,7 @@ import { HeroGrid } from "../components/hero-grid";
  */
 import Disclosures from "../components/disclosures";
 import { WindowControls } from "../components/window-controls";
-import { deviationsFromWindow, pickAnswer, windowEdges } from "../lib/answer";
+import { deviationsFromWindow, pickAnswer } from "../lib/answer";
 import { disclosureCopy } from "../lib/disclosure";
 import { heatFromDeviations, heatSpanPp } from "../lib/heat";
 import { useReveal } from "../lib/use-reveal";
@@ -199,7 +199,6 @@ export function FundPage() {
   const copy = answerCopy(state.fund, answer, windowDates);
   // Shares its arithmetic with the pick, so the marigold cell and the sentence under it are the
   // same figure by construction rather than by two calculations happening to agree.
-  const edges = windowEdges(state.fund, windowDates);
   // Shading covers all 28 dates, not just the window: the calendar's job is to show what the
   // whole month did, and fading is what says which ten the reader may actually use. It shades
   // the same deviations the cells print, measured from the same middle, so a cell can never
@@ -220,7 +219,7 @@ export function FundPage() {
         answer={answer.date}
         heat={heat}
         spanPp={spanPp}
-        edges={edges}
+        edges={deviations}
         reveal={reveal}
         className="mt-6"
       />

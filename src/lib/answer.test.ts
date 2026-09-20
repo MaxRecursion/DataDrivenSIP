@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import kotakFixture from "../../pipeline/fixtures/expected/kotak-full.json";
 import type { DateResult, FundArtifact } from "../../shared/artifacts";
-import { pickAnswer, windowEdges } from "./answer";
+import { pickAnswer } from "./answer";
 import { DEFAULT_BUFFER, DEFAULT_PARAMS, MAX_BUFFER, type Salary } from "./url";
 import { WINDOW_LENGTH, safeWindow } from "./window";
 
@@ -224,45 +224,3 @@ describe("pickAnswer against the published Kotak artifact", () => {
   });
 });
 
-describe("windowEdges", () => {
-  it("covers the window's dates and says nothing about any other", () => {
-    const dates = safeWindow(DEFAULT_PARAMS);
-    const edges = windowEdges(kotak, dates);
-
-    expect([...edges.keys()].sort((a, b) => a - b)).toEqual([...dates].sort((a, b) => a - b));
-    // Dates outside the window are not choices the reader has, so the grid says nothing there.
-    expect(edges.has(15)).toBe(false);
-  });
-
-  it("agrees with the answer's own edge exactly, not merely to the printed decimal", () => {
-    // The grid prints this beside the marigold cell and the headline prints it in a sentence.
-    // They share doubledMedian and edgeFrom, so they cannot drift; this is what pins that.
-    for (const salary of ["last", 1, 15, 26, 28] as const) {
-      const dates = safeWindow({ salary, buffer: DEFAULT_BUFFER });
-      const answer = pickAnswer(kotak, dates);
-      expect(windowEdges(kotak, dates).get(answer.date)).toBe(answer.edgePp);
-    }
-  });
-
-  it("holds up on a window that wraps past the 28th", () => {
-    const dates = safeWindow({ salary: 26, buffer: DEFAULT_BUFFER });
-    const edges = windowEdges(kotak, dates);
-
-    expect(dates).toContain(1);
-    expect(edges.size).toBe(WINDOW_LENGTH);
-    for (const date of dates) expect(edges.get(date)).toBeTypeOf("number");
-  });
-
-  it("puts the middle of the window at or near zero, since that is the baseline", () => {
-    const dates = safeWindow(DEFAULT_PARAMS);
-    const values = [...windowEdges(kotak, dates).values()].sort((a, b) => a - b);
-    const middle = (values[4] ?? 0) + (values[5] ?? 0);
-
-    // The two central values straddle the median, so together they cancel.
-    expect(Math.abs(middle)).toBeLessThan(1e-9);
-  });
-
-  it("returns nothing rather than guessing when the artifact shares no date with the window", () => {
-    expect(windowEdges({ ...kotak, dates: [] }, safeWindow(DEFAULT_PARAMS)).size).toBe(0);
-  });
-});

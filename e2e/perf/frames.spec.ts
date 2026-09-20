@@ -40,8 +40,9 @@ test("the reveal, frozen at each of §8.2's marks", async ({ page }) => {
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(new RegExp(`/f/${KOTAK.code}`));
 
-  // The grid has to exist before there is anything to seek.
-  await expect(page.locator("[data-date]")).toHaveCount(28);
+  // The grid has to exist before there is anything to seek. Counted without the inert cells:
+  // a real month also draws its 29th to 31st, which are never SIP dates.
+  await expect(page.locator("[data-date]:not([data-unavailable])")).toHaveCount(28);
 
   for (const mark of MARKS) {
     await cdp.send("Animation.seekAnimations", { animations: started, currentTime: mark });

@@ -54,16 +54,3 @@ export function heatSpanPp(xirrByDate: ReadonlyMap<number, number>): number {
   if (values.length === 0) return 0;
   return Math.max(...values) - Math.min(...values);
 }
-
-/** The strongest date of the month, which the grid marks. Ties keep the earliest date. */
-export function strongestDate(xirrByDate: ReadonlyMap<number, number>): number | null {
-  let best: number | null = null;
-  let bestValue = Number.NEGATIVE_INFINITY;
-  for (const [date, xirr] of xirrByDate) {
-    if (xirr > bestValue || (xirr === bestValue && best !== null && date < best)) {
-      best = date;
-      bestValue = xirr;
-    }
-  }
-  return best;
-}

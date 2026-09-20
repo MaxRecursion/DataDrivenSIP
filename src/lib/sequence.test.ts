@@ -3,8 +3,8 @@ import {
   SCHEDULE,
   SEQUENCE_CAP_MS,
   Sequence,
-  diagonalIndexOf,
-  diagonalOrder,
+  DIAGONAL_COUNT,
+  diagonalIndexAt,
   sequenceEndMs,
   stepEndMs,
   stepsFor,
@@ -25,9 +25,12 @@ describe("the §8.2 schedule", () => {
     expect(stepEndMs(SCHEDULE.answer!)).toBeLessThan(SEQUENCE_CAP_MS);
   });
 
-  it("starts the last cell at 276 ms, as §8.2 tabulates", () => {
+  it("starts the last cell at 148 ms, amending §8.2's 276", () => {
+    // §8.2 tabulated 28 cells at 60 + 8·i, so the last began at 276. The grid is a real month
+    // now: six rows by seven columns, staggered over the 12 diagonals rather than over 28
+    // dates, so the wave closes at 148 and the window step at 260 still follows it cleanly.
     const cells = SCHEDULE.cells!;
-    expect(cells.start + cells.stagger * (cells.count - 1)).toBe(276);
+    expect(cells.start + cells.stagger * (cells.count - 1)).toBe(148);
   });
 
   it("would breach the cap at a tolerance finer than a screen pixel", () => {
@@ -50,26 +53,36 @@ describe("the §8.2 schedule", () => {
   });
 });
 
-describe("diagonalOrder", () => {
-  it("covers all 28 dates exactly once", () => {
-    const order = diagonalOrder();
-    expect(order).toHaveLength(28);
-    expect(new Set(order).size).toBe(28);
+describe("diagonalIndexAt", () => {
+  it("gives one index per down-and-right diagonal of the six-by-seven grid", () => {
+    const indices = new Set<number>();
+    for (let row = 0; row < 6; row++) {
+      for (let column = 0; column < 7; column++) indices.add(diagonalIndexAt(row, column));
+    }
+    // 0 through 11: the top-left cell and the bottom-right one, and every diagonal between.
+    expect(indices.size).toBe(DIAGONAL_COUNT);
+    expect(Math.max(...indices)).toBe(DIAGONAL_COUNT - 1);
   });
 
-  it("starts at the first cell and sweeps outward in diagonals", () => {
-    const order = diagonalOrder();
-    expect(order[0]).toBe(1);
-    // The 8th and the 2nd share a diagonal (row+column = 1) and follow the 1st.
-    expect(order.slice(0, 3).sort((a, b) => a - b)).toEqual([1, 2, 8]);
-    // The far corner arrives last.
-    expect(order.at(-1)).toBe(28);
+  it("puts cells on one diagonal at the same moment, which is what makes it a wave", () => {
+    // A row down and a column left is the same diagonal, so these arrive together.
+    expect(diagonalIndexAt(1, 2)).toBe(diagonalIndexAt(2, 1));
+    expect(diagonalIndexAt(0, 0)).toBe(0);
   });
 
-  it("gives every date a distinct position, since position is what staggers it", () => {
-    const positions = Array.from({ length: 28 }, (_, i) => diagonalIndexOf(i + 1));
-    expect(new Set(positions).size).toBe(28);
-    expect(Math.max(...positions)).toBe(27);
+  it("orders by position, not by date, so a month that starts mid-week still sweeps", () => {
+    // September 2026 opens on a Tuesday: the 1st sits at row 0, column 2, and the 6th — the
+    // smaller distance from the corner — arrives before it. Ordering by the date got this
+    // backwards, because it assumed the 1st was always in column 0.
+    const first = diagonalIndexAt(0, 2);
+    const sixth = diagonalIndexAt(1, 0);
+    expect(sixth).toBeLessThan(first);
+  });
+
+  it("stays inside the stagger the schedule budgets for it", () => {
+    const cells = SCHEDULE.cells!;
+    expect(cells.count).toBe(DIAGONAL_COUNT);
+    expect(cells.start + cells.stagger * (DIAGONAL_COUNT - 1)).toBeLessThan(SCHEDULE.answer!.start);
   });
 });
 

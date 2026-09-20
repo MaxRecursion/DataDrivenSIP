@@ -62,3 +62,49 @@ test("draws the days that are never SIP dates, rather than leaving a hole", asyn
   }
   expect(inertSeen).toBeGreaterThan(0);
 });
+
+test("changing month does not replay the entrance reveal", async ({ page }) => {
+  /**
+   * The regression this exists for: `Animated` re-runs whenever its delay changes, a cell's
+   * delay comes from where it sits in the grid, and changing month changes which date sits in
+   * a given slot. `useReveal` never clears itself, so before the guard every press of the month
+   * arrows replayed all 28 cells — for the life of the page, not merely during the first 700 ms.
+   */
+  await page.goto("/");
+  await page.getByRole("combobox", { name: "Search for a fund" }).fill("kotak mid");
+  await expect(page.getByRole("option").first()).toContainText("Kotak Mid Cap");
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#answer-heading")).toHaveText(/^The \d+(st|nd|rd|th)$/);
+
+  // The reveal has to have actually run, or this would pass on a page that never animates.
+  await expect
+    .poll(async () => page.evaluate(() => document.getAnimations().length), { timeout: 3000 })
+    .toBe(0);
+
+  /*
+   * Counts scripted animations only. Changing month legitimately crossfades each cell's fill
+   * and presses the arrow's active state, and those are CSS transitions; the reveal is
+   * `element.animate()`, which is a plain Animation. Counting both would make this pass or fail
+   * on the crossfade instead of on the thing it is guarding.
+   */
+  await page.getByRole("button", { name: "Next month" }).click();
+  const peak = await page.evaluate(
+    () =>
+      new Promise<number>((resolve) => {
+        const scripted = () =>
+          document.getAnimations().filter((a) => a.constructor.name === "Animation").length;
+        let highest = 0;
+        const started = performance.now();
+        const sample = () => {
+          highest = Math.max(highest, scripted());
+          if (performance.now() - started > 1000) resolve(highest);
+          else requestAnimationFrame(sample);
+        };
+        requestAnimationFrame(sample);
+      }),
+  );
+  expect(peak, "month navigation replayed the reveal").toBe(0);
+
+  // And the month really did change, so the assertion above is not passing on a dead button.
+  await expect(page.getByRole("button", { name: "Previous month" })).toBeEnabled();
+});

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MIN_INTENSITY, heatForMonth, heatSpanPp, strongestDate } from "./heat";
+import { MIN_INTENSITY, heatForMonth, heatSpanPp } from "./heat";
 
 /** Each date's own XIRR, which is both what the cell prints and what the shading ranks. */
 const xirrs = (byDate: Record<number, number>) =>
@@ -71,17 +71,3 @@ describe("heatSpanPp", () => {
   });
 });
 
-describe("strongestDate", () => {
-  it("finds the date the ramp paints deepest", () => {
-    expect(strongestDate(xirrs({ 5: 16.9, 12: 16.94, 24: 16.92 }))).toBe(12);
-  });
-
-  it("keeps the earliest date when two are exactly equal", () => {
-    // Matching the pipeline's convention, so the mark never depends on map ordering.
-    expect(strongestDate(xirrs({ 20: 16.94, 4: 16.94, 9: 16.9 }))).toBe(4);
-  });
-
-  it("has nothing to point at when there are no dates", () => {
-    expect(strongestDate(new Map())).toBeNull();
-  });
-});

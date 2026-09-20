@@ -145,7 +145,10 @@ export function formatPercentOfValue(fraction: number): string {
  */
 export function formatXirr(xirr: number): string {
   assertFinite(xirr);
-  return withRealMinus(xirr.toFixed(3));
+  const fixed = xirr.toFixed(3);
+  // A rate of −0.0004 rounds to "-0.000", and a signed zero in a calendar cell claims a
+  // direction the number does not have. `formatPp` guards the same way.
+  return withRealMinus(fixed === "-0.000" ? "0.000" : fixed);
 }
 
 export function formatYearsOfMonths(months: number): string {

@@ -34,7 +34,7 @@ import {
 } from "../lib/calendar";
 import { formatPp, formatXirr } from "../lib/format";
 import type { Heat } from "../lib/heat";
-import { SCHEDULE, diagonalIndexOf } from "../lib/sequence";
+import { SCHEDULE, diagonalIndexAt } from "../lib/sequence";
 import { ANSWER_SPRING, SPEC_SPRING } from "../lib/spring";
 import type { Reveal } from "../lib/use-reveal";
 import { cn } from "../lib/utils";
@@ -100,6 +100,11 @@ function useVisibleMonths(): { months: MonthKey[]; ready: boolean } {
 
 type CellProps = {
   day: number;
+  /** Where this cell sits in the month grid, which is what orders the wave. */
+  row: number;
+  column: number;
+  /** Position in the salary window, which orders the outlines. −1 when outside it. */
+  windowIndex: number;
   sip: boolean;
   inWindow: boolean;
   isAnswer: boolean;
@@ -110,17 +115,40 @@ type CellProps = {
   generation: number | null;
 };
 
-function Cell({ day, sip, inWindow, isAnswer, value, heat, playing, cellsArrive, generation }: CellProps) {
+function Cell({
+  day,
+  row,
+  column,
+  windowIndex,
+  sip,
+  inWindow,
+  isAnswer,
+  value,
+  heat,
+  playing,
+  cellsArrive,
+  generation,
+}: CellProps) {
   // 29–31: a real day of the month that can never be a SIP date.
   if (!sip) {
     return (
       <div
         data-date={day}
         data-unavailable=""
-        className="relative flex aspect-square items-center justify-center rounded-lg border border-line bg-raised"
+        className="relative aspect-square"
         title="SIP dates run from the 1st to the 28th, so every month has one"
       >
-        <span className="font-display text-sm leading-none font-bold text-mute sm:text-lg">{day}</span>
+        {/* Arrives on its own diagonal like every other cell. Left out of the sequence it was
+            the only thing on screen at 0 ms, which read as the grid failing to load. */}
+        <Animated
+          className="absolute inset-0 flex items-center justify-center rounded-lg border border-line bg-raised"
+          play={cellsArrive ? generation : null}
+          from={{ opacity: 0, transform: "scale(0.96)" }}
+          spring={SPEC_SPRING}
+          delayMs={SCHEDULE.cells!.start + SCHEDULE.cells!.stagger * diagonalIndexAt(row, column)}
+        >
+          <span className="font-display text-sm leading-none font-bold text-mute sm:text-lg">{day}</span>
+        </Animated>
       </div>
     );
   }
@@ -137,12 +165,21 @@ function Cell({ day, sip, inWindow, isAnswer, value, heat, playing, cellsArrive,
         play={cellsArrive ? generation : null}
         from={{ opacity: 0, transform: "scale(0.96)" }}
         spring={SPEC_SPRING}
-        delayMs={SCHEDULE.cells!.start + SCHEDULE.cells!.stagger * diagonalIndexOf(day)}
+        delayMs={SCHEDULE.cells!.start + SCHEDULE.cells!.stagger * diagonalIndexAt(row, column)}
       >
         {/* D15: raised on surface is 1.14:1, so an unshaded cell needs a hairline. The window's
             outline replaces it rather than doubling it. */}
         <Layer on={!inWindow} className="border border-line" />
-        <Layer on={inWindow} className="border-2 border-ink/25" />
+        {/* §8.2 row 3: the window sweeps in after the cells. It is animated rather than static
+            now that the outline, not brightness, is what says which dates the salary allows. */}
+        <Animated
+          className="absolute inset-0 rounded-lg border-2 border-ink/25"
+          play={playing && inWindow ? generation : null}
+          from={{ opacity: 0, transform: "scale(0.94)" }}
+          spring={SPEC_SPRING}
+          delayMs={SCHEDULE.window!.start + SCHEDULE.window!.stagger * Math.max(0, windowIndex)}
+          style={{ opacity: inWindow ? 1 : 0 }}
+        />
         <div
           className="absolute inset-0 rounded-lg bg-teal transition-opacity duration-200 motion-reduce:transition-none"
           style={{ opacity: (heat?.intensity ?? 0) * MAX_FILL }}
@@ -189,9 +226,26 @@ export function HeroGrid({
   const [navigated, setNavigated] = useState(false);
 
   const allowed = new Set(windowDates);
-  const cellsArrive = reveal?.mode === "first";
-  const playing = reveal !== null;
   const generation = reveal?.generation ?? null;
+
+  /**
+   * A new fund re-arms the reveal and puts the calendar back on the current month; until then,
+   * navigating months switches the entrance off.
+   *
+   * `Animated` re-runs whenever its delay changes, and changing month changes which date sits in
+   * a given slot and so what that slot's stagger is. Without this, every press of the month
+   * arrows replayed the whole 28-cell entrance — `useReveal` never clears itself back to null,
+   * so it replayed for the life of the page, not merely during the first 700 ms.
+   */
+  const [armedFor, setArmedFor] = useState(generation);
+  if (generation !== armedFor) {
+    setArmedFor(generation);
+    setNavigated(false);
+    setOffset(0);
+  }
+
+  const cellsArrive = reveal?.mode === "first" && !navigated;
+  const playing = reveal !== null && !navigated;
 
   const shown: CalendarMonth | null = months[offset] ? buildMonth(months[offset]) : null;
   const weeks = shown?.weeks ?? [];
@@ -254,6 +308,9 @@ export function HeroGrid({
                 <Cell
                   key={key}
                   day={slot.day}
+                  row={row}
+                  column={column}
+                  windowIndex={windowDates.indexOf(slot.day)}
                   sip={slot.sip}
                   inWindow={allowed.has(slot.day)}
                   isAnswer={answer === slot.day}

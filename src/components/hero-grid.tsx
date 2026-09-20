@@ -23,7 +23,17 @@
 import type { CSSProperties } from "react";
 import { formatPp, formatSignedPp } from "../lib/format";
 import type { Heat } from "../lib/heat";
+import { SCHEDULE, diagonalIndexOf } from "../lib/sequence";
+import { ANSWER_SPRING, SPEC_SPRING } from "../lib/spring";
+import type { Reveal } from "../lib/use-reveal";
 import { cn } from "../lib/utils";
+import { Animated } from "./animated";
+
+/**
+ * §8.2's window wave: the ten cells the salary allows lift and stay lifted, so the window reads
+ * as raised off the calendar rather than merely tinted. A transform, so it costs no layout.
+ */
+const LIFT_PX = 2;
 
 /** SIP dates are 1-28 only (CLAUDE.md), which is exactly four rows of seven. */
 const DATES = Array.from({ length: 28 }, (_, index) => index + 1);
@@ -55,6 +65,11 @@ type HeroGridProps = {
    * under the date. Dates outside the window carry none: they are not choices the reader has.
    */
   edges?: ReadonlyMap<number, number> | undefined;
+  /**
+   * The reveal this grid is playing under, or null to render its final state with no animation
+   * at all — a cold deep link, a back button, or reduced motion (D10c, §8.3).
+   */
+  reveal?: Reveal;
   /** Spacing from the caller. Cell sizing is fixed here and isn't meant to be overridden. */
   className?: string;
 };
@@ -129,8 +144,22 @@ function Swatch({ className, style }: { className: string; style?: CSSProperties
   return <span className={cn("size-3 shrink-0 rounded-sm", className)} style={style} />;
 }
 
-export function HeroGrid({ window: windowDates, answer, heat, spanPp, edges, className }: HeroGridProps) {
+export function HeroGrid({
+  window: windowDates,
+  answer,
+  heat,
+  spanPp,
+  edges,
+  reveal = null,
+  className,
+}: HeroGridProps) {
   const allowed = new Set(windowDates);
+
+  // D10e: a second selection skips the morph and the cell arrival, because a grid already on
+  // screen must not blink. The window wave and the answer landing still play.
+  const cellsArrive = reveal?.mode === "first";
+  const playing = reveal !== null;
+  const generation = reveal?.generation ?? null;
 
   return (
     <div aria-hidden="true" className={className}>
@@ -156,25 +185,56 @@ export function HeroGrid({ window: windowDates, answer, heat, spanPp, edges, cla
               data-answer={isAnswer ? "" : undefined}
               className="relative aspect-square rounded-lg bg-raised"
             >
-              {/* D15: raised on surface is 1.14:1, so an unshaded cell needs a hairline to exist. */}
-              <Layer on className="border border-line" />
-              <HeatLayers heat={heat?.get(date)} />
-              {/* Marigold sits over the shading rather than replacing it, so Phase 6 can fade one
-                  over the other instead of swapping a fill. */}
-              <Layer on={isAnswer} className="bg-marigold" />
               {/*
-               * Dates the reader's salary rules out are washed back, so the window is the vivid
-               * region of the grid. An ink outline was tried first and could not be seen at all
-               * against a dark teal cell — and a reader drawn to the darkest cell in the grid
-               * has to be able to tell it is not one they may use.
+               * Two nested layers, because a cell has two transforms to run and one element can
+               * hold only one: the wave lifts the window cells, the arrival scales every cell in.
+               * Full transform strings rather than Motion's separate x/scale keys, which run on
+               * the main thread (§8.1).
                */}
-              <div
-                className="absolute inset-0 rounded-lg bg-surface"
-                style={{ opacity: inWindow ? 0 : 0.62 }}
-              />
-              <Layer on={isAnswer} className="border-2 border-ink" />
-              <Numeral className={edge === undefined ? "" : "pb-2 sm:pb-3"} date={date} />
-              {edge === undefined ? null : <Delta text={formatSignedPp(edge)} />}
+              <Animated
+                className="absolute inset-0"
+                play={playing && inWindow ? generation : null}
+                from={{ transform: "translateY(0px)" }}
+                to={{ transform: `translateY(${-LIFT_PX}px)` }}
+                spring={SPEC_SPRING}
+                delayMs={SCHEDULE.window!.start + SCHEDULE.window!.stagger * windowDates.indexOf(date)}
+                // The final state, so a cold render shows the window already lifted (§8.1).
+                style={inWindow ? { transform: `translateY(${-LIFT_PX}px)` } : undefined}
+              >
+                <Animated
+                  className="absolute inset-0"
+                  play={cellsArrive ? generation : null}
+                  from={{ opacity: 0, transform: "scale(0.96)" }}
+                  spring={SPEC_SPRING}
+                  delayMs={SCHEDULE.cells!.start + SCHEDULE.cells!.stagger * diagonalIndexOf(date)}
+                >
+                  {/* D15: raised on surface is 1.14:1, so an unshaded cell needs a hairline. */}
+                  <Layer on className="border border-line" />
+                  <HeatLayers heat={heat?.get(date)} />
+                  {/*
+                   * Dates the reader's salary rules out are washed back, so the window is the
+                   * vivid region of the grid. An ink outline was tried first and could not be
+                   * seen against a dark teal cell — and a reader drawn to the darkest cell has
+                   * to be able to tell it is not one they may use.
+                   */}
+                  <div
+                    className="absolute inset-0 rounded-lg bg-surface"
+                    style={{ opacity: inWindow ? 0 : 0.62 }}
+                  />
+                  {/* §8.2: the answer lands last and on its own spring (D10b). Its marigold and
+                      its ring arrive together, so they are one element rather than two. */}
+                  <Animated
+                    className="absolute inset-0 rounded-lg border-2 border-ink bg-marigold"
+                    play={playing && isAnswer ? generation : null}
+                    from={{ opacity: 0, transform: "scale(0.8)" }}
+                    spring={ANSWER_SPRING}
+                    delayMs={SCHEDULE.answer!.start}
+                    style={{ opacity: isAnswer ? 1 : 0 }}
+                  />
+                  <Numeral className={edge === undefined ? "" : "pb-2 sm:pb-3"} date={date} />
+                  {edge === undefined ? null : <Delta text={formatSignedPp(edge)} />}
+                </Animated>
+              </Animated>
             </div>
           );
         })}

@@ -27,6 +27,13 @@ export type AnswerCopy = {
   headline: string;
   caveats: string[];
   rupeeLine: string;
+  /**
+   * The same sentence split around its gap figure, so the reveal can count that figure up
+   * (§8.2) without the answer block having to find a number inside a finished string.
+   */
+  rupeeBefore: string;
+  rupeeGap: number;
+  rupeeAfter: string;
   srSummary: string;
 };
 
@@ -182,7 +189,10 @@ function caveatsFor(fund: FundArtifact): string[] {
  * The rupee framing (D1). It names the two dates being compared, states that the SIP is
  * notional, and divides the gap by the highest corpus so "% of final value" has a base.
  */
-function rupeeLineFor(fund: FundArtifact, answer: Answer): string {
+function rupeeLineFor(
+  fund: FundArtifact,
+  answer: Answer,
+): { before: string; gap: number; after: string; line: string } {
   const { highest, lowest } = corpusExtremes(fund, answer);
   // The gap between the two rows this sentence names, not fund.spreadRupees: the artifact rounds
   // every corpus independently, so for 237 of 994 funds the published spread is not the
@@ -194,7 +204,9 @@ function rupeeLineFor(fund: FundArtifact, answer: Answer): string {
   // not from the NAV history. The two differ for 457 funds — one showed ₹5.2 lakh invested
   // "over 4.8 years", which at ₹10,000 a month is ₹5.76 lakh. Kotak hides it: its 164 months
   // and its 13.7-year NAV span agree, which is why the worked example never disambiguated them.
-  return `For a notional ${formatRupees(NOTIONAL_MONTHLY)} monthly SIP, the highest- and lowest-value dates (the ${ordinal(highest.d)} and ${ordinal(lowest.d)}) ended ${formatRupees(gap)} apart on ${formatLakh(invested)} invested, ${formatPercentOfValue(shareOfValue)} of the ${formatLakh(highest.corpus)} it grew to, over ${formatYearsOfMonths(fund.instalments)}.`;
+  const before = `For a notional ${formatRupees(NOTIONAL_MONTHLY)} monthly SIP, the highest- and lowest-value dates (the ${ordinal(highest.d)} and ${ordinal(lowest.d)}) ended `;
+  const after = ` apart on ${formatLakh(invested)} invested, ${formatPercentOfValue(shareOfValue)} of the ${formatLakh(highest.corpus)} it grew to, over ${formatYearsOfMonths(fund.instalments)}.`;
+  return { before, gap, after, line: `${before}${formatRupees(gap)}${after}` };
 }
 
 /**
@@ -208,10 +220,14 @@ function srSummaryFor(answer: Answer, window: number[]): string {
 }
 
 export function answerCopy(fund: FundArtifact, answer: Answer, window: number[]): AnswerCopy {
+  const rupees = rupeeLineFor(fund, answer);
   return {
     headline: headlineFor(fund, answer),
     caveats: caveatsFor(fund),
-    rupeeLine: rupeeLineFor(fund, answer),
+    rupeeLine: rupees.line,
+    rupeeBefore: rupees.before,
+    rupeeGap: rupees.gap,
+    rupeeAfter: rupees.after,
     srSummary: srSummaryFor(answer, window),
   };
 }

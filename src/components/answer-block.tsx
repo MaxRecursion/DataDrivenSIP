@@ -12,7 +12,10 @@
  * number to derive here, so there is nothing to get wrong twice.
  */
 import type { AnswerCopy } from "../lib/copy";
-import { ordinal } from "../lib/format";
+import { formatRupees, ordinal } from "../lib/format";
+import { SCHEDULE, TICKER_MS } from "../lib/sequence";
+import type { Reveal } from "../lib/use-reveal";
+import { RupeeTicker } from "./rupee-ticker";
 
 /**
  * The fund page moves focus here after a fund is chosen (PLAN.md §6.6), so the reader lands on
@@ -39,9 +42,11 @@ type AnswerBlockProps = {
   copy: AnswerCopy;
   /** The date the page answers with, 1-28. Rendered as the heading, e.g. "The 12th". */
   answerDate: number;
+  /** The reveal in flight, or null to render the final figure at once (§8.3, D10c). */
+  reveal?: Reveal;
 };
 
-export function AnswerBlock({ copy, answerDate }: AnswerBlockProps) {
+export function AnswerBlock({ copy, answerDate, reveal = null }: AnswerBlockProps) {
   return (
     <section className="mt-6 max-w-[65ch]">
       {/*
@@ -95,7 +100,17 @@ export function AnswerBlock({ copy, answerDate }: AnswerBlockProps) {
 
       {/* An explicit line-height, because ₹ is borrowed from Cabinet Grotesk by unicode-range and
           a taller glyph would otherwise set this line's box on its own (PLAN.md §7, D14). */}
-      <p className="mt-4 text-sm leading-[1.7] text-mute-text">{copy.rupeeLine}</p>
+      <p className="mt-4 text-sm leading-[1.7] text-mute-text">
+        {copy.rupeeBefore}
+        <RupeeTicker
+          value={copy.rupeeGap}
+          format={formatRupees}
+          reveal={reveal?.generation ?? null}
+          delayMs={SCHEDULE.ticker!.start}
+          durationMs={TICKER_MS}
+        />
+        {copy.rupeeAfter}
+      </p>
     </section>
   );
 }

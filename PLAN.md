@@ -1199,7 +1199,13 @@ A CI test fails if any of these reappear.
 | Start (ms) | Element | Animation | Ends by (ms) |
 |---|---|---|---|
 | 0 | hero card | FLIP from result-row rect, spec spring | ~225 |
-| 60 + 8·i | 28 cells, diagonal order | `opacity 0→1`, `scale(0.96)→scale(1)`, spec spring; last starts 276 | ~470 |
+| 60 + 8·i | 12 diagonals of the month grid | `opacity 0→1`, `scale(0.96)→scale(1)`, spec spring; last starts 148 | ~470 |
+
+> **Amended.** This row said "28 cells ... last starts 276" when the grid was 28 boxes with the
+> 1st in the top-left corner. The grid is a real month now, six rows by seven columns, and a
+> month does not begin in column 0 — September 2026 opens on a Tuesday. The stagger is keyed on
+> `row + column`, so cells on one diagonal arrive together and the wave closes at 148 ms. Row 3
+> below still starts at 260 and so still follows it.
 | 260 + 12·j | 10 window cells | wrapper `translateY(0)→translateY(-2px)`; teal overlay `opacity 0→1` | ~590 |
 | 400 | answer cell | `scale(0.8)→scale(1)`, stiffness 1600 / damping 26 (D10b); marigold overlay and ring `opacity` | ~690 |
 | 400 | — | `navigator.vibrate?.(8)`, only when a user gesture triggered the sequence | — |

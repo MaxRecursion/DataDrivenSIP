@@ -39,9 +39,24 @@ export const TICKER_MS = 200;
  * §8.2, verbatim. The card FLIPs from the search row, the cells arrive diagonally, the window
  * cells wave, the answer lands, and the rupee figure counts up.
  */
+/**
+ * The diagonals of the calendar grid: six week rows by seven columns, so `row + column` runs
+ * 0 to 11 and every cell on one down-and-right diagonal shares an index. Cells that share a
+ * diagonal arrive together, which is what makes the reveal read as a wave.
+ *
+ * Keyed on the grid position rather than on the date, because a real month does not start in
+ * column 0. September 2026 begins on a Tuesday, and ordering by the date put the wave in an
+ * order with no relation to what was on screen.
+ */
+export const DIAGONAL_COUNT = 12;
+
+export function diagonalIndexAt(row: number, column: number): number {
+  return row + column;
+}
+
 export const SCHEDULE: Record<string, Step> = {
   card: { start: 0, stagger: 0, count: 1, spring: SPEC_SPRING },
-  cells: { start: 60, stagger: 8, count: 28, spring: SPEC_SPRING },
+  cells: { start: 60, stagger: 8, count: DIAGONAL_COUNT, spring: SPEC_SPRING },
   window: { start: 260, stagger: 12, count: 10, spring: SPEC_SPRING },
   answer: { start: 400, stagger: 0, count: 1, spring: ANSWER_SPRING },
   ticker: { start: 500, stagger: 0, count: 1, spring: null, duration: TICKER_MS },
@@ -73,32 +88,6 @@ export function stepEndMs(step: Step): number {
 /** When the whole sequence has finished. */
 export function sequenceEndMs(mode: Mode = "first"): number {
   return Math.max(...stepsFor(mode).map(([, step]) => stepEndMs(step)));
-}
-
-/**
- * The order the 28 cells arrive in: down-and-right diagonals across the seven-column calendar,
- * so the reveal reads as a wave rather than as a list being filled in.
- */
-const ORDER: readonly number[] = Array.from({ length: 28 }, (_, index) => index + 1).sort((a, b) => {
-  const place = (date: number) => ({
-    diagonal: Math.floor((date - 1) / 7) + ((date - 1) % 7),
-    column: (date - 1) % 7,
-  });
-  const left = place(a);
-  const right = place(b);
-  return left.diagonal - right.diagonal || left.column - right.column;
-});
-
-/** Computed once: every cell asks for its position on every render. */
-const POSITIONS = new Map(ORDER.map((date, index) => [date, index]));
-
-export function diagonalOrder(): number[] {
-  return [...ORDER];
-}
-
-/** Where a date sits in that order, which is what multiplies the stagger. */
-export function diagonalIndexOf(date: number): number {
-  return POSITIONS.get(date) ?? 0;
 }
 
 /**

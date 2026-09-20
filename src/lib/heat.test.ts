@@ -1,77 +1,87 @@
 import { describe, expect, it } from "vitest";
-import { heatFromDeviations, heatSpanPp } from "./heat";
+import { MIN_INTENSITY, heatForMonth, heatSpanPp, strongestDate } from "./heat";
 
-/** Deviations from the middle of the window, keyed by date — what the grid actually shades. */
-const deviations = (byDate: Record<number, number>) =>
+/** Each date's own XIRR, which is both what the cell prints and what the shading ranks. */
+const xirrs = (byDate: Record<number, number>) =>
   new Map(Object.entries(byDate).map(([date, value]) => [Number(date), value]));
 
-describe("heatFromDeviations", () => {
-  it("runs red through amber to green, with the furthest date setting the scale", () => {
-    // 5th lowest, 10th on the middle, 15th highest.
-    const heat = heatFromDeviations(deviations({ 5: -0.3, 6: -0.2, 10: 0, 13: 0.9, 15: 1.1 }));
+describe("heatForMonth", () => {
+  it("paints the strongest date deepest and the weakest palest", () => {
+    const heat = heatForMonth(xirrs({ 5: 16.9, 12: 16.94, 24: 16.92 }));
 
-    expect(heat.get(15)).toEqual({ tone: "gain", intensity: 1 });
-    // Red, but only as red as 0.3 deserves beside a 1.1. Saturating both ends equally would
-    // draw a loss of a third of a point as loudly as a gain of more than a full one.
-    expect(heat.get(5)?.tone).toBe("loss");
-    expect(heat.get(5)?.intensity).toBeCloseTo(0.3 / 1.1, 10);
-    // Amber is the absence of either ramp, so the middle paints at zero intensity.
-    expect(heat.get(10)?.intensity).toBe(0);
+    expect(heat.get(12)?.intensity).toBe(1);
+    expect(heat.get(5)?.intensity).toBe(MIN_INTENSITY);
+    expect(heat.get(24)?.intensity).toBeGreaterThan(MIN_INTENSITY);
+    expect(heat.get(24)?.intensity).toBeLessThan(1);
   });
 
-  it("shades in proportion, so a date two-thirds of the way out is two-thirds as strong", () => {
-    const heat = heatFromDeviations(deviations({ 5: -0.3, 13: 0.9, 15: 1.1 }));
-
-    // 0.9 against a furthest of 1.1.
-    expect(heat.get(13)?.intensity).toBeCloseTo(0.9 / 1.1, 10);
-    expect(heat.get(13)?.tone).toBe("gain");
-    // 0.3 against the same 1.1: the red side is measured on the same scale as the green.
-    expect(heat.get(5)?.intensity).toBeCloseTo(0.3 / 1.1, 10);
+  it("shades in proportion, so a date halfway up the range is painted halfway", () => {
+    const heat = heatForMonth(xirrs({ 1: 10, 2: 15, 3: 20 }));
+    expect(heat.get(2)?.intensity).toBeCloseTo(MIN_INTENSITY + 0.5 * (1 - MIN_INTENSITY), 10);
   });
 
-  it("measures both sides against one furthest date, so red and green stay comparable", () => {
-    // A fund that is far worse below the middle than above it must look far worse, not equally
-    // saturated on both ends.
-    const heat = heatFromDeviations(deviations({ 1: -1, 2: 0.1 }));
-
-    expect(heat.get(1)?.intensity).toBe(1);
-    expect(heat.get(2)?.intensity).toBeCloseTo(0.1, 10);
-  });
-
-  it("puts every date on the middle when they are all identical, rather than dividing by nothing", () => {
-    for (const cell of heatFromDeviations(deviations({ 1: 0, 2: 0, 3: 0 })).values()) {
-      expect(Number.isNaN(cell.intensity)).toBe(false);
-      expect(cell.intensity).toBe(0);
-    }
-  });
-
-  it("treats a date exactly on the middle as a gain, since nothing was given up", () => {
-    expect(heatFromDeviations(deviations({ 1: 0, 2: 1 })).get(1)?.tone).toBe("gain");
-  });
-
-  it("keeps every intensity inside the ramp", () => {
-    const heat = heatFromDeviations(deviations({ 1: -0.112, 2: 0.03, 3: 0, 4: 0.09 }));
-
-    for (const cell of heat.values()) {
-      expect(cell.intensity).toBeGreaterThanOrEqual(0);
+  it("never fades a date to nothing, since every one of them is a date you could use", () => {
+    for (const cell of heatForMonth(xirrs({ 1: 1, 2: 2, 3: 3, 4: 4 })).values()) {
+      expect(cell.intensity).toBeGreaterThanOrEqual(MIN_INTENSITY);
       expect(cell.intensity).toBeLessThanOrEqual(1);
     }
   });
 
+  it("paints nothing as standing out when no date does, instead of dividing by nothing", () => {
+    const heat = heatForMonth(xirrs({ 1: 20, 2: 20, 3: 20 }));
+
+    for (const cell of heat.values()) {
+      expect(Number.isNaN(cell.intensity)).toBe(false);
+      expect(cell.intensity).toBe(MIN_INTENSITY);
+    }
+  });
+
+  it("uses the whole ramp for a fund whose dates barely differ", () => {
+    // Parag Parikh's 28 dates span 0.042 pp. The ramp still runs end to end, which is only
+    // honest because the caption states the span and each cell prints its own figure.
+    const heat = heatForMonth(xirrs({ 2: 16.897, 24: 16.931, 28: 16.937 }));
+
+    expect(heat.get(2)?.intensity).toBe(MIN_INTENSITY);
+    expect(heat.get(28)?.intensity).toBe(1);
+  });
+
+  it("stays green for a fund that lost money, because the ramp is relative", () => {
+    // Five published funds are negative on all 28 dates. The colour says "strongest here" and
+    // the figure in the cell says what "here" was worth, which is what keeps that honest.
+    const heat = heatForMonth(xirrs({ 1: -9.52, 2: -8.59 }));
+
+    expect(heat.get(2)?.intensity).toBe(1);
+    expect(heat.get(1)?.intensity).toBe(MIN_INTENSITY);
+  });
+
   it("says nothing about dates it wasn't given", () => {
-    expect(heatFromDeviations(new Map()).size).toBe(0);
-    expect(heatFromDeviations(deviations({ 1: 0.1 })).has(2)).toBe(false);
+    expect(heatForMonth(new Map()).size).toBe(0);
+    expect(heatForMonth(xirrs({ 1: 5 })).has(2)).toBe(false);
   });
 });
 
 describe("heatSpanPp", () => {
   it("reports the real distance the ramp covers, which is the caption's whole job", () => {
-    // Kotak: the ramp runs end to end across about a tenth of a percentage point.
-    expect(heatSpanPp(deviations({ 1: -0.043, 2: 0.069 }))).toBeCloseTo(0.112, 10);
+    expect(heatSpanPp(xirrs({ 1: 20.276, 2: 20.389, 3: 20.3 }))).toBeCloseTo(0.113, 10);
   });
 
   it("is zero when every date matches, rather than undefined", () => {
-    expect(heatSpanPp(deviations({ 1: 0, 2: 0 }))).toBe(0);
+    expect(heatSpanPp(xirrs({ 1: 20, 2: 20 }))).toBe(0);
     expect(heatSpanPp(new Map())).toBe(0);
+  });
+});
+
+describe("strongestDate", () => {
+  it("finds the date the ramp paints deepest", () => {
+    expect(strongestDate(xirrs({ 5: 16.9, 12: 16.94, 24: 16.92 }))).toBe(12);
+  });
+
+  it("keeps the earliest date when two are exactly equal", () => {
+    // Matching the pipeline's convention, so the mark never depends on map ordering.
+    expect(strongestDate(xirrs({ 20: 16.94, 4: 16.94, 9: 16.9 }))).toBe(4);
+  });
+
+  it("has nothing to point at when there are no dates", () => {
+    expect(strongestDate(new Map())).toBeNull();
   });
 });

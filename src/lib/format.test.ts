@@ -5,7 +5,7 @@ import {
   formatPercentOfValue,
   formatPp,
   formatRupees,
-  formatSignedPp,
+  formatXirr,
   formatYears,
   formatYearsOfMonths,
   ordinal,
@@ -164,26 +164,28 @@ describe("formatYearsOfMonths", () => {
   });
 });
 
-describe("formatSignedPp", () => {
-  it("marks a gain with a sign, so a grid of these reads as differences and not as levels", () => {
-    expect(formatSignedPp(0.031)).toBe("+0.03");
-    expect(formatSignedPp(1)).toBe("+1.00");
+describe("formatXirr", () => {
+  it("prints the artifact's own three decimals, which is what the shading is ranked on", () => {
+    // Two decimals would print 16.93 in cells the ramp paints differently — a page disagreeing
+    // with itself about which date did better.
+    expect(formatXirr(20.389)).toBe("20.389");
+    expect(formatXirr(16.931)).toBe("16.931");
   });
 
-  it("drops the unit, because the cell it goes in states it once alongside", () => {
-    expect(formatSignedPp(0.031)).not.toContain("pp");
+  it("pads to three decimals, so a column of these lines up", () => {
+    expect(formatXirr(20.3)).toBe("20.300");
+    expect(formatXirr(7)).toBe("7.000");
   });
 
-  it("keeps the real minus sign on a loss", () => {
-    expect(formatSignedPp(-0.031)).toBe(`${MINUS}0.03`);
-    expect(formatSignedPp(-0.031)).not.toContain("-");
+  it("uses the real minus sign for a fund that lost money", () => {
+    // Five published funds are negative on every date, and the figure is what tells a reader
+    // that a deep green cell is merely the least bad one.
+    expect(formatXirr(-9.52)).toBe(`${MINUS}9.520`);
+    expect(formatXirr(-9.52)).not.toContain("-");
   });
 
-  it("carries the same floor as formatPp, so noise never prints as a clean zero", () => {
-    // A signed "+0.00" would read as a real but tiny gain; "<0.01" says what is actually known.
-    expect(formatSignedPp(0.004)).toBe("<0.01");
-    expect(formatSignedPp(-0.004)).toBe("<0.01");
-    expect(formatSignedPp(0)).toBe("0.00");
+  it("throws rather than printing 'NaN' into a cell", () => {
+    expect(() => formatXirr(Number.NaN)).toThrow();
   });
 });
 

@@ -43,6 +43,11 @@ const fundWith = (over: Partial<FundArtifact> = {}): FundArtifact => ({
   verdict: "noise",
   windows: 128,
   confidence: "full",
+  // Kotak's real figures (PLAN.md D7): one ₹10,000 instalment is worth between these today,
+  // and 0.062 pp is the typical spread among funds with this much history.
+  instalmentLow: 9_856,
+  instalmentHigh: 161_228,
+  cohortSpreadPp: 0.062,
   ...over,
 });
 
@@ -104,9 +109,12 @@ const realCopy = (code: number, window = WINDOW) => {
 // Headline: the D7 table
 
 describe("the headline", () => {
-  it("leads with the length of the history when confidence is reduced, whatever the verdict says", () => {
+  it("leads with the length of the history when there is too little of it, whatever the verdict", () => {
+    // `windows`, not `confidence`, is what selects this row: D21 made every trimmed fund reduced
+    // however long it is, and a fund with thirteen years of history must not be told it has too
+    // little. Five windows on 40 months is what the engine actually produces for such a fund.
     const copy = copyFor(
-      { confidence: "reduced", verdict: "marginal", instalments: 40, spreadPp: 0.767, stability: -0.547 },
+      { confidence: "reduced", verdict: "marginal", instalments: 40, windows: 5, spreadPp: 0.767, stability: -0.547 },
       answerOn(4, 0.124),
     );
     expect(copy.headline).toBe(
@@ -114,13 +122,25 @@ describe("the headline", () => {
     );
   });
 
-  it("puts reduced confidence ahead of a meaningful verdict, so thin history can't be dressed up", () => {
+  it("puts a thin history ahead of a meaningful verdict, so it can't be dressed up", () => {
     const copy = copyFor(
-      { confidence: "reduced", verdict: "meaningful", instalments: 37, spreadPp: 0.9, stability: 0.8 },
+      { confidence: "reduced", verdict: "meaningful", instalments: 37, windows: 1, spreadPp: 0.9, stability: 0.8 },
       answerOn(7, 0.4),
     );
     expect(copy.headline).toContain("too little to tell whether the date matters");
     expect(copy.headline).not.toContain("came out ahead");
+  });
+
+  it("says which of the two is wrong when a fund is both cut short and short to begin with", () => {
+    // No published fund is both, so only a synthetic case keeps this row honest. "Too little
+    // history" would be true here but would hide that some of it was thrown away.
+    const copy = copyFor(
+      { confidence: "reduced", verdict: "marginal", instalments: 38, windows: 2, trimmedFrom: "2023-04-22" },
+      answerOn(7, 0.4),
+    );
+    expect(copy.headline).toBe(
+      "Part of this fund's history couldn't be used, so this reads on 38 months rather than the fund's whole life. The 7th fits your window.",
+    );
   });
 
   it("calls a noise verdict a tiebreak rather than inventing a reason to prefer the date", () => {
@@ -272,15 +292,16 @@ describe("the rupee line", () => {
   it("reads as one sentence with the notional amount, the base and the span all stated", () => {
     const copy = copyFor({}, answerOn(12, 0.031));
     expect(copy.rupeeLine).toBe(
-      "For a notional ₹10,000 monthly SIP, the highest- and lowest-value dates (the 1st and 20th) ended ₹59,476 apart on ₹16.4 lakh invested, 0.8% of final value, over 13.7 years.",
+      "For a notional ₹10,000 monthly SIP, the highest- and lowest-value dates (the 1st and 20th) ended ₹59,476 apart on ₹16.4 lakh invested, 0.8% of the ₹74.0 lakh it grew to, over 13.7 years.",
     );
   });
 
   it("takes the percentage against the highest corpus, which is the base D1 fixes", () => {
     const dates = Array.from({ length: 28 }, (_, i) => dateAt(i + 1, i === 0 ? { corpus: 2_000_000 } : {}));
     const copy = copyFor({ dates, spreadRupees: 1_000_000 }, answerOn(12, 0.031));
-    // 10,00,000 of 20,00,000, not of the lowest corpus.
-    expect(copy.rupeeLine).toContain("50.0% of final value");
+    // 10,00,000 of 20,00,000, not of the lowest corpus — and the base is named, so a reader can
+    // check the division instead of taking "of final value" on trust.
+    expect(copy.rupeeLine).toContain("50.0% of the ₹20.0 lakh it grew to");
   });
 
   it("is shown whatever the verdict, since the rupee gap is a fact about the fund", () => {
@@ -316,7 +337,7 @@ describe("copy for real published funds", () => {
     // Its metrics disagree, but a noise verdict has already said everything that implies.
     expect(copy.caveats).toEqual([]);
     expect(copy.rupeeLine).toBe(
-      "For a notional ₹10,000 monthly SIP, the highest- and lowest-value dates (the 1st and 20th) ended ₹59,476 apart on ₹16.4 lakh invested, 0.8% of final value, over 13.7 years.",
+      "For a notional ₹10,000 monthly SIP, the highest- and lowest-value dates (the 1st and 20th) ended ₹59,476 apart on ₹16.4 lakh invested, 0.8% of the ₹74.0 lakh it grew to, over 13.7 years.",
     );
     expect(copy.srSummary).toBe("Your window: 3rd to 12th. Your date: the 12th.");
   });
@@ -337,7 +358,7 @@ describe("copy for real published funds", () => {
     // What must not come back is the duplicated month count, not the caveat itself.
     expect(copy.caveats.join(" ")).not.toContain("40 months of history, fewer than eight years");
     expect(copy.rupeeLine).toBe(
-      "For a notional ₹10,000 monthly SIP, the highest- and lowest-value dates (the 1st and 27th) ended ₹4,954 apart on ₹4.0 lakh invested, 1.1% of final value, over 3.3 years.",
+      "For a notional ₹10,000 monthly SIP, the highest- and lowest-value dates (the 1st and 27th) ended ₹4,954 apart on ₹4.0 lakh invested, 1.1% of the ₹4.5 lakh it grew to, over 3.3 years.",
     );
   });
 
@@ -382,13 +403,15 @@ describe("copy for real published funds", () => {
     expect(copy.caveats).toContain(
       "The published history starts on 22 April 2013, where a re-denomination or a gap months long cut the series. Everything before that is missing, so this is not the fund's whole life.",
     );
-    // D7's reduced row was written for short histories, but D21 made every trimmed fund reduced
-    // however long it is. This one keeps 160 months — over thirteen years — so the headline says
-    // what is actually missing instead of calling thirteen years too little history.
+    // 160 months and 125 rolling windows is not a short history, so the page no longer withholds
+    // this fund's answer: the short-history row keys on `windows` now, not on `confidence`. Its
+    // edge rounds below 0.005 pp, so the verdict lands on the tiebreak line. The caveat above
+    // still carries the scope warning, which is what makes giving the verdict back honest.
     expect(copy.headline).toBe(
-      "Part of this fund's history couldn't be used, so this reads on 160 months rather than the fund's whole life. The 11th fits your window.",
+      "Any date in your window has done about the same in this fund. The 11th is a tiebreak: across 3-year stretches it ranked a little higher on average.",
     );
     expect(copy.headline).not.toContain("too little to tell");
+    expect(copy.headline).not.toContain("couldn't be used");
   });
 
   it("produces every line for a fund of each verdict and confidence, with nothing left empty", () => {

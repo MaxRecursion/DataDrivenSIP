@@ -24,6 +24,13 @@ export type Simulation = {
   corpus: number;
   units: number;
   instalments: number;
+  /**
+   * What one instalment is worth at the terminal NAV, least and most across the months. The
+   * fewest units bought is the worst month to have entered on, the most units the best. Zero
+   * when nothing was invested at all.
+   */
+  lowestInstalmentValue: number;
+  highestInstalmentValue: number;
 };
 
 /** Months where this date is on or after the first NAV and a NAV follows within seven days. */
@@ -60,10 +67,15 @@ export function simulateDate(
 ): Simulation {
   const flows: CashFlow[] = [];
   let units = 0;
+  let fewestUnits = Number.POSITIVE_INFINITY;
+  let mostUnits = 0;
   for (const month of months) {
     const bought = navOnOrAfter(history, dayOfMonthTarget(month, d));
     if (!bought) continue;
-    units += INSTALMENT / bought.nav;
+    const boughtUnits = INSTALMENT / bought.nav;
+    units += boughtUnits;
+    if (boughtUnits < fewestUnits) fewestUnits = boughtUnits;
+    if (boughtUnits > mostUnits) mostUnits = boughtUnits;
     // The cash flow is dated on the day the units were actually bought, not the target day.
     flows.push({ day: bought.day, amount: -INSTALMENT });
   }
@@ -74,7 +86,15 @@ export function simulateDate(
   const corpus = units * terminalNav;
   if (instalments > 0) flows.push({ day: terminalDay, amount: corpus });
 
-  return { d, xirr: xirr(flows).rate, corpus, units, instalments };
+  return {
+    d,
+    xirr: xirr(flows).rate,
+    corpus,
+    units,
+    instalments,
+    lowestInstalmentValue: instalments === 0 ? 0 : fewestUnits * terminalNav,
+    highestInstalmentValue: instalments === 0 ? 0 : mostUnits * terminalNav,
+  };
 }
 
 export function simulateAll(

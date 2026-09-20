@@ -6,6 +6,7 @@
  * time we don't need and cost determinism we do.
  */
 import { analyse, AnalysisError, type FundMeta } from "./analysis/analyse";
+import { withCohortSpread } from "./analysis/cohort";
 import { dayFromNavDate, type DayNum } from "./analysis/dates";
 import { buildHistory, parseNavRows } from "./analysis/nav";
 import { mergeRows, readEntry, writeEntry } from "./cache";
@@ -124,7 +125,9 @@ export async function runPipeline(options: PipelineOptions): Promise<PipelineRep
     artifacts.length === 0
       ? null
       : await writeArtifacts(options.outDir, {
-          artifacts,
+          // A typical spread is a fact about the whole set, so it can only be known once every
+          // fund has been analysed (D21, cohort.ts).
+          artifacts: withCohortSpread(artifacts),
           builtAt: options.builtAt,
           pipelineVersion: options.pipelineVersion,
           ...(options.keepVersions === undefined ? {} : { keepVersions: options.keepVersions }),

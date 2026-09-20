@@ -27,6 +27,13 @@ export type AnswerCopy = {
   headline: string;
   caveats: string[];
   rupeeLine: string;
+  /**
+   * The same sentence split around its gap figure, so the reveal can count that figure up
+   * (§8.2) without the answer block having to find a number inside a finished string.
+   */
+  rupeeBefore: string;
+  rupeeGap: number;
+  rupeeAfter: string;
   srSummary: string;
 };
 
@@ -51,6 +58,17 @@ export const MIN_EDGE_PP = 0.005;
  * history there is rather than of the fund (D21), and the copy says so.
  */
 export const SETTLED_INSTALMENTS = 96;
+
+/**
+ * Mirrors MIN_WINDOWS in pipeline/analysis/verdict.ts. Fewer rolling windows than this and the
+ * date question has no answer worth giving, whatever the verdict arithmetic produced.
+ *
+ * This, rather than `confidence`, is what selects the short-history headline. D7 wrote that row
+ * when "reduced" could only mean a short history; D21 then made every trimmed fund reduced
+ * however long the surviving series is, which withheld the verdict from eight funds carrying 97
+ * to 128 windows. Confidence still drives the caveats and the "How confident is this?" section.
+ */
+export const MIN_WINDOWS = 24;
 
 /** The SIP the rupee figures are simulated on. Notional, and the copy says that too (D1). */
 const NOTIONAL_MONTHLY = 10_000;
@@ -83,10 +101,10 @@ function headlineFor(fund: FundArtifact, answer: Answer): string {
 
   // Too little history to say anything about dates, whatever the verdict computed. A fund whose
   // series was cut is always reduced (D21), so this row also covers a truncated history.
-  if (fund.confidence === "reduced") {
-    // A cut series is reduced however much of it survives (D21), so the short-history sentence
-    // would contradict itself here: 119746 keeps 163 months, which is thirteen years. What is
-    // actually reduced is how much of the fund's life the page can speak for.
+  // Too little history for the question to have an answer at all. A fund whose series was cut
+  // says which of the two things is wrong with it, since "too little history" would contradict
+  // itself on a fund that kept thirteen years of it.
+  if (fund.windows < MIN_WINDOWS) {
     if (fund.trimmedFrom !== undefined) {
       return `Part of this fund's history couldn't be used, so this reads on ${fund.instalments} months rather than the fund's whole life. The ${nth} fits your window.`;
     }
@@ -171,7 +189,10 @@ function caveatsFor(fund: FundArtifact): string[] {
  * The rupee framing (D1). It names the two dates being compared, states that the SIP is
  * notional, and divides the gap by the highest corpus so "% of final value" has a base.
  */
-function rupeeLineFor(fund: FundArtifact, answer: Answer): string {
+function rupeeLineFor(
+  fund: FundArtifact,
+  answer: Answer,
+): { before: string; gap: number; after: string; line: string } {
   const { highest, lowest } = corpusExtremes(fund, answer);
   // The gap between the two rows this sentence names, not fund.spreadRupees: the artifact rounds
   // every corpus independently, so for 237 of 994 funds the published spread is not the
@@ -183,7 +204,9 @@ function rupeeLineFor(fund: FundArtifact, answer: Answer): string {
   // not from the NAV history. The two differ for 457 funds — one showed ₹5.2 lakh invested
   // "over 4.8 years", which at ₹10,000 a month is ₹5.76 lakh. Kotak hides it: its 164 months
   // and its 13.7-year NAV span agree, which is why the worked example never disambiguated them.
-  return `For a notional ${formatRupees(NOTIONAL_MONTHLY)} monthly SIP, the highest- and lowest-value dates (the ${ordinal(highest.d)} and ${ordinal(lowest.d)}) ended ${formatRupees(gap)} apart on ${formatLakh(invested)} invested, ${formatPercentOfValue(shareOfValue)} of final value, over ${formatYearsOfMonths(fund.instalments)}.`;
+  const before = `For a notional ${formatRupees(NOTIONAL_MONTHLY)} monthly SIP, the highest- and lowest-value dates (the ${ordinal(highest.d)} and ${ordinal(lowest.d)}) ended `;
+  const after = ` apart on ${formatLakh(invested)} invested, ${formatPercentOfValue(shareOfValue)} of the ${formatLakh(highest.corpus)} it grew to, over ${formatYearsOfMonths(fund.instalments)}.`;
+  return { before, gap, after, line: `${before}${formatRupees(gap)}${after}` };
 }
 
 /**
@@ -197,10 +220,14 @@ function srSummaryFor(answer: Answer, window: number[]): string {
 }
 
 export function answerCopy(fund: FundArtifact, answer: Answer, window: number[]): AnswerCopy {
+  const rupees = rupeeLineFor(fund, answer);
   return {
     headline: headlineFor(fund, answer),
     caveats: caveatsFor(fund),
-    rupeeLine: rupeeLineFor(fund, answer),
+    rupeeLine: rupees.line,
+    rupeeBefore: rupees.before,
+    rupeeGap: rupees.gap,
+    rupeeAfter: rupees.after,
     srSummary: srSummaryFor(answer, window),
   };
 }

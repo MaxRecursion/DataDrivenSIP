@@ -286,6 +286,32 @@ copy, so they are recorded here rather than made quietly.
   states the scope limit independently, so letting them fall through to their normal row is
   arguably the better answer.
 
+**Amendment, 2026-09-16 (Phase 7): all four of the above resolved.**
+
+1. **The pending-params script is implemented** (§6.2): an inline head script marks a page whose
+   URL carries a non-default parameter, CSS hides only what could be wrong — the answer heading
+   and the grid's fills — using `visibility`, so layout is kept and CLS stays 0, and the mark is
+   cleared once React has rendered the real answer.
+
+2. **The D21 comparison is shown, not asserted.** The pipeline now publishes `cohortSpreadPp`,
+   the median spread among funds of similar length, banded every 12 instalments from 37 and null
+   below 10 funds in a band. On the real set it falls from 0.478 pp at 37–48 months to 0.064 pp
+   at 157–168, which is the effect D21 described. "How confident is this?" puts a fund's own
+   spread beside it so the reader can see when a spread is, and isn't, explained by length.
+
+3. **The rupee line names its base.** "0.8% of final value" became "0.8% of the ₹74.0 lakh it
+   grew to". The base was always the highest corpus per D1; now it is on the page, where it
+   cannot be mistaken for a share of the money invested.
+
+4. **Trimmed funds get their verdict back**, and the short-history headline now keys on
+   `windows < 24` — the engine's own MIN_WINDOWS — rather than on `confidence`. D7 wrote that row
+   when "reduced" could only mean a short history; D21 later made every trimmed fund reduced
+   however long it is. Measured across all 994 funds, the change moves **exactly 8 funds**, all
+   of them trimmed (5 noise, 3 marginal, 97–128 rolling windows each), and sweeps up no fund that
+   is reduced for any other reason. The 220 funds with fewer than 24 windows still get the
+   short-history line, and a fund that is both cut *and* short still says so. `confidence`
+   continues to drive the caveats and the confidence section.
+
 ### Data source and operations
 
 #### D8 — Two departures in how data is fetched

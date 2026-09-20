@@ -12,7 +12,10 @@
  * number to derive here, so there is nothing to get wrong twice.
  */
 import type { AnswerCopy } from "../lib/copy";
-import { ordinal } from "../lib/format";
+import { formatRupees, ordinal } from "../lib/format";
+import { SCHEDULE, TICKER_MS } from "../lib/sequence";
+import type { Reveal } from "../lib/use-reveal";
+import { RupeeTicker } from "./rupee-ticker";
 
 /**
  * The fund page moves focus here after a fund is chosen (PLAN.md §6.6), so the reader lands on
@@ -39,9 +42,11 @@ type AnswerBlockProps = {
   copy: AnswerCopy;
   /** The date the page answers with, 1-28. Rendered as the heading, e.g. "The 12th". */
   answerDate: number;
+  /** The reveal in flight, or null to render the final figure at once (§8.3, D10c). */
+  reveal?: Reveal;
 };
 
-export function AnswerBlock({ copy, answerDate }: AnswerBlockProps) {
+export function AnswerBlock({ copy, answerDate, reveal = null }: AnswerBlockProps) {
   return (
     <section className="mt-6 max-w-[65ch]">
       {/*
@@ -81,7 +86,11 @@ export function AnswerBlock({ copy, answerDate }: AnswerBlockProps) {
        * line-height would give, which fell about six pixels short of the four-line case and let
        * it push the rupee line, the controls and the footer down.
        */}
-      <p className="mt-4 min-h-[6.5rem] leading-relaxed text-ink sm:min-h-[4.875rem]">{copy.headline}</p>
+      {/* Marked because this sentence names the date: it is wrong on a prerendered page whose
+          URL asks for a different window, and is hidden until React re-renders (PLAN.md 6.2). */}
+      <p data-answer-copy className="mt-4 min-h-[6.5rem] leading-relaxed text-ink sm:min-h-[4.875rem]">
+        {copy.headline}
+      </p>
 
       {copy.caveats.map((caveat) => (
         <p key={caveat} className="mt-3 text-sm leading-relaxed text-mute-text">
@@ -91,7 +100,17 @@ export function AnswerBlock({ copy, answerDate }: AnswerBlockProps) {
 
       {/* An explicit line-height, because ₹ is borrowed from Cabinet Grotesk by unicode-range and
           a taller glyph would otherwise set this line's box on its own (PLAN.md §7, D14). */}
-      <p className="mt-4 text-sm leading-[1.7] text-mute-text">{copy.rupeeLine}</p>
+      <p className="mt-4 text-sm leading-[1.7] text-mute-text">
+        {copy.rupeeBefore}
+        <RupeeTicker
+          value={copy.rupeeGap}
+          format={formatRupees}
+          reveal={reveal?.generation ?? null}
+          delayMs={SCHEDULE.ticker!.start}
+          durationMs={TICKER_MS}
+        />
+        {copy.rupeeAfter}
+      </p>
     </section>
   );
 }

@@ -17,8 +17,20 @@ import { useNavigationType, useParams, useSearchParams } from "react-router";
 import type { FundArtifact } from "../../shared/artifacts";
 import { ANSWER_HEADING_ID, AnswerBlock } from "../components/answer-block";
 import { HeroGrid } from "../components/hero-grid";
+/**
+ * Imported eagerly, against §6.5's "lazy chunk", on a measurement: the sections come to 1.79 kB
+ * gzipped, not the ~7 kB the budget assumed. Lazy-loading them put a Suspense boundary into the
+ * prerendered tree, so every build shipped a fallback and hydration answered with React #419.
+ * Paying 1.79 kB buys that error away and puts the three headings in the cold HTML. uPlot, which
+ * is the 24 kB that actually justified a chunk, stays lazy inside — and its boundary is only
+ * created when a reader opens the section, long after hydration.
+ */
+import Disclosures from "../components/disclosures";
 import { WindowControls } from "../components/window-controls";
-import { pickAnswer } from "../lib/answer";
+import { deviationsFromWindow, pickAnswer, windowEdges } from "../lib/answer";
+import { disclosureCopy } from "../lib/disclosure";
+import { heatFromDeviations, heatSpanPp } from "../lib/heat";
+import { useReveal } from "../lib/use-reveal";
 import { answerCopy } from "../lib/copy";
 import { loadFund, peekFund } from "../lib/data";
 import { setHead } from "../lib/head";
@@ -126,6 +138,13 @@ export function FundPage() {
     document.getElementById(ANSWER_HEADING_ID)?.focus();
   }, [code, answered, arrivedFromSearch]);
 
+  /**
+   * The reveal plays on one event only: a fund chosen inside the app. A cold deep link, a back
+   * button and a reader who asked for reduced motion all land on the final state with nothing
+   * animating at all (D10c, §8.3). Called before the early returns below, since it is a hook.
+   */
+  const reveal = useReveal(code, state.status === "ready");
+
   if (state.status === "loading") {
     // The window comes from the URL, not the fund, so the grid is already correct and already
     // the right size: when the data lands only the marigold cell appears (PLAN.md §6.6).
@@ -178,6 +197,17 @@ export function FundPage() {
    */
   const answer = pickAnswer(state.fund, windowDates);
   const copy = answerCopy(state.fund, answer, windowDates);
+  // Shares its arithmetic with the pick, so the marigold cell and the sentence under it are the
+  // same figure by construction rather than by two calculations happening to agree.
+  const edges = windowEdges(state.fund, windowDates);
+  // Shading covers all 28 dates, not just the window: the calendar's job is to show what the
+  // whole month did, and fading is what says which ten the reader may actually use. It shades
+  // the same deviations the cells print, measured from the same middle, so a cell can never
+  // read green while the figure inside it reads minus.
+  const deviations = deviationsFromWindow(state.fund, windowDates);
+  const heat = heatFromDeviations(deviations);
+  const spanPp = heatSpanPp(deviations);
+  const disclosure = disclosureCopy(state.fund, answer, windowDates);
 
   return (
     <section>
@@ -185,9 +215,19 @@ export function FundPage() {
       <p className="mt-1 text-mute-text">{state.fund.house}</p>
       <p className="text-sm text-mute-text">{state.fund.category}</p>
 
-      <HeroGrid window={windowDates} answer={answer.date} className="mt-6" />
-      <AnswerBlock copy={copy} answerDate={answer.date} />
+      <HeroGrid
+        window={windowDates}
+        answer={answer.date}
+        heat={heat}
+        spanPp={spanPp}
+        edges={edges}
+        reveal={reveal}
+        className="mt-6"
+      />
+      <AnswerBlock copy={copy} answerDate={answer.date} reveal={reveal} />
       <WindowControls params={params} onChange={onParamsChange} />
+
+      <Disclosures fund={state.fund} answer={answer} window={windowDates} copy={disclosure} />
     </section>
   );
 }

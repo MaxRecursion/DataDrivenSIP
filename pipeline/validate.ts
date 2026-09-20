@@ -43,6 +43,14 @@ export function validateArtifact(input: unknown): ValidationIssue[] {
   if (!finite(artifact.spreadPp)) add("spreadPp is not finite");
   if (!finite(artifact.spreadRupees) || !Number.isInteger(artifact.spreadRupees)) add("spreadRupees is not whole");
   if (!finiteOrNull(artifact.stability)) add("stability is not finite or null");
+  for (const field of ["instalmentLow", "instalmentHigh"] as const) {
+    if (!finite(artifact[field]) || !Number.isInteger(artifact[field])) add(`${field} is not a whole number`);
+  }
+  // A range that runs backwards would render as "worth between ₹90,000 and ₹9,000".
+  if (finite(artifact.instalmentLow) && finite(artifact.instalmentHigh) && artifact.instalmentHigh < artifact.instalmentLow) {
+    add("instalmentHigh is below instalmentLow");
+  }
+  if (!finiteOrNull(artifact.cohortSpreadPp)) add("cohortSpreadPp is not finite or null");
   if (typeof artifact.metricsAgree !== "boolean") add("metricsAgree is missing");
   if (!VERDICTS.has(artifact.verdict as string)) add(`verdict ${String(artifact.verdict)} is not a known verdict`);
   if (!CONFIDENCE.has(artifact.confidence as string)) add(`confidence ${String(artifact.confidence)} is unknown`);

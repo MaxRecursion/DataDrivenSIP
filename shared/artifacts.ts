@@ -42,6 +42,20 @@ export type FundArtifact = {
   windows: number;
   confidence: Confidence;
   /**
+   * What a single ₹10,000 instalment is worth at the last NAV: the least and the most, across
+   * every date and every month of the common set. "What actually matters" weighs a missed
+   * instalment against the whole date spread, and D7 is explicit that an average alone would be
+   * read as a guarantee — so the range is published and the mean is derived from `corpus`.
+   */
+  instalmentLow: number;
+  instalmentHigh: number;
+  /**
+   * The median `spreadPp` among funds with a similar amount of history (see cohort.ts). D21 asks
+   * for the comparison to be shown rather than asserted: a 0.77 pp spread means one thing at 40
+   * months and another at 200. Null when the band holds too few funds to have a typical value.
+   */
+  cohortSpreadPp: number | null;
+  /**
    * Set when the published history starts later than the fund's own first NAV, because the
    * series before this date belongs to a different one: a re-denomination, or a hole months
    * long. Such a fund is always "reduced" confidence, and the UI must say so.

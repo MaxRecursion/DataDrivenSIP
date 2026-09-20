@@ -61,6 +61,16 @@
   --mute-text: #626b80;
   /* D15: raised on surface is only 1.14:1, so cards get a hairline border. */
   --line: #d6dbe4;
+  /*
+   * The red half of the grid's shading. Not one of the six brand colours: the calendar needed a
+   * hue for a date that lost money, and teal carrying both signs would have said nothing. Only
+   *5 of 994 published funds ever use it, and those lost money on all 28 dates.
+   *
+   * Cells paint it at 85% at most, over the white card, which holds the ink numeral at 5.28:1 —
+   * measured, along with teal's 5.14:1, so no cell has to switch its text colour partway up the
+   * ramp. A darker red (#B3261E) reached only 4.51:1 at the same fill and was dropped for it.
+   */
+  --loss: #d93025;
 }
 
 @theme inline {
@@ -72,6 +82,7 @@
   --color-mute: var(--mute);
   --color-mute-text: var(--mute-text);
   --color-line: var(--line);
+  --color-loss: var(--loss);
 
   /* shadcn semantic tokens, mapped onto the brand palette. */
   --color-background: var(--surface);
@@ -98,6 +109,21 @@
 @utility tabular {
   font-variant-numeric: tabular-nums;
   font-kerning: none;
+}
+
+/*
+ * Set by the inline script in index.html when the URL carries a non-default parameter, which
+ * means the prerendered answer on this page is the wrong one (PLAN.md 6.2).
+ *
+ * `visibility`, not `display`: the grid keeps its height and the heading keeps its line, so
+ * nothing moves when the real answer arrives and CLS stays 0. Only the two things that can
+ * actually be wrong are hidden — the fund's name, the rupee line, the caveats and the footer
+ * are facts about the fund rather than about the window, and stay on screen.
+ */
+[data-params-pending] [data-hero-grid],
+[data-params-pending] #answer-heading,
+[data-params-pending] [data-answer-copy] {
+  visibility: hidden;
 }
 
 @layer base {

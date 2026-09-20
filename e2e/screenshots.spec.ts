@@ -18,6 +18,9 @@ const FUNDS = [
   { code: 103490, label: "marginal-full", note: "Quantum Value, 245 instalments" },
   { code: 142110, label: "meaningful-full", note: "Mahindra Manulife Mid Cap, 103 instalments" },
   { code: 145137, label: "meaningful-short", note: "Invesco India Small Cap, 94 — D21 caveat" },
+  // 5 of 994 funds lost money, and all 5 lost it on every date. Nothing else in this list
+  // paints the grid's red ramp, so without this the loss colour ships unlooked at.
+  { code: 151785, label: "loss-red", note: "Axis Nifty IT Index, −9.52% to −8.59%" },
 ];
 
 const WIDTHS = [360, 390, 768, 1280];
@@ -66,6 +69,25 @@ test.describe("the rupee glyph, magnified", () => {
     await rupeeLine.screenshot({ path: `${OUT}/rupee-glyph-3x.png` });
   });
 });
+
+/** The Phase 7 gate asks for the sections both ways: collapsed is in every fund shot above. */
+for (const width of [390, 1280]) {
+  test.describe(`the disclosures at ${width}px`, () => {
+    test.use({ viewport: { width, height: 900 } });
+
+    test("all three open", async ({ page }) => {
+      await page.goto("/f/119775");
+      for (const name of ["The full curve", "How confident is this?", "What actually matters"]) {
+        await page.getByRole("button", { name, exact: true }).click();
+      }
+      // The chart is a lazy chunk inside a lazy chunk; without this the shot can catch its gap.
+      await expect(page.locator("[data-spread-chart]")).toBeVisible();
+      await expect(page.locator("canvas")).toHaveCount(1);
+
+      await page.screenshot({ path: `${OUT}/${width}-disclosures-open.png`, fullPage: true });
+    });
+  });
+}
 
 test.describe("the landing page", () => {
   test.use({ viewport: { width: 390, height: 900 } });

@@ -40,3 +40,16 @@ const sameView = builtFor === window.location.pathname && window.location.search
 
 if (sameView) hydrateRoot(root, tree);
 else createRoot(root).render(tree);
+
+/**
+ * The inline head script hid the prerendered answer because this URL asks for a different one.
+ * Two frames is enough for React to have committed and painted the real one.
+ *
+ * Unconditional on purpose: a fund that turns out to be missing, or whose data never arrives,
+ * renders no answer at all, and a conditional clear would leave such a page hidden for good.
+ */
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    delete document.documentElement.dataset.paramsPending;
+  });
+});

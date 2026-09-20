@@ -18,7 +18,7 @@ import type { FundArtifact } from "../../shared/artifacts";
 import { ANSWER_HEADING_ID, AnswerBlock } from "../components/answer-block";
 import { HeroGrid } from "../components/hero-grid";
 import { WindowControls } from "../components/window-controls";
-import { pickAnswer } from "../lib/answer";
+import { pickAnswer, windowEdges } from "../lib/answer";
 import { answerCopy } from "../lib/copy";
 import { loadFund, peekFund } from "../lib/data";
 import { setHead } from "../lib/head";
@@ -178,6 +178,9 @@ export function FundPage() {
    */
   const answer = pickAnswer(state.fund, windowDates);
   const copy = answerCopy(state.fund, answer, windowDates);
+  // Shares its arithmetic with the pick, so the marigold cell and the sentence under it are the
+  // same figure by construction rather than by two calculations happening to agree.
+  const edges = windowEdges(state.fund, windowDates);
 
   return (
     <section>
@@ -185,7 +188,7 @@ export function FundPage() {
       <p className="mt-1 text-mute-text">{state.fund.house}</p>
       <p className="text-sm text-mute-text">{state.fund.category}</p>
 
-      <HeroGrid window={windowDates} answer={answer.date} className="mt-6" />
+      <HeroGrid window={windowDates} answer={answer.date} edges={edges} className="mt-6" />
       <AnswerBlock copy={copy} answerDate={answer.date} />
       <WindowControls params={params} onChange={onParamsChange} />
     </section>

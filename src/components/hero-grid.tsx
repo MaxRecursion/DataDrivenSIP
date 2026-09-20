@@ -17,6 +17,7 @@
  * in words, and the answer block carries the screen-reader summary, so a reader who met both
  * would hear the same fact twice with no way to tell them apart.
  */
+import { formatSignedPp } from "../lib/format";
 import { cn } from "../lib/utils";
 
 /** SIP dates are 1-28 only (CLAUDE.md), which is exactly four rows of seven. */
@@ -31,6 +32,12 @@ type HeroGridProps = {
    * marigold cell is missing — so the answer arriving never moves a pixel.
    */
   answer: number | null;
+  /**
+   * Each window date's XIRR against the middle of the window, from `windowEdges()`. Printed
+   * under the date so the shape of the window is visible at a glance rather than only described.
+   * Dates outside the window carry none: they are not choices the reader has.
+   */
+  edges?: ReadonlyMap<number, number> | undefined;
   /** Spacing from the caller. Cell sizing is fixed here and isn't meant to be overridden. */
   className?: string;
 };
@@ -62,7 +69,26 @@ function Numeral({ on, className, date }: { on: boolean; className: string; date
   );
 }
 
-export function HeroGrid({ window: windowDates, answer, className }: HeroGridProps) {
+/**
+ * The edge under the date. Satoshi with tabular figures, not the Cabinet Grotesk of the numeral:
+ * Cabinet has no tabular set (D18), so a column of these would not line up cell to cell.
+ * Stacked in two colours and toggled on opacity, exactly like the numerals above them.
+ */
+function Delta({ on, className, text }: { on: boolean; className: string; text: string }) {
+  return (
+    <span
+      className={cn(
+        "tabular absolute inset-x-0 bottom-1 text-center text-[0.5625rem] leading-none font-medium sm:text-[0.6875rem]",
+        className,
+        on ? "opacity-100" : "opacity-0",
+      )}
+    >
+      {text}
+    </span>
+  );
+}
+
+export function HeroGrid({ window: windowDates, answer, edges, className }: HeroGridProps) {
   const allowed = new Set(windowDates);
 
   return (
@@ -78,6 +104,10 @@ export function HeroGrid({ window: windowDates, answer, className }: HeroGridPro
       {DATES.map((date) => {
         const inWindow = allowed.has(date);
         const isAnswer = answer === date;
+        // Only the dates the reader could actually choose carry a figure.
+        const edge = inWindow ? edges?.get(date) : undefined;
+        // The numeral rides up to leave the edge its own line, and stays put without one.
+        const nudge = edge === undefined ? "" : "pb-2 sm:pb-3";
         // Marigold sits on top of teal rather than replacing it. The answer is always a window
         // date, so the teal underneath is correct, and Phase 6 gets to fade one over the other
         // instead of swapping a fill.
@@ -97,8 +127,14 @@ export function HeroGrid({ window: windowDates, answer, className }: HeroGridPro
             <Layer on={inWindow} className="bg-teal" />
             <Layer on={isAnswer} className="bg-marigold" />
             <Layer on={isAnswer} className="border-2 border-ink" />
-            <Numeral on={!inWindow || isAnswer} className="text-ink" date={date} />
-            <Numeral on={inWindow && !isAnswer} className="text-raised" date={date} />
+            <Numeral on={!inWindow || isAnswer} className={cn("text-ink", nudge)} date={date} />
+            <Numeral on={inWindow && !isAnswer} className={cn("text-raised", nudge)} date={date} />
+            {edge === undefined ? null : (
+              <>
+                <Delta on={inWindow && !isAnswer} className="text-raised" text={formatSignedPp(edge)} />
+                <Delta on={isAnswer} className="text-ink" text={formatSignedPp(edge)} />
+              </>
+            )}
           </div>
           );
         })}
@@ -120,6 +156,17 @@ export function HeroGrid({ window: windowDates, answer, className }: HeroGridPro
           Your date
         </span>
       </p>
+
+      {/*
+       * A bare number in a box is uninterpretable, and an uninterpretable number next to a date
+       * invites the reader to assume it is bigger than it is. Percentage points, not per cent:
+       * XIRR is already a percentage, so the gap between two dates is measured in points of it.
+       */}
+      {edges === undefined ? null : (
+        <p className="mt-1 max-w-[65ch] text-xs text-mute-text">
+          Each figure is that date’s XIRR against the middle of your window, in percentage points.
+        </p>
+      )}
     </div>
   );
 }

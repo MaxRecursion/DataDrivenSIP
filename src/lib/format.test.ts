@@ -5,7 +5,9 @@ import {
   formatPercentOfValue,
   formatPp,
   formatRupees,
+  formatSignedPp,
   formatYears,
+  formatYearsOfMonths,
   ordinal,
 } from "./format";
 
@@ -141,6 +143,47 @@ describe("formatPp", () => {
 
   it("throws rather than rendering 'NaN pp' onto the page", () => {
     expect(() => formatPp(Number.NaN)).toThrow();
+  });
+});
+
+describe("formatYearsOfMonths", () => {
+  it("dates a sentence from the instalments its rupees were simulated over", () => {
+    // 164 instalments is Kotak's common month set, and 13.7 years is what formatYears gives for
+    // its NAV span — they agree here, which is exactly why the worked example never caught the
+    // two spans being different quantities.
+    expect(formatYearsOfMonths(164)).toBe("13.7 years");
+    expect(formatYearsOfMonths(12)).toBe("1.0 years");
+  });
+
+  it("differs from the NAV span where a fund's months and its history disagree", () => {
+    // Fund 149329: 52 instalments over a 4.8-year history. Ten thousand a month for 4.8 years
+    // would be 5.76 lakh, but only 5.2 lakh was invested; the sentence must date itself from
+    // the instalments or its own numbers contradict each other.
+    expect(formatYearsOfMonths(52)).toBe("4.3 years");
+    expect(formatYears("2021-12-14", "2026-09-15")).toBe("4.8 years");
+  });
+});
+
+describe("formatSignedPp", () => {
+  it("marks a gain with a sign, so a grid of these reads as differences and not as levels", () => {
+    expect(formatSignedPp(0.031)).toBe("+0.03");
+    expect(formatSignedPp(1)).toBe("+1.00");
+  });
+
+  it("drops the unit, because the cell it goes in states it once alongside", () => {
+    expect(formatSignedPp(0.031)).not.toContain("pp");
+  });
+
+  it("keeps the real minus sign on a loss", () => {
+    expect(formatSignedPp(-0.031)).toBe(`${MINUS}0.03`);
+    expect(formatSignedPp(-0.031)).not.toContain("-");
+  });
+
+  it("carries the same floor as formatPp, so noise never prints as a clean zero", () => {
+    // A signed "+0.00" would read as a real but tiny gain; "<0.01" says what is actually known.
+    expect(formatSignedPp(0.004)).toBe("<0.01");
+    expect(formatSignedPp(-0.004)).toBe("<0.01");
+    expect(formatSignedPp(0)).toBe("0.00");
   });
 });
 

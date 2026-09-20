@@ -52,6 +52,17 @@ export const MIN_EDGE_PP = 0.005;
  */
 export const SETTLED_INSTALMENTS = 96;
 
+/**
+ * Mirrors MIN_WINDOWS in pipeline/analysis/verdict.ts. Fewer rolling windows than this and the
+ * date question has no answer worth giving, whatever the verdict arithmetic produced.
+ *
+ * This, rather than `confidence`, is what selects the short-history headline. D7 wrote that row
+ * when "reduced" could only mean a short history; D21 then made every trimmed fund reduced
+ * however long the surviving series is, which withheld the verdict from eight funds carrying 97
+ * to 128 windows. Confidence still drives the caveats and the "How confident is this?" section.
+ */
+export const MIN_WINDOWS = 24;
+
 /** The SIP the rupee figures are simulated on. Notional, and the copy says that too (D1). */
 const NOTIONAL_MONTHLY = 10_000;
 
@@ -83,10 +94,10 @@ function headlineFor(fund: FundArtifact, answer: Answer): string {
 
   // Too little history to say anything about dates, whatever the verdict computed. A fund whose
   // series was cut is always reduced (D21), so this row also covers a truncated history.
-  if (fund.confidence === "reduced") {
-    // A cut series is reduced however much of it survives (D21), so the short-history sentence
-    // would contradict itself here: 119746 keeps 163 months, which is thirteen years. What is
-    // actually reduced is how much of the fund's life the page can speak for.
+  // Too little history for the question to have an answer at all. A fund whose series was cut
+  // says which of the two things is wrong with it, since "too little history" would contradict
+  // itself on a fund that kept thirteen years of it.
+  if (fund.windows < MIN_WINDOWS) {
     if (fund.trimmedFrom !== undefined) {
       return `Part of this fund's history couldn't be used, so this reads on ${fund.instalments} months rather than the fund's whole life. The ${nth} fits your window.`;
     }
@@ -183,7 +194,7 @@ function rupeeLineFor(fund: FundArtifact, answer: Answer): string {
   // not from the NAV history. The two differ for 457 funds — one showed ₹5.2 lakh invested
   // "over 4.8 years", which at ₹10,000 a month is ₹5.76 lakh. Kotak hides it: its 164 months
   // and its 13.7-year NAV span agree, which is why the worked example never disambiguated them.
-  return `For a notional ${formatRupees(NOTIONAL_MONTHLY)} monthly SIP, the highest- and lowest-value dates (the ${ordinal(highest.d)} and ${ordinal(lowest.d)}) ended ${formatRupees(gap)} apart on ${formatLakh(invested)} invested, ${formatPercentOfValue(shareOfValue)} of final value, over ${formatYearsOfMonths(fund.instalments)}.`;
+  return `For a notional ${formatRupees(NOTIONAL_MONTHLY)} monthly SIP, the highest- and lowest-value dates (the ${ordinal(highest.d)} and ${ordinal(lowest.d)}) ended ${formatRupees(gap)} apart on ${formatLakh(invested)} invested, ${formatPercentOfValue(shareOfValue)} of the ${formatLakh(highest.corpus)} it grew to, over ${formatYearsOfMonths(fund.instalments)}.`;
 }
 
 /**

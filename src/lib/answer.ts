@@ -77,13 +77,34 @@ function candidates(fund: FundArtifact, window: number[]): Candidate[] {
  * with an identical measured edge of 0.0055 pp were given different sentences. Integers decide
  * it by the number instead. The division happens once, at the end, so callers still get points.
  */
-function edgeOverWindow(chosen: Candidate, pool: Candidate[]): number {
+function doubledMedian(pool: Candidate[]): number {
   const sorted = pool.map(({ result }) => thousandths(result.xirr)).sort((a, b) => a - b);
   const middle = sorted.length >> 1;
   const upper = sorted[middle] ?? 0;
   const lower = sorted.length % 2 === 0 ? (sorted[middle - 1] ?? upper) : upper;
   // Doubled, so an even-length median needs no halving and the whole sum stays an integer.
-  return (thousandths(chosen.result.xirr) * 2 - (lower + upper)) / 2000;
+  return lower + upper;
+}
+
+const edgeFrom = (xirr: number, middle: number): number => (thousandths(xirr) * 2 - middle) / 2000;
+
+function edgeOverWindow(chosen: Candidate, pool: Candidate[]): number {
+  return edgeFrom(chosen.result.xirr, doubledMedian(pool));
+}
+
+/**
+ * Every window date's edge, for the grid to print beside its number.
+ *
+ * It shares `doubledMedian` and `edgeFrom` with the pick, so the answer's cell and the sentence
+ * under it are the same number by construction rather than by two calculations agreeing. Dates
+ * outside the window are absent: they are not choices the reader has, so the grid says nothing
+ * about them.
+ */
+export function windowEdges(fund: FundArtifact, window: number[]): Map<number, number> {
+  const pool = candidates(fund, window);
+  if (pool.length === 0) return new Map();
+  const middle = doubledMedian(pool);
+  return new Map(pool.map(({ result }) => [result.d, edgeFrom(result.xirr, middle)]));
 }
 
 /**

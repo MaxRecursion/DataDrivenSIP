@@ -81,7 +81,11 @@ export function AnswerBlock({ copy, answerDate }: AnswerBlockProps) {
        * line-height would give, which fell about six pixels short of the four-line case and let
        * it push the rupee line, the controls and the footer down.
        */}
-      <p className="mt-4 min-h-[6.5rem] leading-relaxed text-ink sm:min-h-[4.875rem]">{copy.headline}</p>
+      {/* Marked because this sentence names the date: it is wrong on a prerendered page whose
+          URL asks for a different window, and is hidden until React re-renders (PLAN.md 6.2). */}
+      <p data-answer-copy className="mt-4 min-h-[6.5rem] leading-relaxed text-ink sm:min-h-[4.875rem]">
+        {copy.headline}
+      </p>
 
       {copy.caveats.map((caveat) => (
         <p key={caveat} className="mt-3 text-sm leading-relaxed text-mute-text">

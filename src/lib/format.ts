@@ -135,6 +135,14 @@ export function formatPercentOfValue(fraction: number): string {
  * rupee amounts come from the common month set has to date itself from that set too, or its own
  * numbers won't reconcile: ₹10,000 a month over the span it states must equal the sum it states.
  */
+export function formatSignedPp(pp: number): string {
+  const figure = formatPp(pp).replace(" pp", "");
+  // Below the floor the magnitude is all the page can honestly say, so it keeps "<0.01" without
+  // a sign; exact zero stays "0.00", which really is nothing.
+  if (figure === "0.00" || figure.startsWith("<")) return figure;
+  return pp > 0 ? `+${figure}` : figure;
+}
+
 export function formatYearsOfMonths(months: number): string {
   assertFinite(months);
   return `${(months / 12).toFixed(1)} years`;

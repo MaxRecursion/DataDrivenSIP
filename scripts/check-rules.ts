@@ -628,6 +628,28 @@ export function checkPackageJson(file: string, source: string): Violation[] {
 // ---------------------------------------------------------------------------------------------
 // Project
 
+/**
+ * The README is the repository's front page, and it is user-facing copy like any other — but it
+ * sat outside every scan, so it opened with "Find the best date to start your SIP" for as long
+ * as it existed, using a word this very file bans. Fenced and inline code are commands rather
+ * than copy and are skipped.
+ */
+export function checkMarkdown(file: string, source: string): Violation[] {
+  const violations: Violation[] = [];
+  let fenced = false;
+  source.split("\n").forEach((line, index) => {
+    if (/^\s*```/.test(line)) {
+      fenced = !fenced;
+      return;
+    }
+    if (fenced) return;
+    for (const detail of copyViolations(line.replace(/`[^`]*`/g, " "))) {
+      violations.push({ file, line: index + 1, rule: "copy", detail });
+    }
+  });
+  return violations;
+}
+
 export function checkProject(root: string): Violation[] {
   const sourceFiles = (readdirSync(join(root, "src"), { recursive: true }) as string[]).map((entry) => join("src", entry));
   const scripts = join(root, "scripts");
@@ -643,6 +665,7 @@ export function checkProject(root: string): Violation[] {
   }
   violations.push(...checkHtml("index.html", readFileSync(join(root, "index.html"), "utf8")));
   violations.push(...checkPackageJson("package.json", readFileSync(join(root, "package.json"), "utf8")));
+  violations.push(...checkMarkdown("README.md", readFileSync(join(root, "README.md"), "utf8")));
   return violations;
 }
 

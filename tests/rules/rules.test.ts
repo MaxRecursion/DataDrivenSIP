@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkCss, checkHtml, checkPackageJson, checkProject, checkTsx, classViolation } from "../../scripts/check-rules";
+import { checkCss, checkHtml, checkMarkdown, checkPackageJson, checkProject, checkTsx, classViolation } from "../../scripts/check-rules";
 
 const rulesIn = (violations: { rule: string }[]) => violations.map((v) => v.rule);
 
@@ -234,5 +234,24 @@ describe("font rule", () => {
     expect(rulesIn(checkCss("x.css", 'body { font-family: "Inter", sans-serif; }'))).toContain("font");
     expect(rulesIn(checkTsx("x.tsx", 'const f = "Geist Variable";'))).toContain("font");
     expect(checkTsx("x.tsx", 'const s = "Interval funds are excluded";')).toEqual([]);
+  });
+});
+
+describe("Markdown", () => {
+  it("catches the banned word the README actually shipped with", () => {
+    // The literal line README.md carried until it was rewritten. It passed every check for as
+    // long as it existed, because nothing scanned the file.
+    const violations = checkMarkdown("README.md", "# DataDrivenSIP\nFind the best date to start your SIP\n");
+    expect(violations).toHaveLength(1);
+    expect(violations[0]).toMatchObject({ file: "README.md", line: 2, rule: "copy" });
+    expect(violations[0]?.detail).toContain("best");
+  });
+
+  it("reads fenced and inline code as commands rather than as copy", () => {
+    // `pnpm run best` would be a command; prose about the best date would not.
+    const fenced = "Run it:\n\n```\npnpm run best-guess\n```\n";
+    expect(checkMarkdown("README.md", fenced)).toEqual([]);
+    expect(checkMarkdown("README.md", "Use `--best` to override.\n")).toEqual([]);
+    expect(checkMarkdown("README.md", "Pick the best one.\n")).toHaveLength(1);
   });
 });

@@ -374,6 +374,31 @@ Retries follow the spec: 3 retries, so 4 attempts.
   the cell fade-in, and plays only the window wave, answer landing and ticker. A grid
   that's already visible doesn't blink.
 
+**Amendment, 2026-09-20 (Phase 6): the animation library is gone, on the same grounds as (a).**
+
+§8.1 specifies `LazyMotion` + `domAnimation` + `m`. Built and measured, Motion cost **67 KB
+gzipped** and put total JS at **203 KB against §9's hard 180 KB limit**. The lazy-features split
+cannot help: `LazyMotion` pulls the animation engine in whichever entry `m` is imported from, so
+the engine lands in the initial chunk either way. Switching `m` to `motion/react-m` and dropping
+`useReducedMotion` for a three-line media query recovered only part of it.
+
+(a) already made this exact call, rejecting `domMax` because "28 KB … would push total JS to
+roughly 187 KB, over budget", and hand-writing the morph on WAAPI instead. The same reasoning
+applies with more force to the whole library, so the whole reveal is hand-written:
+`src/components/animated.tsx` runs the animations, `src/lib/spring.ts` solves the springs and
+compiles them to CSS `linear()` easings, and `src/lib/sequence.ts` holds the schedule and the
+controller. Total is now **138 KB** and initial **100 KB**, against 180 and 115. The
+hand-written version costs about 1.5 KB.
+
+Nothing §8.1 asks for was given up: opacity and full `transform` strings only, both of which
+WAAPI runs off the main thread; springs; and an interrupt that lands the final state at zero
+duration. What was given up is Motion's variant API, so `initial={false}` becomes "the element
+renders in its final state and the animation plays up to it", which is the same guarantee for
+cold renders by a different route.
+
+`motion` was removed from `package.json` in the Phase 7 housekeeping. The rule tests still cover
+its banned imports, so reintroducing it fails loudly rather than silently.
+
 #### D11 — What criterion 7 ("no frame over 8.33 ms") measures
 
 Headless Chromium doesn't render at 120 Hz, and DevTools' Frame Rendering Stats overlay

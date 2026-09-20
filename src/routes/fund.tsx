@@ -17,8 +17,18 @@ import { useNavigationType, useParams, useSearchParams } from "react-router";
 import type { FundArtifact } from "../../shared/artifacts";
 import { ANSWER_HEADING_ID, AnswerBlock } from "../components/answer-block";
 import { HeroGrid } from "../components/hero-grid";
+/**
+ * Imported eagerly, against §6.5's "lazy chunk", on a measurement: the sections come to 1.79 kB
+ * gzipped, not the ~7 kB the budget assumed. Lazy-loading them put a Suspense boundary into the
+ * prerendered tree, so every build shipped a fallback and hydration answered with React #419.
+ * Paying 1.79 kB buys that error away and puts the three headings in the cold HTML. uPlot, which
+ * is the 24 kB that actually justified a chunk, stays lazy inside — and its boundary is only
+ * created when a reader opens the section, long after hydration.
+ */
+import Disclosures from "../components/disclosures";
 import { WindowControls } from "../components/window-controls";
 import { deviationsFromWindow, pickAnswer, windowEdges } from "../lib/answer";
+import { disclosureCopy } from "../lib/disclosure";
 import { heatFromDeviations, heatSpanPp } from "../lib/heat";
 import { answerCopy } from "../lib/copy";
 import { loadFund, peekFund } from "../lib/data";
@@ -189,6 +199,7 @@ export function FundPage() {
   const deviations = deviationsFromWindow(state.fund, windowDates);
   const heat = heatFromDeviations(deviations);
   const spanPp = heatSpanPp(deviations);
+  const disclosure = disclosureCopy(state.fund, answer, windowDates);
 
   return (
     <section>
@@ -206,6 +217,8 @@ export function FundPage() {
       />
       <AnswerBlock copy={copy} answerDate={answer.date} />
       <WindowControls params={params} onChange={onParamsChange} />
+
+      <Disclosures fund={state.fund} answer={answer} window={windowDates} copy={disclosure} />
     </section>
   );
 }

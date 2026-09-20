@@ -18,7 +18,8 @@ import type { FundArtifact } from "../../shared/artifacts";
 import { ANSWER_HEADING_ID, AnswerBlock } from "../components/answer-block";
 import { HeroGrid } from "../components/hero-grid";
 import { WindowControls } from "../components/window-controls";
-import { pickAnswer, windowEdges } from "../lib/answer";
+import { deviationsFromWindow, pickAnswer, windowEdges } from "../lib/answer";
+import { heatFromDeviations, heatSpanPp } from "../lib/heat";
 import { answerCopy } from "../lib/copy";
 import { loadFund, peekFund } from "../lib/data";
 import { setHead } from "../lib/head";
@@ -181,6 +182,13 @@ export function FundPage() {
   // Shares its arithmetic with the pick, so the marigold cell and the sentence under it are the
   // same figure by construction rather than by two calculations happening to agree.
   const edges = windowEdges(state.fund, windowDates);
+  // Shading covers all 28 dates, not just the window: the calendar's job is to show what the
+  // whole month did, and fading is what says which ten the reader may actually use. It shades
+  // the same deviations the cells print, measured from the same middle, so a cell can never
+  // read green while the figure inside it reads minus.
+  const deviations = deviationsFromWindow(state.fund, windowDates);
+  const heat = heatFromDeviations(deviations);
+  const spanPp = heatSpanPp(deviations);
 
   return (
     <section>
@@ -188,7 +196,14 @@ export function FundPage() {
       <p className="mt-1 text-mute-text">{state.fund.house}</p>
       <p className="text-sm text-mute-text">{state.fund.category}</p>
 
-      <HeroGrid window={windowDates} answer={answer.date} edges={edges} className="mt-6" />
+      <HeroGrid
+        window={windowDates}
+        answer={answer.date}
+        heat={heat}
+        spanPp={spanPp}
+        edges={edges}
+        className="mt-6"
+      />
       <AnswerBlock copy={copy} answerDate={answer.date} />
       <WindowControls params={params} onChange={onParamsChange} />
     </section>

@@ -100,6 +100,21 @@ function edgeOverWindow(chosen: Candidate, pool: Candidate[]): number {
  * outside the window are absent: they are not choices the reader has, so the grid says nothing
  * about them.
  */
+/**
+ * Every date's distance from the middle of the window, not only the window's own ten.
+ *
+ * The grid shades all 28 cells, and shading them against a different centre from the one the
+ * printed figures use would let a cell read green while the number inside it read minus. One
+ * baseline, one story — and for a date the salary rules out, "against the middle of the window
+ * you do have" is still the comparison that means something.
+ */
+export function deviationsFromWindow(fund: FundArtifact, window: number[]): Map<number, number> {
+  const pool = candidates(fund, window);
+  if (pool.length === 0) return new Map();
+  const middle = doubledMedian(pool);
+  return new Map(fund.dates.map((result) => [result.d, edgeFrom(result.xirr, middle)]));
+}
+
 export function windowEdges(fund: FundArtifact, window: number[]): Map<number, number> {
   const pool = candidates(fund, window);
   if (pool.length === 0) return new Map();

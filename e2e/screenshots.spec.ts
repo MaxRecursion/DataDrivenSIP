@@ -18,6 +18,9 @@ const FUNDS = [
   { code: 103490, label: "marginal-full", note: "Quantum Value, 245 instalments" },
   { code: 142110, label: "meaningful-full", note: "Mahindra Manulife Mid Cap, 103 instalments" },
   { code: 145137, label: "meaningful-short", note: "Invesco India Small Cap, 94 — D21 caveat" },
+  // 5 of 994 funds lost money, and all 5 lost it on every date. Nothing else in this list
+  // paints the grid's red ramp, so without this the loss colour ships unlooked at.
+  { code: 151785, label: "loss-red", note: "Axis Nifty IT Index, −9.52% to −8.59%" },
 ];
 
 const WIDTHS = [360, 390, 768, 1280];

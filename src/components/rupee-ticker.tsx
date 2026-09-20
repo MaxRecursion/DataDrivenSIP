@@ -63,8 +63,10 @@ export function RupeeTicker({
       element.textContent = format(value * ease(progress));
       if (progress < 1) frame = requestAnimationFrame(tick);
     };
-    // Starts from zero rather than from the final value, so the reader sees it climb.
-    element.textContent = format(0);
+    // Blank until its turn, not "₹0". The figure sits inside a sentence — "ended ₹0 apart on
+    // ₹16.4 lakh invested" — so a zero held for half a second is a false statement about the
+    // fund, where an absence is merely an absence. The sibling reserves the width either way.
+    element.textContent = "";
     const begin = setTimeout(() => {
       frame = requestAnimationFrame(tick);
     }, delayMs);

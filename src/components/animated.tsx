@@ -63,6 +63,13 @@ export function Animated({
     // A browser without WAAPI simply shows the final state, which is already rendered.
     if (typeof element.animate !== "function") return;
 
+    // §8.1: promoted for the duration and never in static CSS, where it would pin a layer for
+    // every cell for the life of the page.
+    element.style.willChange = "transform, opacity";
+    const release = () => {
+      element.style.willChange = "";
+    };
+
     const animation = element.animate([{ ...from }, { ...to }], {
       duration: settleMs(spring),
       delay: delayMs,
@@ -72,9 +79,14 @@ export function Animated({
       fill: "backwards",
     });
 
+    // Released when it ends on its own; `catch` because an interrupted animation rejects here
+    // and the cleanup below has already dealt with it.
+    animation.finished.then(release).catch(() => {});
+
     return () => {
       // Land it. Never cancel: that reverts to `from`, and `from` is invisible.
       animation.finish();
+      release();
     };
   }, [play, shape]);
 

@@ -95,16 +95,20 @@ function Layer({ on, className }: { on: boolean; className: string }) {
 function HeatLayers({ heat }: { heat: Heat | undefined }) {
   const ramp = (heat?.intensity ?? 0) * MAX_FILL;
   const amber = heat === undefined ? 0 : MID_FILL * (1 - heat.intensity);
+  // §8.1's response-to-action motion: a salary change re-shades every cell, and crossfading the
+  // overlays is what makes that read as the same grid answering again rather than a new one
+  // appearing. Opacity only, and instant for a reader who asked for reduced motion (§8.3).
+  const crossfade = "transition-opacity duration-200 motion-reduce:transition-none";
 
   return (
     <>
-      <div className="absolute inset-0 rounded-lg bg-marigold" style={{ opacity: amber }} />
+      <div className={cn("absolute inset-0 rounded-lg bg-marigold", crossfade)} style={{ opacity: amber }} />
       <div
-        className="absolute inset-0 rounded-lg bg-loss"
+        className={cn("absolute inset-0 rounded-lg bg-loss", crossfade)}
         style={{ opacity: heat?.tone === "loss" ? ramp : 0 }}
       />
       <div
-        className="absolute inset-0 rounded-lg bg-teal"
+        className={cn("absolute inset-0 rounded-lg bg-teal", crossfade)}
         style={{ opacity: heat?.tone === "gain" ? ramp : 0 }}
       />
     </>
@@ -218,7 +222,7 @@ export function HeroGrid({
                    * to be able to tell it is not one they may use.
                    */}
                   <div
-                    className="absolute inset-0 rounded-lg bg-surface"
+                    className="absolute inset-0 rounded-lg bg-surface transition-opacity duration-200 motion-reduce:transition-none"
                     style={{ opacity: inWindow ? 0 : 0.62 }}
                   />
                   {/* §8.2: the answer lands last and on its own spring (D10b). Its marigold and

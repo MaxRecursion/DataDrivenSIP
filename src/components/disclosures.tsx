@@ -50,7 +50,8 @@ function Chevron() {
 function Section({ id, title, children }: SectionProps) {
   return (
     <Collapsible.Root data-disclosure={id} className="border-t border-line">
-      <Collapsible.Trigger className="group flex w-full items-center justify-between gap-3 py-4 text-left font-display text-base font-bold text-ink outline-none focus-visible:ring-2 focus-visible:ring-teal">
+      {/* §8.1's response-to-action motion: transform only, and instant under reduced motion. */}
+      <Collapsible.Trigger className="group flex w-full items-center justify-between gap-3 py-4 text-left font-display text-base font-bold text-ink outline-none transition-transform duration-100 active:scale-[0.99] motion-reduce:transition-none focus-visible:ring-2 focus-visible:ring-teal">
         {title}
         <Chevron />
       </Collapsible.Trigger>

@@ -16,6 +16,7 @@ import { useEffect, useState } from "react";
 import { useNavigationType, useParams } from "react-router";
 import type { FundArtifact } from "../../shared/artifacts";
 import { ANSWER_HEADING_ID, AnswerBlock } from "../components/answer-block";
+import { GlanceStrip } from "../components/glance-strip";
 import { HeroGrid } from "../components/hero-grid";
 /**
  * Imported eagerly, against §6.5's "lazy chunk", on a measurement: the sections come to 1.79 kB
@@ -197,6 +198,7 @@ export function FundPage() {
         reveal={reveal}
         className="mt-6"
       />
+      <GlanceStrip fund={state.fund} />
       <AnswerBlock copy={copy} answerDate={answer.date} reveal={reveal} />
 
       <Disclosures fund={state.fund} answer={answer} copy={disclosure} />

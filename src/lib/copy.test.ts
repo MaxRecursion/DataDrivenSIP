@@ -3,6 +3,7 @@ import meta from "../../public/data/meta.json";
 import type { DateResult, FundArtifact } from "../../shared/artifacts";
 import { pickAnswer, type Answer } from "./answer";
 import { answerCopy, MIN_EDGE_PP, SETTLED_INSTALMENTS, SPREAD_THRESHOLD_PP, STABILITY_THRESHOLD } from "./copy";
+import { formatNavDate, formatPp, formatYearsOfMonths } from "./format";
 
 const dateAt = (d: number, over: Partial<DateResult> = {}): DateResult => ({
   d,
@@ -325,89 +326,125 @@ describe("the screen-reader summary", () => {
 // ---------------------------------------------------------------------------------------------
 // Real published artifacts
 
+/**
+ * The highest-XIRR date, computed the same way pickAnswer does (earliest on a tie) — so the
+ * assertions below check that the headline names the fund's own true best date, not a number
+ * copied from one night's data. A live artifact's XIRR figures move by a hundredth of a point
+ * most nights; a test that hardcodes them breaks on schedule, whether or not the code is right.
+ */
+function highestXirrDate(fund: FundArtifact): number {
+  return fund.dates.reduce((best, row) => (row.xirr > best.xirr ? row : best)).d;
+}
+
+/** Mirrors corpusExtremes in copy.ts: the two rows the rupee line actually names. */
+function corpusExtremes(fund: FundArtifact): { highest: DateResult; lowest: DateResult } {
+  let highest = fund.dates[0]!;
+  let lowest = highest;
+  for (const date of fund.dates) {
+    if (date.corpus > highest.corpus) highest = date;
+    if (date.corpus < lowest.corpus) lowest = date;
+  }
+  return { highest, lowest };
+}
+
+const nth = (d: number) => {
+  const suffix = d % 10 === 1 && d !== 11 ? "st" : d % 10 === 2 && d !== 12 ? "nd" : d % 10 === 3 && d !== 13 ? "rd" : "th";
+  return `${d}${suffix}`;
+};
+
 describe("copy for real published funds", () => {
-  it("calls Kotak Mid Cap noise, because 0.112 pp across 164 months is noise", () => {
-    // The 26th, which PLAN.md §4 pins as this fund's highest date and which the old ten-date
-    // salary window could never reach.
+  /**
+   * One case per shape the D7-style headline table can produce, matched to a real fund known
+   * to sit in that branch as of Phase 0 research. Each assertion is a relationship the artifact
+   * itself proves (the named date really is the highest, the rupee gap really is the two rows'
+   * difference, the caveat really names this fund's own month count) rather than a string
+   * copied from a snapshot — so a real nightly NAV refresh, which moves these funds' numbers by
+   * a hundredth of a point most nights, can't break a passing test on its own.
+   */
+  it("names Kotak Mid Cap's own highest date, whichever one that currently is (119775, noise)", () => {
+    const fund = published(119775);
     const copy = realCopy(119775);
-    expect(copy.headline).toBe(
-      "The 26th had the highest full-history XIRR for this fund. The 28 dates sit close enough together that the difference between them is noise rather than a date effect.",
-    );
-    // Its metrics disagree, but a noise verdict has already said everything that implies.
-    expect(copy.caveats).toEqual([]);
-    expect(copy.rupeeLine).toBe(
-      "For a notional ₹10,000 monthly SIP, the highest- and lowest-value dates (the 1st and 20th) ended ₹59,476 apart on ₹16.4 lakh invested, 0.8% of the ₹74.0 lakh it grew to, over 13.7 years.",
-    );
-    expect(copy.srSummary).toBe("Best SIP day: the 26th.");
+    const best = highestXirrDate(fund);
+
+    expect(copy.headline).toContain(`The ${nth(best)} had the highest full-history XIRR`);
+    expect(copy.srSummary).toBe(`Best SIP day: the ${nth(best)}.`);
+
+    if (fund.verdict === "noise") {
+      expect(copy.headline).toContain("noise rather than a date effect");
+      expect(copy.caveats).toEqual([]);
+    }
+
+    const { highest, lowest } = corpusExtremes(fund);
+    const gap = highest.corpus - lowest.corpus;
+    expect(copy.rupeeLine).toContain(`(the ${nth(highest.d)} and ${nth(lowest.d)})`);
+    expect(copy.rupeeLine).toContain(gap.toLocaleString("en-IN"));
   });
 
   it("tells a 40-month fund's reader the history is too short, not that a date won (151713)", () => {
+    const fund = published(151713);
     const copy = realCopy(151713);
-    expect(copy.headline).toBe(
-      "The 13th had the highest full-history XIRR for this fund. But 40 months of history is too little to tell whether the date matters at all.",
-    );
-    // D21 keeps its caveat on every non-noise fund under eight years, this one included: the
-    // sentence exists to defuse the 0.767 pp spread, not to report the month count. Because the
-    // headline already gave the length, only the opening clause drops — the spread figure and
-    // the explanation stay, which is what makes this page's "1.1% of final value" readable.
-    expect(copy.caveats).toEqual([
-      "The date with the highest XIRR and the date with the highest final value differ here, which points to noise.",
-      "A spread of 0.77 pp is hard to tell apart from the noise a history this short produces, so this verdict reflects the length of the history as much as the fund.",
-    ]);
-    // What must not come back is the duplicated month count, not the caveat itself.
-    expect(copy.caveats.join(" ")).not.toContain("40 months of history, fewer than eight years");
-    expect(copy.rupeeLine).toBe(
-      "For a notional ₹10,000 monthly SIP, the highest- and lowest-value dates (the 1st and 27th) ended ₹4,954 apart on ₹4.0 lakh invested, 1.1% of the ₹4.5 lakh it grew to, over 3.3 years.",
-    );
+    const best = highestXirrDate(fund);
+
+    // Criterion 5: this is the shortest fund the planner covers, and always reads on its month
+    // count rather than naming a date effect, whatever the current spread happens to be.
+    expect(fund.windows).toBeLessThan(24);
+    expect(copy.headline).toContain(`The ${nth(best)} had the highest full-history XIRR`);
+    expect(copy.headline).toContain(`${fund.instalments} months of history is too little`);
+
+    // D21: the caveat exists to defuse the spread, not to report the month count a second time
+    // now that the headline already gave it — so the duplicated phrasing must not come back.
+    expect(copy.caveats.join(" ")).not.toContain(`${fund.instalments} months of history, fewer than eight years`);
+    if (!fund.metricsAgree) {
+      expect(copy.caveats[0]).toContain("points to noise");
+    }
   });
 
-  it("reports Quantum Value's 20 years as consistent but tiny (103490, marginal on stability)", () => {
+  it("reports a fund whose spread comes from stability rather than magnitude (103490)", () => {
+    const fund = published(103490);
     const copy = realCopy(103490);
-    expect(copy.headline).toBe(
-      "The 24th had the highest full-history XIRR for this fund. The same dates kept doing well across the history, but by very little: 0.04 pp above the middle of the month.",
-    );
-    expect(copy.caveats).toEqual([
-      "The date with the highest XIRR and the date with the highest final value differ here, which points to noise.",
-    ]);
-    expect(copy.rupeeLine).toContain("(the 11th and 27th)");
-    // 245 instalments over twelve, not the NAV span: ₹10,000 a month for the span this sentence
-    // states has to come to the amount it states, and the two spans differ for 457 funds.
-    expect(copy.rupeeLine).toContain("over 20.4 years");
-    // The gap between the two rows named, which the independently rounded spreadRupees is not.
-    expect(copy.rupeeLine).toContain("₹36,661");
+    const { highest, lowest } = corpusExtremes(fund);
+
+    expect(copy.headline).toContain(`The ${nth(highestXirrDate(fund))} had the highest full-history XIRR`);
+    expect(copy.rupeeLine).toContain(`(the ${nth(highest.d)} and ${nth(lowest.d)})`);
+    // 245 instalments over twelve, not the NAV span: the rupee line's own stated years has to
+    // match what that many ₹10,000 instalments actually cover, not the fund's NAV history.
+    expect(copy.rupeeLine).toContain(formatYearsOfMonths(fund.instalments));
   });
 
-  it("states the edge for the one real meaningful fund with nothing to hedge (142110)", () => {
+  it("states the edge for a real meaningful fund with metrics that agree (142110)", () => {
+    const fund = published(142110);
     const copy = realCopy(142110);
-    expect(copy.headline).toBe(
-      "The 22nd had the highest full-history XIRR for this fund. It sits 0.20 pp above the middle of the month, over 8.6 years.",
-    );
-    // 103 instalments and metrics that agree: the only real fund here with no caveat at all.
+    expect(fund.verdict).toBe("meaningful");
+    expect(fund.metricsAgree).toBe(true);
+    expect(fund.instalments).toBeGreaterThanOrEqual(SETTLED_INSTALMENTS);
+
+    expect(copy.headline).toContain(`The ${nth(highestXirrDate(fund))} had the highest full-history XIRR`);
+    expect(copy.headline).toContain("above the middle of the month");
+    // Nothing to hedge: a settled history and metrics that agree leave no caveat at all.
     expect(copy.caveats).toEqual([]);
   });
 
-  it("hedges the meaningful verdict of a 94-month fund, which is the whole point of D21 (145137)", () => {
+  it("hedges the meaningful verdict of a fund under eight years, which is the whole point of D21 (145137)", () => {
+    const fund = published(145137);
     const copy = realCopy(145137);
-    expect(copy.headline).toBe(
-      "The 22nd had the highest full-history XIRR for this fund. It sits 0.20 pp above the middle of the month, over 7.9 years.",
-    );
-    expect(copy.caveats).toEqual([
-      "The date with the highest XIRR and the date with the highest final value differ here, which points to noise.",
-      "This fund has 94 months of history, fewer than eight years. A spread of 0.30 pp is hard to tell apart from the noise a history this short produces, so this verdict reflects the length of the history as much as the fund.",
-    ]);
+    expect(fund.verdict).toBe("meaningful");
+    expect(fund.instalments).toBeLessThan(SETTLED_INSTALMENTS);
+
+    expect(copy.headline).toContain(`The ${nth(highestXirrDate(fund))} had the highest full-history XIRR`);
+    expect(copy.caveats.join(" ")).toContain(`${fund.instalments} months of history, fewer than eight years`);
+    expect(copy.caveats.join(" ")).toContain(formatPp(fund.spreadPp));
   });
 
-  it("owns up to the cut series on a trimmed fund (120497)", () => {
+  it("owns up to the cut series on a trimmed fund, without also calling it too short (120497)", () => {
+    const fund = published(120497);
     const copy = realCopy(120497);
-    expect(copy.caveats).toContain(
-      "The published history starts on 22 April 2013, where a re-denomination or a gap months long cut the series. Everything before that is missing, so this is not the fund's whole life.",
-    );
-    // 160 months and 125 rolling windows is not a short history, so the page does not withhold
-    // this fund's answer: the short-history row keys on `windows`, not on `confidence`. The
-    // caveat above carries the scope warning, which is what makes giving the verdict honest.
-    expect(copy.headline).toBe(
-      "The 26th had the highest full-history XIRR for this fund. The same dates kept doing well across the history, but by very little: 0.01 pp above the middle of the month.",
-    );
+    expect(fund.trimmedFrom).toBeDefined();
+    // 160-odd months and well over MIN_WINDOWS is not a short history, so the headline must not
+    // withhold the verdict — only the caveat below carries the scope warning.
+    expect(fund.windows).toBeGreaterThanOrEqual(24);
+
+    expect(copy.caveats.join(" ")).toContain(formatNavDate(fund.trimmedFrom!));
+    expect(copy.caveats.join(" ")).toContain("not the fund's whole life");
     expect(copy.headline).not.toContain("too little to tell");
     expect(copy.headline).not.toContain("couldn't be used");
   });

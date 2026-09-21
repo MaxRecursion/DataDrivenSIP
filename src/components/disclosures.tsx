@@ -19,6 +19,7 @@ import { Collapsible } from "radix-ui";
 import type { FundArtifact } from "../../shared/artifacts";
 import type { Answer } from "../lib/answer";
 import type { DisclosureCopy } from "../lib/disclosure";
+import { ConfidenceGlyph, CurveGlyph } from "./glance-icons";
 
 /** The heavy one. Loaded when the section holding it is opened, never before. */
 const SpreadChart = lazy(() => import("./spread-chart"));
@@ -29,6 +30,8 @@ const CHART_HEIGHT = 208;
 type SectionProps = {
   id: string;
   title: string;
+  /** A small, silent preview of what this section says — see glance-icons.tsx. */
+  preview?: ReactNode;
   children: ReactNode;
 };
 
@@ -47,12 +50,15 @@ function Chevron() {
   );
 }
 
-function Section({ id, title, children }: SectionProps) {
+function Section({ id, title, preview, children }: SectionProps) {
   return (
     <Collapsible.Root data-disclosure={id} className="border-t border-line">
       {/* §8.1's response-to-action motion: transform only, and instant under reduced motion. */}
-      <Collapsible.Trigger className="group flex w-full items-center justify-between gap-3 py-4 text-left font-display text-base font-bold text-ink outline-none transition-transform duration-100 active:scale-[0.99] motion-reduce:transition-none focus-visible:ring-2 focus-visible:ring-teal">
-        {title}
+      <Collapsible.Trigger className="group flex w-full items-center gap-3 py-4 text-left font-display text-base font-bold text-ink outline-none transition-transform duration-100 active:scale-[0.99] motion-reduce:transition-none focus-visible:ring-2 focus-visible:ring-teal">
+        <span className="flex flex-1 items-center gap-2.5">
+          {title}
+          {preview}
+        </span>
         <Chevron />
       </Collapsible.Trigger>
       <Collapsible.Content>
@@ -87,14 +93,22 @@ type DisclosuresProps = {
 export default function Disclosures({ fund, answer, copy }: DisclosuresProps) {
   return (
     <section className="mt-10">
-      <Section id="curve" title="The full curve">
+      <Section
+        id="curve"
+        title="The full curve"
+        preview={<CurveGlyph xirrs={fund.dates.map((row) => row.xirr)} />}
+      >
         <Suspense fallback={<div style={{ height: CHART_HEIGHT }} />}>
           <SpreadChart fund={fund} answer={answer.date} />
         </Suspense>
         <p className="mt-3 text-sm leading-relaxed text-mute-text">{copy.chartCaption}</p>
       </Section>
 
-      <Section id="confidence" title="How confident is this?">
+      <Section
+        id="confidence"
+        title="How confident is this?"
+        preview={<ConfidenceGlyph confidence={fund.confidence} />}
+      >
         {paragraphs(copy.confidence)}
       </Section>
 

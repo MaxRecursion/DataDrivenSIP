@@ -47,8 +47,16 @@ module.exports = {
          * Playwright's own test runner handles this itself; chrome-launcher (what lhci drives)
          * does not, so it needs the flags explicitly. Safe here specifically because this
          * browser only ever loads a URL this same job just built and served locally.
+         *
+         * A space-separated string, not an array: lhci's own node-runner.js does
+         * `chromeFlagsAsString = chromeFlags || ''; chromeFlagsAsString += ' --headless=new'`,
+         * and an array there coerces to a comma-joined string via Array.prototype.toString(),
+         * producing one malformed flag Chrome doesn't recognise rather than two real ones —
+         * confirmed by a second real CI run that still hit "No usable sandbox!" after the array
+         * form was added. Lighthouse's own CLI parses this the same way it parses a shell
+         * `--chromeFlags="--no-sandbox ..."` argument.
          */
-        chromeFlags: ["--no-sandbox", "--disable-dev-shm-usage"],
+        chromeFlags: "--no-sandbox --disable-dev-shm-usage",
       },
     },
     assert: {

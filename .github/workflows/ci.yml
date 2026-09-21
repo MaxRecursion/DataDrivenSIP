@@ -51,8 +51,12 @@ jobs:
         # Lighthouse step depending on the runner image's software list rather than on a
         # version this job just installed and controls. CHROME_PATH is the documented way to
         # tell chrome-launcher (which @lhci/cli uses) which binary to drive.
+        #
+        # Asking Playwright's own API for the path, rather than guessing at its cache directory
+        # layout: a first attempt hardcoded `chromium-*/chrome-linux/chrome` and failed in CI
+        # the first time this ran, because that glob didn't match this runner's actual layout.
         run: |
-          CHROME_PATH=$(find ~/.cache/ms-playwright -maxdepth 1 -iname "chromium-*" ! -iname "*headless_shell*" | head -1)/chrome-linux/chrome
+          CHROME_PATH=$(node -e "console.log(require('@playwright/test').chromium.executablePath())")
           test -x "$CHROME_PATH"
           echo "CHROME_PATH=$CHROME_PATH" >> "$GITHUB_ENV"
 

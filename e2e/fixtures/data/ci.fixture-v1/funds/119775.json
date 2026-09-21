@@ -1,0 +1,245 @@
+{
+  "code": 119775,
+  "name": "Kotak Mid Cap Fund - Direct Plan - Growth",
+  "house": "Kotak Mahindra Mutual Fund",
+  "category": "Equity Schemes - Mid Cap Fund",
+  "navFrom": "2013-01-03",
+  "navTo": "2026-09-11",
+  "instalments": 164,
+  "dates": [
+    {
+      "d": 1,
+      "xirr": 20.304,
+      "corpus": 7569425,
+      "meanPct": 35.793,
+      "topQ": 0.125,
+      "w": 3
+    },
+    {
+      "d": 2,
+      "xirr": 20.301,
+      "corpus": 7563466,
+      "meanPct": 31.829,
+      "topQ": 0.063,
+      "w": 0
+    },
+    {
+      "d": 3,
+      "xirr": 20.302,
+      "corpus": 7565894,
+      "meanPct": 34.838,
+      "topQ": 0.055,
+      "w": 0
+    },
+    {
+      "d": 4,
+      "xirr": 20.292,
+      "corpus": 7556216,
+      "meanPct": 33.189,
+      "topQ": 0.094,
+      "w": 3
+    },
+    {
+      "d": 5,
+      "xirr": 20.278,
+      "corpus": 7543687,
+      "meanPct": 28.328,
+      "topQ": 0.102,
+      "w": 0
+    },
+    {
+      "d": 6,
+      "xirr": 20.29,
+      "corpus": 7546952,
+      "meanPct": 32.957,
+      "topQ": 0.109,
+      "w": 0
+    },
+    {
+      "d": 7,
+      "xirr": 20.286,
+      "corpus": 7540961,
+      "meanPct": 27.575,
+      "topQ": 0,
+      "w": 0
+    },
+    {
+      "d": 8,
+      "xirr": 20.281,
+      "corpus": 7534369,
+      "meanPct": 24.277,
+      "topQ": 0.016,
+      "w": 0
+    },
+    {
+      "d": 9,
+      "xirr": 20.276,
+      "corpus": 7526971,
+      "meanPct": 21.615,
+      "topQ": 0.008,
+      "w": 0
+    },
+    {
+      "d": 10,
+      "xirr": 20.286,
+      "corpus": 7529282,
+      "meanPct": 26.91,
+      "topQ": 0.008,
+      "w": 0
+    },
+    {
+      "d": 11,
+      "xirr": 20.309,
+      "corpus": 7539158,
+      "meanPct": 50.26,
+      "topQ": 0.102,
+      "w": 0
+    },
+    {
+      "d": 12,
+      "xirr": 20.319,
+      "corpus": 7541087,
+      "meanPct": 58.854,
+      "topQ": 0.148,
+      "w": 0
+    },
+    {
+      "d": 13,
+      "xirr": 20.321,
+      "corpus": 7538816,
+      "meanPct": 52.344,
+      "topQ": 0.219,
+      "w": 5
+    },
+    {
+      "d": 14,
+      "xirr": 20.317,
+      "corpus": 7532100,
+      "meanPct": 48.438,
+      "topQ": 0.07,
+      "w": 0
+    },
+    {
+      "d": 15,
+      "xirr": 20.318,
+      "corpus": 7528652,
+      "meanPct": 44.039,
+      "topQ": 0.086,
+      "w": 0
+    },
+    {
+      "d": 16,
+      "xirr": 20.333,
+      "corpus": 7534318,
+      "meanPct": 46.499,
+      "topQ": 0.211,
+      "w": 10
+    },
+    {
+      "d": 17,
+      "xirr": 20.327,
+      "corpus": 7527349,
+      "meanPct": 43.258,
+      "topQ": 0.086,
+      "w": 0
+    },
+    {
+      "d": 18,
+      "xirr": 20.316,
+      "corpus": 7516719,
+      "meanPct": 48.119,
+      "topQ": 0,
+      "w": 0
+    },
+    {
+      "d": 19,
+      "xirr": 20.313,
+      "corpus": 7511034,
+      "meanPct": 54.225,
+      "topQ": 0.258,
+      "w": 0
+    },
+    {
+      "d": 20,
+      "xirr": 20.315,
+      "corpus": 7508556,
+      "meanPct": 54.138,
+      "topQ": 0.125,
+      "w": 0
+    },
+    {
+      "d": 21,
+      "xirr": 20.34,
+      "corpus": 7519236,
+      "meanPct": 67.65,
+      "topQ": 0.406,
+      "w": 0
+    },
+    {
+      "d": 22,
+      "xirr": 20.354,
+      "corpus": 7524238,
+      "meanPct": 77.691,
+      "topQ": 0.773,
+      "w": 29
+    },
+    {
+      "d": 23,
+      "xirr": 20.354,
+      "corpus": 7520154,
+      "meanPct": 73.206,
+      "topQ": 0.766,
+      "w": 10
+    },
+    {
+      "d": 24,
+      "xirr": 20.376,
+      "corpus": 7529128,
+      "meanPct": 83.391,
+      "topQ": 0.781,
+      "w": 32
+    },
+    {
+      "d": 25,
+      "xirr": 20.384,
+      "corpus": 7529546,
+      "meanPct": 86.14,
+      "topQ": 0.859,
+      "w": 18
+    },
+    {
+      "d": 26,
+      "xirr": 20.389,
+      "corpus": 7529348,
+      "meanPct": 79.398,
+      "topQ": 0.641,
+      "w": 16
+    },
+    {
+      "d": 27,
+      "xirr": 20.38,
+      "corpus": 7520029,
+      "meanPct": 69.936,
+      "topQ": 0.406,
+      "w": 2
+    },
+    {
+      "d": 28,
+      "xirr": 20.372,
+      "corpus": 7511972,
+      "meanPct": 65.104,
+      "topQ": 0.484,
+      "w": 0
+    }
+  ],
+  "spreadPp": 0.114,
+  "spreadRupees": 60869,
+  "stability": 0.545,
+  "metricsAgree": false,
+  "verdict": "noise",
+  "windows": 128,
+  "instalmentLow": 9746,
+  "instalmentHigh": 172903,
+  "cohortSpreadPp": null,
+  "confidence": "full"
+}

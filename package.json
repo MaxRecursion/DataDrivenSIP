@@ -14,12 +14,15 @@
     "test:watch": "vitest",
     "fonts:fetch": "tsx scripts/fonts-fetch.ts",
     "build": "pnpm fonts:fetch && vite build && vite build --ssr src/entry-prerender.tsx --outDir .prerender && tsx scripts/prerender.ts",
+    "build:ci": "pnpm fonts:fetch && tsx scripts/ci-public-dir.ts && vite build --mode ci && vite build --mode ci --ssr src/entry-prerender.tsx --outDir .prerender && tsx scripts/prerender.ts",
     "preview": "vite preview",
     "size": "size-limit",
     "e2e": "playwright test",
     "check:rules": "tsx scripts/check-rules.ts",
     "pipeline": "tsx pipeline/cli.ts",
-    "bench": "tsx scripts/bench-analysis.ts"
+    "bench": "tsx scripts/bench-analysis.ts",
+    "lighthouse": "lhci autorun",
+    "lighthouse:summary": "tsx scripts/lighthouse-summary.ts"
   },
   "dependencies": {
     "cmdk": "1.1.1",
@@ -31,6 +34,7 @@
     "uplot": "1.6.32"
   },
   "devDependencies": {
+    "@lhci/cli": "0.15.1",
     "@playwright/test": "1.63.0",
     "@size-limit/file": "13.1.1",
     "@tailwindcss/vite": "4.3.3",

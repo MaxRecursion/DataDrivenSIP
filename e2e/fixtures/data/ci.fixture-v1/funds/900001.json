@@ -1,0 +1,245 @@
+{
+  "code": 900001,
+  "name": "Synthetic Meaningful Growth Fund - Direct Plan - Growth",
+  "house": "Fixture Mutual Fund",
+  "category": "Equity Schemes - Flexi Cap Fund",
+  "navFrom": "2016-01-05",
+  "navTo": "2026-01-05",
+  "instalments": 120,
+  "dates": [
+    {
+      "d": 1,
+      "xirr": 14.161,
+      "corpus": 6201543,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    },
+    {
+      "d": 2,
+      "xirr": 14.165,
+      "corpus": 6202057,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    },
+    {
+      "d": 3,
+      "xirr": 14.169,
+      "corpus": 6202571,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    },
+    {
+      "d": 4,
+      "xirr": 14.173,
+      "corpus": 6203086,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    },
+    {
+      "d": 5,
+      "xirr": 14.176,
+      "corpus": 6203600,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    },
+    {
+      "d": 6,
+      "xirr": 14.18,
+      "corpus": 6204114,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    },
+    {
+      "d": 7,
+      "xirr": 14.184,
+      "corpus": 6204629,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    },
+    {
+      "d": 8,
+      "xirr": 14.188,
+      "corpus": 6205143,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    },
+    {
+      "d": 9,
+      "xirr": 14.191,
+      "corpus": 6205657,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    },
+    {
+      "d": 10,
+      "xirr": 14.195,
+      "corpus": 6206171,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    },
+    {
+      "d": 11,
+      "xirr": 14.199,
+      "corpus": 6206686,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    },
+    {
+      "d": 12,
+      "xirr": 14.5,
+      "corpus": 6248000,
+      "meanPct": 90,
+      "topQ": 0.75,
+      "w": 12
+    },
+    {
+      "d": 13,
+      "xirr": 14.199,
+      "corpus": 6206686,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    },
+    {
+      "d": 14,
+      "xirr": 14.195,
+      "corpus": 6206171,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    },
+    {
+      "d": 15,
+      "xirr": 14.191,
+      "corpus": 6205657,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    },
+    {
+      "d": 16,
+      "xirr": 14.188,
+      "corpus": 6205143,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    },
+    {
+      "d": 17,
+      "xirr": 14.184,
+      "corpus": 6204629,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    },
+    {
+      "d": 18,
+      "xirr": 14.18,
+      "corpus": 6204114,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    },
+    {
+      "d": 19,
+      "xirr": 14.176,
+      "corpus": 6203600,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    },
+    {
+      "d": 20,
+      "xirr": 14.173,
+      "corpus": 6203086,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    },
+    {
+      "d": 21,
+      "xirr": 14.169,
+      "corpus": 6202571,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    },
+    {
+      "d": 22,
+      "xirr": 14.165,
+      "corpus": 6202057,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    },
+    {
+      "d": 23,
+      "xirr": 14.161,
+      "corpus": 6201543,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    },
+    {
+      "d": 24,
+      "xirr": 14.158,
+      "corpus": 6201029,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    },
+    {
+      "d": 25,
+      "xirr": 14.15,
+      "corpus": 6200000,
+      "meanPct": 38.0,
+      "topQ": 0.05,
+      "w": 0
+    },
+    {
+      "d": 26,
+      "xirr": 14.203,
+      "corpus": 6207200,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    },
+    {
+      "d": 27,
+      "xirr": 14.199,
+      "corpus": 6206686,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    },
+    {
+      "d": 28,
+      "xirr": 14.195,
+      "corpus": 6206171,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    }
+  ],
+  "spreadPp": 0.35,
+  "spreadRupees": 48000,
+  "stability": 0.75,
+  "metricsAgree": true,
+  "verdict": "meaningful",
+  "windows": 97,
+  "instalmentLow": 9200,
+  "instalmentHigh": 15400,
+  "cohortSpreadPp": 0.28,
+  "confidence": "full"
+}

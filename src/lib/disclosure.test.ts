@@ -3,6 +3,7 @@ import meta from "../../public/data/meta.json";
 import type { DateResult, FundArtifact } from "../../shared/artifacts";
 import { pickAnswer } from "./answer";
 import { disclosureCopy } from "./disclosure";
+import { formatPp } from "./format";
 const dateAt = (d: number, over: Partial<DateResult> = {}): DateResult => ({
   d,
   xirr: 12,
@@ -67,7 +68,7 @@ const published = (code: number): FundArtifact => {
 
 const realCopy = (code: number) => {
   const fund = published(code);
-  return disclosureCopy(fund, pickAnswer(fund), );
+  return disclosureCopy(fund, pickAnswer(fund));
 };
 
 describe("the chart caption", () => {
@@ -202,21 +203,35 @@ describe("what actually matters", () => {
 });
 
 describe("copy for real published funds", () => {
+  /**
+   * Assertions here check that a disclosure line agrees with the artifact's own field, not
+   * with a number copied from one night's data — a live artifact's stability and spread move
+   * by a little most nights, and a test pinned to a snapshot breaks on schedule whether or not
+   * the code is right. `formatPp`'s and `.toFixed(2)`'s own rounding is exercised here too,
+   * rather than re-implemented, so a rounding change shows up as a real failure.
+   */
   it("reads correctly for Kotak, the fund every number in the plan was checked against", () => {
+    const fund = published(119775);
     const copy = realCopy(119775);
-    expect(copy.chartCaption).toContain("0.11 pp");
-    expect(copy.confidence[0]).toContain("0.54");
-    expect(copy.confidence[1]).toContain("0.06 pp");
+    expect(copy.chartCaption).toContain(formatPp(fund.spreadPp));
+    expect(copy.confidence[0]).toContain(fund.stability!.toFixed(2));
+    if (fund.cohortSpreadPp !== null) expect(copy.confidence[1]).toContain(formatPp(fund.cohortSpreadPp));
   });
 
-  it("tells a 40-month fund that its dates reversed order between the halves (151713)", () => {
+  it("tells a 40-month fund whether its dates repeated or reversed order between the halves (151713)", () => {
+    const fund = published(151713);
     const copy = realCopy(151713);
-    expect(copy.confidence[0]).toContain("reversed");
+    expect(fund.windows).toBeLessThan(24);
+
+    if (fund.stability !== null && fund.stability < 0) expect(copy.confidence[0]).toContain("reversed");
     expect(copy.confidence.at(-1)).toContain("reduced confidence");
   });
 
-  it("offers no typical spread for a fund whose band is nearly empty (103490)", () => {
-    expect(realCopy(103490).confidence[1]).toContain("too few published funds");
+  it("offers no typical spread for a fund whose cohort band is empty, states one otherwise (103490)", () => {
+    const fund = published(103490);
+    const line = realCopy(103490).confidence[1];
+    if (fund.cohortSpreadPp === null) expect(line).toContain("too few published funds");
+    else expect(line).toContain(formatPp(fund.cohortSpreadPp));
   });
 
   it("produces every line for a fund of each shape, with nothing empty or undefined", () => {

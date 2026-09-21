@@ -579,6 +579,42 @@ Spec §9 says "95+, CI fails below 90".
 - Take the median of 3 runs per URL (`/` and `/f/119775`) to damp runner noise.
 - Assert LCP ≤ 1200 ms and CLS = 0.
 
+**Built in Phase 8, with two findings the recommendation above didn't anticipate.**
+
+The CSS was a linked `<link rel="stylesheet">`, 4.6 KB gzipped, and measured with real
+network-and-CPU throttling (`--throttling-method=devtools`) it was 99% of a 1432 ms LCP —
+`total-blocking-time` was 0 ms, ruling out script; `render-blocking-resources` named the file
+directly, at 726 ms wasted, all of it the extra round trip to fetch a small render-blocking
+file at all. **Fix:** `scripts/prerender.ts` now inlines the built stylesheet into every page's
+`<head>` rather than linking it. LCP under real throttling dropped to ~780 ms. The 4.6 KB
+duplicates into all 995 prerendered pages rather than being cached once, which is the trade
+made on purpose — a fresh document load (a search result, a shared link, a crawler) is the case
+LCP measures and the case prerendering exists for, and browsing between funds inside the running
+app is client-side routing that never re-fetches a document either way.
+
+Even after that fix, CLS measured 0.00043 on fund pages — small, but not the specified zero.
+`layout-shifts` named the cause directly on both contributing elements: "Web font loaded". The
+metric-matched fallbacks (§7, research report 07) reduce the font swap's effect but don't
+eliminate it to the last sub-pixel. This is the exact case this section's own §9 bullet
+anticipated: "If Lighthouse reports non-zero CLS, Satoshi switches to `font-display: optional`."
+**Fix:** both Cabinet Grotesk and Satoshi (the larger contributor, at 0.00026 of the 0.00043) are
+`font-display: optional`, not `swap`. Confirmed both fonts still report `status: "loaded"` after
+a normal cold navigation — `optional`'s short grace window is enough on a real connection, and
+this only degrades toward the fallback font on a connection too slow to matter for pixel timing.
+CLS is 0 on both URLs after the change.
+
+**A third finding changed how the gate itself measures LCP.** Lighthouse's *default* method
+(`simulate`, the Lantern model spec §9's Fast-3G research assumed) puts this page's LCP at
+1806–1960 ms — over budget — attributing 75–99% of it to "Render Delay", which Lantern's own
+docs describe as time the main thread is estimated busy with script before painting. That
+estimate doesn't know the content is prerendered: real Chrome paints server-rendered HTML and
+CSS without waiting on a deferred `type="module"` script at all, which the devtools-actual trace
+above confirms directly (`total-blocking-time: 0`, `mainthread-work-breakdown` summing to ~230 ms
+for the whole run). `.lighthouserc.cjs` sets `throttlingMethod: "devtools"` instead, trading a
+closed-form, low-noise estimate for a real throttled trace — mitigated by the median-of-3 this
+section already asks for, with roughly 35% of real margin (780 ms against a 1200 ms budget) to
+absorb it.
+
 ### Fonts, design and compliance
 
 #### D14 — The font licence forbids two spec instructions
@@ -1374,6 +1410,23 @@ There's no `_redirects` file: `not_found_handling: "single-page-application"` in
    - 119775 and 151713 frozen
    - synthetic marginal and meaningful funds, never deployed
    - a missing code
+
+   **Built in Phase 8, scaled back from this exact wording.** `pnpm build:ci` exists — it
+   assembles `.ci-public/` (`scripts/ci-public-dir.ts`) with `_headers` and `fonts` from the
+   real `public/`, `data` swapped for `e2e/fixtures/data` (119775 and 151713 real and frozen via
+   the pipeline's own fixture source, 900001 and 900002 hand-authored to exercise the
+   "meaningful" and "marginal, full-confidence, stability-only" headline branches, 999999
+   deliberately absent), and `vite.config.ts` routes `--mode ci` at that `publicDir`. It's
+   proven end to end by `e2e/ci-fixtures.spec.ts` and a dedicated `ci-fixture-build` job.
+
+   What didn't move: the *main* `verify` job in step 6 below still builds from the real,
+   committed `public/data`. The rest of the e2e suite exercises specific published funds by
+   code — `disclosures.spec.ts` and `screenshots.spec.ts` alone reference 103490, 142110,
+   145137, 151785 and others — and converting every one of those specs down to four fixture
+   funds is a separate, large rewrite this pass didn't make. So the drift risk this bullet
+   describes is real and not yet closed for the main gate; `pnpm test`'s "real published funds"
+   assertions in `copy.test.ts` and `disclosure.test.ts` read live `public/data` directly and
+   will need attention the day a nightly refresh actually changes one of the numbers they pin.
 5. `size-limit`.
 6. Playwright e2e against `wrangler dev`, the runtime production uses.
 7. Lighthouse CI per D13.

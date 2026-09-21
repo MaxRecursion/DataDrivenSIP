@@ -46,7 +46,37 @@ jobs:
       - name: Install Playwright Chromium
         run: pnpm exec playwright install --with-deps chromium
 
+      - name: Point chrome-launcher at Playwright's Chromium
+        # A GitHub-hosted runner does ship a system Chrome, but relying on that leaves the
+        # Lighthouse step depending on the runner image's software list rather than on a
+        # version this job just installed and controls. CHROME_PATH is the documented way to
+        # tell chrome-launcher (which @lhci/cli uses) which binary to drive.
+        run: |
+          CHROME_PATH=$(find ~/.cache/ms-playwright -maxdepth 1 -iname "chromium-*" ! -iname "*headless_shell*" | head -1)/chrome-linux/chrome
+          test -x "$CHROME_PATH"
+          echo "CHROME_PATH=$CHROME_PATH" >> "$GITHUB_ENV"
+
+      - name: Lighthouse CI (D13)
+        run: pnpm lighthouse
+
+      - name: Lighthouse score summary
+        if: always()
+        run: pnpm lighthouse:summary
+
       - run: pnpm e2e
+
+      - name: Timing and frame-budget evidence (criteria 1 and 7)
+        # Not a hard gate: both specs say in their own comments that timing on a shared,
+        # variable-load CI box is noise, and a 150 ms / 8.33 ms budget is tight enough that a
+        # busy runner can miss it without the app having regressed. Run on every PR so the
+        # numbers are always current and visible in the log, but let a slow runner go without
+        # blocking a merge — the hard gate is `pnpm exec playwright test` with these flags run
+        # by hand at a phase gate, or on real hardware (D11), not a shared CI box.
+        continue-on-error: true
+        env:
+          TIMING: "1"
+          PERF: "1"
+        run: pnpm e2e --project=desktop e2e/criterion-1.spec.ts e2e/perf/reveal.spec.ts e2e/perf/frames.spec.ts
 
       - name: Upload Playwright report
         if: failure()
@@ -55,3 +85,44 @@ jobs:
           name: playwright-report
           path: playwright-report
           retention-days: 7
+
+  ci-fixture-build:
+    name: Build and serve from the frozen fixture set
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # A genuinely separate job, not a step in `verify`: `pnpm build:ci` writes to the same
+    # `dist/` a step later in that job would need built from the real data, so sharing the job
+    # would mean picking an order where one build silently clobbers the other.
+    #
+    # PLAN.md §10 originally called for the *main* build (the one `verify` gates on) to use this
+    # frozen set. That was scaled back: the rest of the e2e suite exercises real published funds
+    # by code (103490, 142110, 145137, 151785 and others), and converting every one of those
+    # specs to the four funds this set carries is a large, separate change. What runs here
+    # instead proves the mechanism itself — the build, the swapped `publicDir`, and the frozen
+    # data — stays correct on every PR, without narrowing what the main gate covers.
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Restore Fontshare fonts
+        uses: actions/cache@v6
+        with:
+          path: public/fonts
+          key: fonts-${{ hashFiles('scripts/fonts.json') }}
+
+      - run: pnpm build:ci
+
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - env:
+          CI_FIXTURES: "1"
+        run: pnpm e2e --project=desktop e2e/ci-fixtures.spec.ts

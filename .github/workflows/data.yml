@@ -1,0 +1,138 @@
+name: Data
+
+# The nightly NAV refresh (PLAN.md §10, D9): fetch, analyse, validate, commit, deploy-check.
+#
+# Runs at 00:30 UTC (06:00 IST), after mfapi's own 03:09 and 05:05 IST refreshes so the day's
+# funds have actually published before this reads them. `workflow_dispatch` allows a manual run,
+# with `full` to refetch whole NAV histories instead of merging a tail onto the cache — the same
+# flag `pnpm pipeline --full` takes.
+#
+# `GITHUB_TOKEN` pushes don't trigger `ci.yml` (GitHub's own loop-prevention), which is why the
+# gate — typecheck, test, build — runs again here rather than being assumed from a separate PR.
+# This job commits straight to `main`: docs/setup.md records that write permission is already
+# granted and that no branch-protection rule requiring PRs exists, which the push step below
+# depends on.
+
+on:
+  schedule:
+    - cron: "30 0 * * *"
+  workflow_dispatch:
+    inputs:
+      full:
+        description: "Refetch whole NAV histories instead of merging a tail onto the cache"
+        type: boolean
+        default: false
+
+concurrency:
+  group: data
+
+permissions:
+  contents: write
+
+env:
+  PRODUCTION_URL: https://sip-date-planner.kulkarniakshay1989.workers.dev
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    # Criterion 10 is a cold run under 20 minutes; a warm one (the common case, merging a tail
+    # onto the cache) is faster. This is a backstop against the job hanging, not the budget.
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # A shallow clone can't be rebased against; the push step needs real history.
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Restore Fontshare fonts
+        uses: actions/cache@v6
+        with:
+          path: public/fonts
+          key: fonts-${{ hashFiles('scripts/fonts.json') }}
+
+      - name: Restore the NAV history cache
+        uses: actions/cache@v6
+        with:
+          path: pipeline/.cache
+          # No hash in the key: the cache's whole purpose is to carry yesterday's histories
+          # forward, so this always wants the most recent one regardless of what changed.
+          key: pipeline-cache-${{ github.run_id }}
+          restore-keys: |
+            pipeline-cache-
+
+      - name: Run the pipeline
+        run: pnpm pipeline ${{ inputs.full && '--full' || '' }}
+        # Exits non-zero on the fund-count guard (checkFundCount in pipeline/validate.ts) or if
+        # nothing could be analysed at all — either way, nothing below should run.
+
+      - name: Check the data isn't already stale
+        run: |
+          NAV_AS_OF=$(jq -r .navAsOf public/data/meta.json)
+          AGE_DAYS=$(( ( $(date -u +%s) - $(date -u -d "$NAV_AS_OF" +%s) ) / 86400 ))
+          echo "navAsOf=$NAV_AS_OF is $AGE_DAYS day(s) old"
+          if [ "$AGE_DAYS" -gt 7 ]; then
+            echo "::error::navAsOf is $AGE_DAYS days old, over the 7-day staleness limit"
+            exit 1
+          fi
+
+      # CLAUDE.md's workflow rule ("before every commit: typecheck, test, build") applies to a
+      # commit this job is about to make exactly as it does to one made by hand.
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+
+      - name: Commit and push, if the data changed
+        id: commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if git diff --quiet -- public/data; then
+            echo "no change"
+            echo "pushed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          NAV_AS_OF=$(jq -r .navAsOf public/data/meta.json)
+          git add public/data
+          # Never [skip ci]: Workers Builds honours it, and this commit is what has to deploy.
+          git commit -m "chore(data): NAVs to ${NAV_AS_OF}"
+
+          for attempt in 1 2 3; do
+            if git pull --rebase origin main && git push origin main; then
+              echo "pushed=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "push attempt $attempt failed, retrying"
+            sleep $(( attempt * 10 ))
+          done
+          echo "::error::could not push after 3 attempts"
+          exit 1
+
+      - name: Wait for production to deploy the new data
+        if: steps.commit.outputs.pushed == 'true'
+        run: |
+          NAV_AS_OF=$(jq -r .navAsOf public/data/meta.json)
+          DATA_VERSION=$(jq -r .dataVersion public/data/meta.json)
+          echo "waiting for $PRODUCTION_URL to serve dataVersion=$DATA_VERSION (navAsOf=$NAV_AS_OF)"
+
+          DEADLINE=$(( $(date -u +%s) + 1800 ))
+          while [ "$(date -u +%s)" -lt "$DEADLINE" ]; do
+            LIVE=$(curl -fsS "$PRODUCTION_URL/data/meta.json" | jq -r .dataVersion 2>/dev/null || true)
+            if [ "$LIVE" = "$DATA_VERSION" ]; then
+              echo "production is live on $DATA_VERSION"
+              exit 0
+            fi
+            sleep 20
+          done
+          echo "::error::production still on a different dataVersion after 30 minutes — a failed Workers Build, a Fontshare outage, or a push that didn't trigger a deploy"
+          exit 1

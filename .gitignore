@@ -1,6 +1,7 @@
 node_modules/
 dist/
 .prerender/
+.ci-public/
 .probe/
 .wrangler/
 

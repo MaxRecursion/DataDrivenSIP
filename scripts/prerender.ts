@@ -23,6 +23,32 @@ const escapeAttribute = (value: string) => value.replace(/&/g, "&amp;").replace(
 /** `</script>` inside JSON would end the tag early. */
 const escapeJson = (value: string) => value.replace(/</g, "\\u003c");
 
+
+/**
+ * The stylesheet, inlined into every page rather than linked (PLAN.md section 9: LCP < 1.2s).
+ *
+ * Measured with real network-and-CPU throttling (--throttling-method=devtools, matching
+ * Lighthouse's own default profile), not just Lighthouse's post-hoc simulation: the linked
+ * <link rel="stylesheet"> was 99% of a 1432 ms LCP, all of it "render delay" -- the extra
+ * round trip to fetch a render-blocking file, however small, before the browser can paint
+ * anything. mainthread-work-breakdown and total-blocking-time: 0 ruled out script execution;
+ * render-blocking-resources named the CSS file directly, at 726 ms wasted.
+ *
+ * At 4.6 KB gzipped this duplicates into every one of the 995 prerendered pages rather than
+ * being fetched once and cached -- the trade this makes on purpose. A fresh document load (a
+ * search result, a shared link, a crawler) is the case LCP measures and the one the whole
+ * prerender exists for; browsing between funds inside the running app is client-side routing
+ * and never re-fetches a document at all, so it pays nothing extra either way.
+ */
+function inlineStylesheet(template: string, css: string): string {
+  if (/<\/style/i.test(css)) {
+    throw new Error("prerender: built CSS contains a literal </style -- cannot inline safely");
+  }
+  const link = /<link[^>]*rel="stylesheet"[^>]*>/;
+  if (!link.test(template)) throw new Error('prerender: no <link rel="stylesheet"> in the built index.html');
+  return template.replace(link, () => `<style>${css}</style>`);
+}
+
 function page(
   template: string,
   parts: {
@@ -81,7 +107,11 @@ function replaceOnce(html: string, find: string | RegExp, insert: string, what: 
 }
 
 async function main(): Promise<void> {
-  const template = await readFile(join(dist, "index.html"), "utf8");
+  const built = await readFile(join(dist, "index.html"), "utf8");
+  const stylesheetHref = built.match(/<link[^>]*rel="stylesheet"[^>]*href="([^"]+)"/)?.[1];
+  if (!stylesheetHref) throw new Error("prerender: could not find the built stylesheet's href");
+  const css = await readFile(join(dist, stylesheetHref.replace(/^\//, "")), "utf8");
+  const template = inlineStylesheet(built, css);
   const meta = JSON.parse(await readFile(join(dataDir, "meta.json"), "utf8")) as Meta;
   const { render } = (await import(pathToFileURL(join(root, ".prerender/entry-prerender.js")).href)) as {
     render: Renderer;

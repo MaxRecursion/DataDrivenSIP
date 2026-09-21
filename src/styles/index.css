@@ -10,7 +10,7 @@
   src: url("/fonts/v1/cabinet-grotesk-700.woff2") format("woff2");
   font-weight: 700;
   font-style: normal;
-  font-display: swap;
+  font-display: optional;
 }
 
 @font-face {
@@ -18,7 +18,7 @@
   src: url("/fonts/v1/satoshi-variable.woff2") format("woff2");
   font-weight: 300 900;
   font-style: normal;
-  font-display: swap;
+  font-display: optional;
 }
 
 /* Satoshi has no ₹ glyph. Borrow it from the Cabinet file that is already loaded. */

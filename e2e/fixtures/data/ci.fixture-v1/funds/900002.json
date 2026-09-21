@@ -1,0 +1,245 @@
+{
+  "code": 900002,
+  "name": "Synthetic Marginal Balanced Fund - Direct Plan - Growth",
+  "house": "Fixture Mutual Fund",
+  "category": "Hybrid Scheme - Aggressive Hybrid Fund",
+  "navFrom": "2015-03-10",
+  "navTo": "2025-12-10",
+  "instalments": 110,
+  "dates": [
+    {
+      "d": 1,
+      "xirr": 11.417,
+      "corpus": 5101639,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    },
+    {
+      "d": 2,
+      "xirr": 11.419,
+      "corpus": 5101821,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    },
+    {
+      "d": 3,
+      "xirr": 11.421,
+      "corpus": 5102004,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    },
+    {
+      "d": 4,
+      "xirr": 11.423,
+      "corpus": 5102186,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    },
+    {
+      "d": 5,
+      "xirr": 11.425,
+      "corpus": 5102368,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    },
+    {
+      "d": 6,
+      "xirr": 11.58,
+      "corpus": 5117000,
+      "meanPct": 90,
+      "topQ": 0.75,
+      "w": 12
+    },
+    {
+      "d": 7,
+      "xirr": 11.425,
+      "corpus": 5102368,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    },
+    {
+      "d": 8,
+      "xirr": 11.423,
+      "corpus": 5102186,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    },
+    {
+      "d": 9,
+      "xirr": 11.421,
+      "corpus": 5102004,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    },
+    {
+      "d": 10,
+      "xirr": 11.419,
+      "corpus": 5101821,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    },
+    {
+      "d": 11,
+      "xirr": 11.417,
+      "corpus": 5101639,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    },
+    {
+      "d": 12,
+      "xirr": 11.415,
+      "corpus": 5101457,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    },
+    {
+      "d": 13,
+      "xirr": 11.414,
+      "corpus": 5101275,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    },
+    {
+      "d": 14,
+      "xirr": 11.412,
+      "corpus": 5101093,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    },
+    {
+      "d": 15,
+      "xirr": 11.41,
+      "corpus": 5100911,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    },
+    {
+      "d": 16,
+      "xirr": 11.408,
+      "corpus": 5100729,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    },
+    {
+      "d": 17,
+      "xirr": 11.406,
+      "corpus": 5100546,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    },
+    {
+      "d": 18,
+      "xirr": 11.404,
+      "corpus": 5100364,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    },
+    {
+      "d": 19,
+      "xirr": 11.4,
+      "corpus": 5100000,
+      "meanPct": 38.0,
+      "topQ": 0.05,
+      "w": 0
+    },
+    {
+      "d": 20,
+      "xirr": 11.427,
+      "corpus": 5102550,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    },
+    {
+      "d": 21,
+      "xirr": 11.425,
+      "corpus": 5102368,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    },
+    {
+      "d": 22,
+      "xirr": 11.423,
+      "corpus": 5102186,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    },
+    {
+      "d": 23,
+      "xirr": 11.421,
+      "corpus": 5102004,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    },
+    {
+      "d": 24,
+      "xirr": 11.419,
+      "corpus": 5101821,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    },
+    {
+      "d": 25,
+      "xirr": 11.417,
+      "corpus": 5101639,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    },
+    {
+      "d": 26,
+      "xirr": 11.415,
+      "corpus": 5101457,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    },
+    {
+      "d": 27,
+      "xirr": 11.414,
+      "corpus": 5101275,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    },
+    {
+      "d": 28,
+      "xirr": 11.412,
+      "corpus": 5101093,
+      "meanPct": 50,
+      "topQ": 0.25,
+      "w": 0
+    }
+  ],
+  "spreadPp": 0.18,
+  "spreadRupees": 17000,
+  "stability": 0.68,
+  "metricsAgree": true,
+  "verdict": "marginal",
+  "windows": 80,
+  "instalmentLow": 8400,
+  "instalmentHigh": 13100,
+  "cohortSpreadPp": 0.22,
+  "confidence": "full"
+}

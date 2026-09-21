@@ -69,6 +69,21 @@ Two halves that never mix:
 - Rounding is a claim. `formatPp`'s floor exists so a real difference is never printed as
   "0.00", and a ticker must not sit on a zero inside a sentence — "ended ₹0 apart" was on
   screen for half a second before anyone noticed.
+- **The prerendered stylesheet is inlined, never linked.** `scripts/prerender.ts` reads the
+  built CSS and writes it into every page's `<head>` as a `<style>` tag. A linked stylesheet
+  measured as 99% of LCP under real throttling — a render-blocking file, however small, costs a
+  full round trip before anything paints. Don't reintroduce `<link rel="stylesheet">` for the
+  main bundle without re-measuring (PLAN.md D13).
+- **Cabinet Grotesk and Satoshi are `font-display: optional`, not `swap`.** Confirmed both still
+  report `status: "loaded"` after a normal cold navigation, so the branded fonts still render in
+  practice; `optional` only degrades toward the fallback on a connection too slow for the pixel
+  timing to matter anyway. This is what gets CLS to exactly 0 — `swap` left a measurable, if
+  tiny, shift from the metric-matched fallback not being a pixel-perfect match (PLAN.md D13).
+- Lighthouse CI runs with `throttlingMethod: "devtools"`, not the default `simulate`. Lantern's
+  simulation attributed most of this page's LCP to script-parsing time it estimated from bundle
+  size, without knowing the content is prerendered and paints before the deferred module script
+  runs at all — a real trace (`total-blocking-time: 0`) contradicts it directly. Don't switch
+  back to `simulate` without re-measuring against a real trace first (PLAN.md D13).
 
 ## Facts verified in Phase 0 research
 
@@ -131,6 +146,10 @@ is different. Don't reintroduce an animation library without re-measuring the to
 - Phases 5–7: take Playwright screenshots, look at them, critique before calling the gate.
 - Screenshots run against `wrangler dev`, which serves `dist/`. Run `pnpm build` first or you
   will critique the previous build and conclude your change did nothing.
+- `pnpm build:ci` builds from `e2e/fixtures/data` instead of the real `public/data` (PLAN.md
+  §10). It exists and is proven in its own CI job, but the main CI gate still builds from real
+  data — don't assume `pnpm test`'s "real published funds" assertions in `copy.test.ts` and
+  `disclosure.test.ts` are drift-proof; they read `public/data` directly.
 
 ## Copy rules
 

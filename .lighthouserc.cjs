@@ -38,7 +38,18 @@ module.exports = {
        * 1.6 Mbps, 4x CPU slowdown. The `preset` flag only offers "perf" (strips non-perf
        * categories), "experimental" and "desktop", none of which is this.
        */
-      settings: { throttlingMethod: "devtools" },
+      settings: {
+        throttlingMethod: "devtools",
+        /*
+         * `--no-sandbox` and `--disable-dev-shm-usage`: Chrome's own sandbox refuses to start
+         * at all under the root user a GitHub Actions runner uses, crashing with "No usable
+         * sandbox!" before Lighthouse can connect to it — confirmed by the first real CI run.
+         * Playwright's own test runner handles this itself; chrome-launcher (what lhci drives)
+         * does not, so it needs the flags explicitly. Safe here specifically because this
+         * browser only ever loads a URL this same job just built and served locally.
+         */
+        chromeFlags: ["--no-sandbox", "--disable-dev-shm-usage"],
+      },
     },
     assert: {
       assertMatrix: [

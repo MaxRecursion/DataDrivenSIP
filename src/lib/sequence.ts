@@ -36,8 +36,9 @@ export type Step = {
 export const TICKER_MS = 200;
 
 /**
- * §8.2, verbatim. The card FLIPs from the search row, the cells arrive diagonally, the window
- * cells wave, the answer lands, and the rupee figure counts up.
+ * §8.2's timing, amended for the calendar rewrite: cells arrive diagonally, the colour fills
+ * sweep in behind them, the answer lands, and the rupee figure counts up. The FLIP morph from
+ * the search row was never built — see PLAN.md's Phase 6 gate, still open.
  */
 /**
  * The diagonals of the calendar grid: six week rows by seven columns, so `row + column` runs

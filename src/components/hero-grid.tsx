@@ -1,30 +1,32 @@
 /**
- * The calendar (PLAN.md §7, extended): a real month, shaded by what each date returned.
+ * The calendar: a real month, shaded by how each date compares to the one the reader is on.
  *
  * Five things about this markup are load-bearing beyond how it looks.
  *
  * It is a real month, so it is clock-dependent, so it renders only after mount — never in the
- * prerendered HTML, which would bake the build machine's month into every page (CLAUDE.md). Six
- * week rows are always drawn, filled or not, so the height is identical before and after that
- * and CLS stays 0.
+ * prerendered HTML, which would bake the build machine's month into every page. Six week rows
+ * are always drawn, filled or not, so the height is identical before and after that and CLS
+ * stays 0.
  *
  * Dates 29–31 are drawn and inert. SIP dates stop at 28 because February has no 29th in three
  * years out of four, so a SIP set for the 30th is not a monthly instruction at all. Leaving them
  * out would look like a bug; drawing them greyed says what is true.
  *
- * One green ramp, deepest for the strongest date of the month. It is relative to this fund's own
- * range, so a fund whose dates span four hundredths of a point still fills it end to end — which
- * is only honest because the caption states the real span and every cell prints its own XIRR.
+ * The shading is against today's date, which is the other clock read and is resolved in the same
+ * effect. Green means that date's full-history XIRR beat the date the reader is standing on, red
+ * means it fell short, and today itself is neutral. Each direction is scaled to its own extreme,
+ * so the deepest green is always the month's best date and the deepest red its worst.
  *
- * The ten dates the salary allows stay brighter than the rest, because the answer can only ever
- * come from those, and a reader drawn to the deepest cell has to be able to see when it is not
- * one they may use.
+ * That scaling is relative to this fund's own range, which is only honest because the caption
+ * states the real span and every cell prints its own XIRR — a deep red is 20.31% against a
+ * baseline of 20.34%, not a loss, and the number is right there.
  *
  * Every fill is a pre-painted overlay whose opacity carries the value, so the reveal has
  * something it is allowed to animate and no cell's colour is ever computed or swapped.
  */
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import {
+  baselineDate,
   buildMonth,
   monthOf,
   monthsAhead,
@@ -33,7 +35,7 @@ import {
   type MonthKey,
 } from "../lib/calendar";
 import { formatPp, formatXirr } from "../lib/format";
-import type { Heat } from "../lib/heat";
+import { heatForMonth, type Heat } from "../lib/heat";
 import { SCHEDULE, diagonalIndexAt } from "../lib/sequence";
 import { ANSWER_SPRING, SPEC_SPRING } from "../lib/spring";
 import type { Reveal } from "../lib/use-reveal";
@@ -44,35 +46,20 @@ import { Animated } from "./animated";
 const WEEK_ROWS = 6;
 
 /**
- * The strongest a cell paints. Ink holds 4.5:1 over a white card up to about here; past it the
- * text would have to flip to white, and white does not reach 4.5:1 until the fill is almost
- * solid. Capping below that band means one text colour works on every cell.
+ * The strongest a cell paints. Ink holds 4.5:1 over a white card up to about here on both
+ * ramps; past it the text would have to flip to white, and white does not reach 4.5:1 until the
+ * fill is almost solid. Capping below that band means one text colour works on every cell.
  */
 const MAX_FILL = 0.85;
 
-/**
- * How far back a date the salary rules out is washed.
- *
- * A gentle recede, and deliberately not the signal. Brightness already carries XIRR across all 28
- * dates, and it cannot carry the window too: on Mahindra Manulife the deepest cell of the month
- * is the 22nd, which is outside a last-working-day window, while the ten dates that window does
- * allow are the palest in the grid. Washing harder only made that read as "these ten are worse".
- * The window is an outline instead — orthogonal to the ramp, so neither can lie about the other.
- */
-const OUT_OF_WINDOW_FADE = 0.25;
-
 type HeroGridProps = {
-  /** The dates the user's window allows, from `safeWindow()`. */
-  window: number[];
   /** The answered date, or null while the fund's data is still in flight. */
   answer: number | null;
-  /** Each date's own XIRR, which the cells print and the shading ranks. */
+  /** Each date's own XIRR, which the cells print and the shading compares. */
   values?: ReadonlyMap<number, number> | undefined;
-  /** Each date's shading, from `heatForMonth()`. */
-  heat?: ReadonlyMap<number, Heat> | undefined;
-  /** How far the shading actually runs, in percentage points, for the caption. */
+  /** How far the figures actually run, in percentage points, for the caption. */
   spanPp?: number | undefined;
-  /** The reveal this grid is playing under, or null to render its final state (D10c, §8.3). */
+  /** The reveal this grid is playing under, or null to render its final state. */
   reveal?: Reveal;
   className?: string;
 };
@@ -89,13 +76,21 @@ function Swatch({ className, style }: { className: string; style?: CSSProperties
 }
 
 /**
- * The month the reader is looking at, resolved after mount. Null until then: reading a clock
- * during render would put the build machine's month into 994 prerendered pages.
+ * What the clock decides: the month on screen and the date the shading compares against. Both
+ * are null until after mount, because reading a clock during render would put the build
+ * machine's September into 994 prerendered pages.
  */
-function useVisibleMonths(): { months: MonthKey[]; ready: boolean } {
-  const [today, setToday] = useState<MonthKey | null>(null);
-  useEffect(() => setToday(monthOf(new Date())), []);
-  return { months: today ? monthsAhead(today) : [], ready: today !== null };
+function useToday(): { months: MonthKey[]; baseline: number | null; ready: boolean } {
+  const [today, setToday] = useState<{ month: MonthKey; baseline: number } | null>(null);
+  useEffect(() => {
+    const now = new Date();
+    setToday({ month: monthOf(now), baseline: baselineDate(now) });
+  }, []);
+  return {
+    months: today ? monthsAhead(today.month) : [],
+    baseline: today?.baseline ?? null,
+    ready: today !== null,
+  };
 }
 
 type CellProps = {
@@ -103,11 +98,9 @@ type CellProps = {
   /** Where this cell sits in the month grid, which is what orders the wave. */
   row: number;
   column: number;
-  /** Position in the salary window, which orders the outlines. −1 when outside it. */
-  windowIndex: number;
   sip: boolean;
-  inWindow: boolean;
   isAnswer: boolean;
+  isBaseline: boolean;
   value: number | undefined;
   heat: Heat | undefined;
   playing: boolean;
@@ -119,16 +112,22 @@ function Cell({
   day,
   row,
   column,
-  windowIndex,
   sip,
-  inWindow,
   isAnswer,
+  isBaseline,
   value,
   heat,
   playing,
   cellsArrive,
   generation,
 }: CellProps) {
+  const arrival = {
+    play: cellsArrive ? generation : null,
+    from: { opacity: 0, transform: "scale(0.96)" },
+    spring: SPEC_SPRING,
+    delayMs: SCHEDULE.cells!.start + SCHEDULE.cells!.stagger * diagonalIndexAt(row, column),
+  };
+
   // 29–31: a real day of the month that can never be a SIP date.
   if (!sip) {
     return (
@@ -142,10 +141,7 @@ function Cell({
             the only thing on screen at 0 ms, which read as the grid failing to load. */}
         <Animated
           className="absolute inset-0 flex items-center justify-center rounded-lg border border-line bg-raised"
-          play={cellsArrive ? generation : null}
-          from={{ opacity: 0, transform: "scale(0.96)" }}
-          spring={SPEC_SPRING}
-          delayMs={SCHEDULE.cells!.start + SCHEDULE.cells!.stagger * diagonalIndexAt(row, column)}
+          {...arrival}
         >
           <span className="font-display text-sm leading-none font-bold text-mute sm:text-lg">{day}</span>
         </Animated>
@@ -153,43 +149,41 @@ function Cell({
     );
   }
 
+  const fill = (heat?.intensity ?? 0) * MAX_FILL;
+
   return (
     <div
       data-date={day}
-      data-in-window={inWindow ? "" : undefined}
       data-answer={isAnswer ? "" : undefined}
+      data-baseline={isBaseline ? "" : undefined}
+      data-direction={heat?.direction}
       className="relative aspect-square rounded-lg bg-raised"
     >
-      <Animated
-        className="absolute inset-0"
-        play={cellsArrive ? generation : null}
-        from={{ opacity: 0, transform: "scale(0.96)" }}
-        spring={SPEC_SPRING}
-        delayMs={SCHEDULE.cells!.start + SCHEDULE.cells!.stagger * diagonalIndexAt(row, column)}
-      >
-        {/* D15: raised on surface is 1.14:1, so an unshaded cell needs a hairline. The window's
-            outline replaces it rather than doubling it. */}
-        <Layer on={!inWindow} className="border border-line" />
-        {/* §8.2 row 3: the window sweeps in after the cells. It is animated rather than static
-            now that the outline, not brightness, is what says which dates the salary allows. */}
+      <Animated className="absolute inset-0" {...arrival}>
+        {/* D15: raised on surface is 1.14:1, so an unshaded cell needs a hairline. */}
+        <Layer on className="border border-line" />
+
+        {/*
+         * The colour sweeps in after the cells have landed, on the schedule step that used to
+         * carry the salary window's wave before that concept was removed. One layer, its hue
+         * picked by direction and its opacity
+         * carrying the distance, so opacity is all that ever animates.
+         */}
         <Animated
-          className="absolute inset-0 rounded-lg border-2 border-ink/25"
-          play={playing && inWindow ? generation : null}
-          from={{ opacity: 0, transform: "scale(0.94)" }}
+          className={cn(
+            "absolute inset-0 rounded-lg",
+            heat?.direction === "down" ? "bg-loss" : "bg-teal",
+          )}
+          play={playing ? generation : null}
+          from={{ opacity: 0 }}
+          to={{ opacity: fill }}
           spring={SPEC_SPRING}
-          delayMs={SCHEDULE.window!.start + SCHEDULE.window!.stagger * Math.max(0, windowIndex)}
-          style={{ opacity: inWindow ? 1 : 0 }}
+          delayMs={SCHEDULE.fills!.start + SCHEDULE.fills!.stagger * diagonalIndexAt(row, column)}
+          style={{ opacity: fill }}
         />
-        <div
-          className="absolute inset-0 rounded-lg bg-teal transition-opacity duration-200 motion-reduce:transition-none"
-          style={{ opacity: (heat?.intensity ?? 0) * MAX_FILL }}
-        />
-        <div
-          className="absolute inset-0 rounded-lg bg-surface transition-opacity duration-200 motion-reduce:transition-none"
-          style={{ opacity: inWindow ? 0 : OUT_OF_WINDOW_FADE }}
-        />
-        {/* §8.2: the answer lands last, on its own spring (D10b). A thick ink ring rather than a
-            second fill, so the ramp underneath stays readable. */}
+
+        {/* The answer lands last, on its own spring. A thick ink ring rather than a fill, so
+            whatever the cell is shaded stays readable underneath it. */}
         <Animated
           className="absolute inset-0 rounded-lg border-[3px] border-ink"
           play={playing && isAnswer ? generation : null}
@@ -198,6 +192,10 @@ function Cell({
           delayMs={SCHEDULE.answer!.start}
           style={{ opacity: isAnswer ? 1 : 0 }}
         />
+
+        {/* Today is marked without colour, because neutral here is the absence of a fill and
+            would otherwise be indistinguishable from a date whose figure happens to match. */}
+        <Layer on={isBaseline && !isAnswer} className="border-2 border-dashed border-mute" />
 
         <span className="absolute inset-x-0 top-1.5 text-center font-display text-sm leading-none font-bold text-ink sm:top-2 sm:text-lg">
           {day}
@@ -212,20 +210,11 @@ function Cell({
   );
 }
 
-export function HeroGrid({
-  window: windowDates,
-  answer,
-  values,
-  heat,
-  spanPp,
-  reveal = null,
-  className,
-}: HeroGridProps) {
-  const { months, ready } = useVisibleMonths();
+export function HeroGrid({ answer, values, spanPp, reveal = null, className }: HeroGridProps) {
+  const { months, baseline, ready } = useToday();
   const [offset, setOffset] = useState(0);
   const [navigated, setNavigated] = useState(false);
 
-  const allowed = new Set(windowDates);
   const generation = reveal?.generation ?? null;
 
   /**
@@ -234,8 +223,8 @@ export function HeroGrid({
    *
    * `Animated` re-runs whenever its delay changes, and changing month changes which date sits in
    * a given slot and so what that slot's stagger is. Without this, every press of the month
-   * arrows replayed the whole 28-cell entrance — `useReveal` never clears itself back to null,
-   * so it replayed for the life of the page, not merely during the first 700 ms.
+   * arrows replayed the whole entrance — `useReveal` never clears itself back to null, so it
+   * replayed for the life of the page, not merely during the first 700 ms.
    */
   const [armedFor, setArmedFor] = useState(generation);
   if (generation !== armedFor) {
@@ -247,10 +236,18 @@ export function HeroGrid({
   const cellsArrive = reveal?.mode === "first" && !navigated;
   const playing = reveal !== null && !navigated;
 
+  // Recomputed only when the figures or the baseline move, which is once per fund per day.
+  const heat = useMemo(
+    () => (values && baseline !== null ? heatForMonth(values, baseline) : null),
+    [values, baseline],
+  );
+
   const shown: CalendarMonth | null = months[offset] ? buildMonth(months[offset]) : null;
   const weeks = shown?.weeks ?? [];
   // Always six rows, filled or not, so the height never moves (CLS 0).
   const padded = [...weeks, ...Array.from({ length: Math.max(0, WEEK_ROWS - weeks.length) }, () => [])];
+  // Only this month contains today; the months ahead are entirely in the future.
+  const baselineHere = offset === 0 ? baseline : null;
 
   return (
     <div className={className}>
@@ -310,10 +307,9 @@ export function HeroGrid({
                   day={slot.day}
                   row={row}
                   column={column}
-                  windowIndex={windowDates.indexOf(slot.day)}
                   sip={slot.sip}
-                  inWindow={allowed.has(slot.day)}
                   isAnswer={answer === slot.day}
+                  isBaseline={baselineHere === slot.day}
                   value={values?.get(slot.day)}
                   heat={heat?.get(slot.day)}
                   playing={playing}
@@ -328,17 +324,20 @@ export function HeroGrid({
 
       <p className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-mute-text">
         <span className="flex items-center gap-1.5">
-          <Swatch className="bg-teal" style={{ opacity: 0.12 * MAX_FILL }} />
           <Swatch className="bg-teal" style={{ opacity: MAX_FILL }} />
-          Weakest to strongest
+          Higher than today
         </span>
         <span className="flex items-center gap-1.5">
-          <Swatch className="border-2 border-ink/25" />
-          Your window
+          <Swatch className="bg-loss" style={{ opacity: MAX_FILL }} />
+          Lower than today
+        </span>
+        <span className="flex items-center gap-1.5">
+          <Swatch className="border-2 border-dashed border-mute" />
+          Today
         </span>
         <span className="flex items-center gap-1.5">
           <Swatch className="border-[3px] border-ink" />
-          Your date
+          Best day
         </span>
         <span className="flex items-center gap-1.5">
           <Swatch className="border border-line bg-raised" />
@@ -348,10 +347,9 @@ export function HeroGrid({
 
       {spanPp === undefined ? null : (
         <p className="mt-1 max-w-[65ch] text-xs text-mute-text">
-          Each figure is that date’s XIRR, and palest to deepest across all 28 dates is{" "}
-          {formatPp(spanPp)}. The ten your salary allows are outlined, and the date named below is
-          only ever one of those — chosen on how it ranked over rolling 3-year stretches, which is
-          not always the date with the deepest fill here.
+          Each SIP date shows its full-history XIRR. Green dates were higher than today’s date;
+          red dates were lower. Weakest to strongest across all 28 is {formatPp(spanPp)}, and the
+          deeper the fill, the further from today’s figure that date sat.
         </p>
       )}
 

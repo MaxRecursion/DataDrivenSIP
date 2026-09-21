@@ -9,7 +9,7 @@
  * reports as a PUSH.
  *
  * The generation comes from a `Sequence`, so every moving part registered against it can be
- * abandoned and landed the moment a second fund, an Escape or a salary change arrives.
+ * abandoned and landed the moment a second fund or an Escape arrives.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigationType } from "react-router";

@@ -1,12 +1,12 @@
 import { expect, test } from "@playwright/test";
 
 /**
- * The calendar's month traversal (CLAUDE.md: a real month, rendered after mount, reachable for
- * three months ahead).
+ * The calendar's month traversal: a real month, rendered after mount, reachable for three
+ * months ahead.
  *
  * What this guards is the bound and the invariants that have to hold in every month the reader
- * can reach: 28 usable dates, one answer, ten outlined. A month with 31 days draws three inert
- * cells and a February draws none, and neither may change any of those counts.
+ * can reach: 28 usable dates and one named day. A month with 31 days draws three inert cells and
+ * a February draws none, and neither may change either count.
  */
 
 const KOTAK = "/f/119775";
@@ -35,8 +35,9 @@ test("reaches three months ahead and stops", async ({ page }) => {
 
     // Every month the reader can reach says the same things about SIP dates.
     await expect(page.locator("[data-date]:not([data-unavailable])")).toHaveCount(28);
-    await expect(page.locator("[data-date][data-in-window]")).toHaveCount(10);
     await expect(page.locator("[data-date][data-answer]")).toHaveCount(1);
+    // Today exists in this month and in no other, since the months ahead are all future.
+    await expect(page.locator("[data-date][data-baseline]")).toHaveCount(step === 0 ? 1 : 0);
 
     if (step < 3) await next.click();
   }

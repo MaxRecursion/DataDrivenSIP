@@ -46,11 +46,6 @@ const median = (values: number[]): number => {
   return sorted.length % 2 === 1 ? upper : ((sorted[middle - 1] ?? upper) + upper) / 2;
 };
 
-const rowsIn = (fund: FundArtifact, window: number[]) => {
-  const allowed = new Set(window);
-  return fund.dates.filter((date) => allowed.has(date.d));
-};
-
 /**
  * Stability in plain words. It is the correlation between how the dates ranked in the first half
  * of the history and in the second, so it answers "did the same dates keep doing well?" — and a
@@ -94,7 +89,13 @@ function cohortLine(fund: FundArtifact): string {
   return `${own} That is close to ${typical}, so most of it is what a history this length produces on its own.`;
 }
 
-/** The answer's top-quartile share against what chance alone would give it. */
+/**
+ * The answer's top-quartile share against what chance alone would give it.
+ *
+ * The date is chosen on its full-history XIRR, which is one number over one stretch of time.
+ * This is the check on that number: a date that also finished near the top across many rolling
+ * 3-year stretches earned its rate, and one that didn't got it from a single good run.
+ */
 function quartileLine(fund: FundArtifact, answer: Answer): string {
   if (answer.result.topQ === null) {
     return "This fund has no rolling 3-year stretches to rank its dates over, so there is no track record behind the date beyond its all-history return.";
@@ -108,27 +109,28 @@ function quartileLine(fund: FundArtifact, answer: Answer): string {
 }
 
 /**
- * How often each date actually led. The artifact publishes this as `w`, and the pick is made on
- * average rank rather than on leading, so these can disagree — and where they do, this says so.
- * A reader who opens this section to check the headline deserves to find the awkward number.
+ * How often each date actually led. The artifact publishes this as `w`, and the date is named on
+ * its full-history XIRR rather than on leading, so the two can disagree — and where they do,
+ * this says so. A reader who opens this section to check the headline deserves to find the
+ * awkward number rather than a tidied one.
  */
-function leaderLine(fund: FundArtifact, answer: Answer, window: number[]): string {
+function leaderLine(fund: FundArtifact, answer: Answer): string {
   if (fund.windows === 0) return "";
 
-  const rows = rowsIn(fund, window);
+  const rows = fund.dates;
   const best = rows.reduce((leader, row) => (row.w > leader.w ? row : leader), rows[0] ?? answer.result);
   const own = answer.result.w;
 
   if (best.d === answer.date || best.w <= own) {
-    return `Counting only the stretches each date led outright, the ${ordinal(answer.date)} led ${own.toFixed(0)} of them, more than any other date in your window.`;
+    return `Counting only the stretches each date led outright, the ${ordinal(answer.date)} led ${own.toFixed(0)} of them, more than any other date of the month.`;
   }
-  return `Counting only the stretches each date led outright, the ${ordinal(answer.date)} led ${own.toFixed(0)} while the ${ordinal(best.d)} led ${best.w.toFixed(0)}. The date named above is the one that ranked higher on average, which is not the same as the one that led most often.`;
+  return `Counting only the stretches each date led outright, the ${ordinal(answer.date)} led ${own.toFixed(0)} while the ${ordinal(best.d)} led ${best.w.toFixed(0)}. The date named above is the one with the highest return over the whole history, which is not the same as the one that led most often.`;
 }
 
-function confidenceLines(fund: FundArtifact, answer: Answer, window: number[]): string[] {
+function confidenceLines(fund: FundArtifact, answer: Answer): string[] {
   const lines = [stabilityLine(fund), cohortLine(fund), quartileLine(fund, answer)];
 
-  const leader = leaderLine(fund, answer, window);
+  const leader = leaderLine(fund, answer);
   if (leader) lines.push(leader);
 
   if (!fund.metricsAgree) {
@@ -148,9 +150,8 @@ function confidenceLines(fund: FundArtifact, answer: Answer, window: number[]): 
   return lines;
 }
 
-function mattersLines(fund: FundArtifact, answer: Answer, window: number[]): string[] {
-  const rows = rowsIn(fund, window);
-  const middle = median(rows.map((row) => row.corpus));
+function mattersLines(fund: FundArtifact, answer: Answer): string[] {
+  const middle = median(fund.dates.map((row) => row.corpus));
   const edgeRupees = Math.round(answer.result.corpus - middle);
 
   const invested = fund.instalments * NOTIONAL_MONTHLY;
@@ -159,8 +160,8 @@ function mattersLines(fund: FundArtifact, answer: Answer, window: number[]): str
 
   const edge =
     edgeRupees <= 0
-      ? `On a notional ${formatRupees(NOTIONAL_MONTHLY)} a month, choosing the ${ordinal(answer.date)} over a typical date in your window ended with ${formatRupees(Math.abs(edgeRupees))} less, on ${formatLakh(invested)} invested. The date was chosen on how it ranked over rolling stretches, not on this one total.`
-      : `On a notional ${formatRupees(NOTIONAL_MONTHLY)} a month, choosing the ${ordinal(answer.date)} over a typical date in your window was worth about ${formatRupees(edgeRupees)} on ${formatLakh(invested)} invested.`;
+      ? `On a notional ${formatRupees(NOTIONAL_MONTHLY)} a month, choosing the ${ordinal(answer.date)} over a typical date of the month ended with ${formatRupees(Math.abs(edgeRupees))} less, on ${formatLakh(invested)} invested. The date is named on its rate of return, and a rate and a rupee total can disagree — which is itself a sign the dates are close together.`
+      : `On a notional ${formatRupees(NOTIONAL_MONTHLY)} a month, choosing the ${ordinal(answer.date)} over a typical date of the month was worth about ${formatRupees(edgeRupees)} on ${formatLakh(invested)} invested.`;
 
   const missed = `One instalment missed is ${formatRupees(NOTIONAL_MONTHLY)} never invested. Across this fund's history an instalment has been worth ${formatRupees(perInstalment)} today on average, and anywhere from ${formatRupees(fund.instalmentLow)} to ${formatRupees(fund.instalmentHigh)} depending on the month it went in — so the average is not a promise about yours.`;
 
@@ -171,15 +172,17 @@ function mattersLines(fund: FundArtifact, answer: Answer, window: number[]): str
       ? `Missing one instalment therefore costs more than the date does, by a wide margin.`
       : `For this fund the two are closer than usual, so neither figure dwarfs the other.`;
 
-  const never = `Whatever the shading shows, the date is only ever chosen from the ${window.length} your salary allows. Nothing here moves money before your salary arrives.`;
+  // The one thing the shading cannot say for itself: a date is only worth choosing if the money
+  // is there on it, and no arithmetic on this page knows when the reader is paid.
+  const timing = `All of this assumes the instalment is funded on whichever date you pick. A SIP that bounces because the money hasn't arrived costs far more than any date here is worth.`;
 
-  return [edge, missed, scale, never];
+  return [edge, missed, scale, timing];
 }
 
-export function disclosureCopy(fund: FundArtifact, answer: Answer, window: number[]): DisclosureCopy {
+export function disclosureCopy(fund: FundArtifact, answer: Answer): DisclosureCopy {
   return {
     chartCaption: `Top to bottom of this chart is ${formatPp(fund.spreadPp)} of XIRR. The axis is zoomed to this fund's own range, so the shape is visible at all.`,
-    confidence: confidenceLines(fund, answer, window),
-    matters: mattersLines(fund, answer, window),
+    confidence: confidenceLines(fund, answer),
+    matters: mattersLines(fund, answer),
   };
 }

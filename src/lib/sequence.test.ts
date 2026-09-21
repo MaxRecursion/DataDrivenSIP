@@ -28,7 +28,7 @@ describe("the §8.2 schedule", () => {
   it("starts the last cell at 148 ms, amending §8.2's 276", () => {
     // §8.2 tabulated 28 cells at 60 + 8·i, so the last began at 276. The grid is a real month
     // now: six rows by seven columns, staggered over the 12 diagonals rather than over 28
-    // dates, so the wave closes at 148 and the window step at 260 still follows it cleanly.
+    // dates, so the wave closes at 148 and the fill step at 260 still follows it cleanly.
     const cells = SCHEDULE.cells!;
     expect(cells.start + cells.stagger * (cells.count - 1)).toBe(148);
   });
@@ -43,7 +43,7 @@ describe("the §8.2 schedule", () => {
   it("skips the morph and the cell arrival on a second selection (D10e)", () => {
     // A grid already on screen must not blink.
     const names = stepsFor("repeat").map(([name]) => name);
-    expect(names).toEqual(["window", "answer", "ticker"]);
+    expect(names).toEqual(["fills", "answer", "ticker"]);
     expect(names).not.toContain("card");
     expect(names).not.toContain("cells");
   });

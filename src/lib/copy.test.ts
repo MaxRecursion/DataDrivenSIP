@@ -4,11 +4,6 @@ import type { DateResult, FundArtifact } from "../../shared/artifacts";
 import { pickAnswer, type Answer } from "./answer";
 import { answerCopy, MIN_EDGE_PP, SETTLED_INSTALMENTS, SPREAD_THRESHOLD_PP, STABILITY_THRESHOLD } from "./copy";
 
-/** The default window: salary on the last working day, two days of buffer (PLAN.md D6). */
-const WINDOW = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-/** A window that wraps past the 28th, which the screen-reader summary has to survive. */
-const WRAPPED = [26, 27, 28, 1, 2, 3, 4, 5, 6, 7];
-
 const dateAt = (d: number, over: Partial<DateResult> = {}): DateResult => ({
   d,
   xirr: 12,
@@ -53,8 +48,7 @@ const fundWith = (over: Partial<FundArtifact> = {}): FundArtifact => ({
 
 const answerOn = (date: number, edgePp: number): Answer => ({ date, result: dateAt(date), edgePp });
 
-const copyFor = (fund: Partial<FundArtifact>, answer: Answer, window = WINDOW) =>
-  answerCopy(fundWith(fund), answer, window);
+const copyFor = (fund: Partial<FundArtifact>, answer: Answer) => answerCopy(fundWith(fund), answer);
 
 /** Every user-facing string in one place, for the checks that apply to all of them. */
 const allStrings = (copy: ReturnType<typeof answerCopy>) => [
@@ -100,13 +94,13 @@ const published = (code: number): FundArtifact => {
  * `edgePp` to the three decimals the page reads, so these cases exercise the two halves
  * composing on real data, not just this file in isolation.
  */
-const realCopy = (code: number, window = WINDOW) => {
+const realCopy = (code: number) => {
   const fund = published(code);
-  return answerCopy(fund, pickAnswer(fund, window), window);
+  return answerCopy(fund, pickAnswer(fund));
 };
 
 // ---------------------------------------------------------------------------------------------
-// Headline: the D7 table
+// Headline
 
 describe("the headline", () => {
   it("leads with the length of the history when there is too little of it, whatever the verdict", () => {
@@ -118,7 +112,7 @@ describe("the headline", () => {
       answerOn(4, 0.124),
     );
     expect(copy.headline).toBe(
-      "This fund has 40 months of history, too little to tell whether the date matters. The 4th fits your window.",
+      "The 4th had the highest full-history XIRR for this fund. But 40 months of history is too little to tell whether the date matters at all.",
     );
   });
 
@@ -128,7 +122,7 @@ describe("the headline", () => {
       answerOn(7, 0.4),
     );
     expect(copy.headline).toContain("too little to tell whether the date matters");
-    expect(copy.headline).not.toContain("came out ahead");
+    expect(copy.headline).not.toContain("above the middle of the month");
   });
 
   it("says which of the two is wrong when a fund is both cut short and short to begin with", () => {
@@ -139,37 +133,37 @@ describe("the headline", () => {
       answerOn(7, 0.4),
     );
     expect(copy.headline).toBe(
-      "Part of this fund's history couldn't be used, so this reads on 38 months rather than the fund's whole life. The 7th fits your window.",
+      "The 7th had the highest full-history XIRR for this fund. Part of its history couldn't be used, so that reads on 38 months rather than the fund's whole life.",
     );
   });
 
-  it("calls a noise verdict a tiebreak rather than inventing a reason to prefer the date", () => {
+  it("calls a noise verdict noise rather than inventing a reason to prefer the date", () => {
     const copy = copyFor({ verdict: "noise" }, answerOn(12, 0.031));
     expect(copy.headline).toBe(
-      "Any date in your window has done about the same in this fund. The 12th is a tiebreak: across 3-year stretches it ranked a little higher on average.",
+      "The 12th had the highest full-history XIRR for this fund. The 28 dates sit close enough together that the difference between them is noise rather than a date effect.",
     );
   });
 
-  it("falls back to the tiebreak line for any verdict whose edge is too small to print", () => {
+  it("falls back to the noise line for any verdict whose edge is too small to print", () => {
     // 0.005 pp rounds away to "0.00 pp", so claiming it would be claiming a number the reader
     // cannot see. The boundary is inclusive.
     const meaningful = copyFor({ verdict: "meaningful", spreadPp: 0.3, stability: 0.7 }, answerOn(12, MIN_EDGE_PP));
     const marginal = copyFor({ verdict: "marginal", spreadPp: 0.3, stability: 0.5 }, answerOn(12, 0.001));
-    expect(meaningful.headline).toContain("is a tiebreak");
-    expect(marginal.headline).toContain("is a tiebreak");
+    expect(meaningful.headline).toContain("is noise rather than a date effect");
+    expect(marginal.headline).toContain("is noise rather than a date effect");
   });
 
   it("says the spread isn't consistent when marginal came from spread alone", () => {
     const copy = copyFor({ verdict: "marginal", spreadPp: 0.282, stability: 0.557 }, answerOn(12, 0.06));
     expect(copy.headline).toBe(
-      "Dates in this fund have differed by up to 0.28 pp, but not consistently. The 12th came out slightly ahead in your window; the pattern may not hold.",
+      "The 12th had the highest full-history XIRR for this fund. Dates in this fund have differed by up to 0.28 pp, but not consistently, so the pattern may not hold.",
     );
   });
 
   it("names how little the edge is when marginal came from stability alone", () => {
     const copy = copyFor({ verdict: "marginal", spreadPp: 0.081, stability: 0.782 }, answerOn(12, 0.024));
     expect(copy.headline).toBe(
-      "The 12th has come out slightly ahead in your window fairly consistently, but by very little: 0.02 pp of XIRR.",
+      "The 12th had the highest full-history XIRR for this fund. The same dates kept doing well across the history, but by very little: 0.02 pp above the middle of the month.",
     );
   });
 
@@ -179,7 +173,7 @@ describe("the headline", () => {
       answerOn(12, 0.037),
     );
     expect(copy.headline).toBe(
-      "In this fund the 12th has come out ahead of the other dates in your window: +0.04 pp of XIRR over 8.6 years.",
+      "The 12th had the highest full-history XIRR for this fund. It sits 0.04 pp above the middle of the month, over 8.6 years.",
     );
   });
 
@@ -194,7 +188,7 @@ describe("the headline", () => {
     // Neither test passes, so no marginal row applies. A stale artifact must not produce a
     // headline that overclaims, and must not throw on the page either.
     const copy = copyFor({ verdict: "marginal", spreadPp: 0.1, stability: 0.2 }, answerOn(12, 0.06));
-    expect(copy.headline).toContain("is a tiebreak");
+    expect(copy.headline).toContain("is noise rather than a date effect");
   });
 });
 
@@ -315,13 +309,16 @@ describe("the rupee line", () => {
 // Screen-reader summary (PLAN.md 6.6)
 
 describe("the screen-reader summary", () => {
-  it("gives the window's ends and the answer, which is what the grid shows visually", () => {
-    expect(copyFor({}, answerOn(12, 0.031)).srSummary).toBe("Your window: 3rd to 12th. Your date: the 12th.");
+  it("names the day, which is the whole of what the grid shows visually", () => {
+    expect(copyFor({}, answerOn(6, 0.031)).srSummary).toBe("Best SIP day: the 6th.");
   });
 
-  it("reads a wrapped window in window order, not in numeric order", () => {
-    // The window runs 26, 27, 28, 1 ... 7. "26th to 28th" would describe a different window.
-    expect(copyFor({}, answerOn(2, 0.031), WRAPPED).srSummary).toBe("Your window: 26th to 7th. Your date: the 2nd.");
+  it("says the same thing whatever the verdict is, because the grid does too", () => {
+    // The summary stands in for the calendar, not for the headline: the caveats are read out
+    // separately, and a reader who hears the grid twice over learns nothing the second time.
+    for (const verdict of ["noise", "marginal", "meaningful"] as const) {
+      expect(copyFor({ verdict }, answerOn(21, 0.4)).srSummary).toBe("Best SIP day: the 21st.");
+    }
   });
 });
 
@@ -329,23 +326,25 @@ describe("the screen-reader summary", () => {
 // Real published artifacts
 
 describe("copy for real published funds", () => {
-  it("calls Kotak Mid Cap a tiebreak, because 0.112 pp across 164 months is noise", () => {
+  it("calls Kotak Mid Cap noise, because 0.112 pp across 164 months is noise", () => {
+    // The 26th, which PLAN.md §4 pins as this fund's highest date and which the old ten-date
+    // salary window could never reach.
     const copy = realCopy(119775);
     expect(copy.headline).toBe(
-      "Any date in your window has done about the same in this fund. The 12th is a tiebreak: across 3-year stretches it ranked a little higher on average.",
+      "The 26th had the highest full-history XIRR for this fund. The 28 dates sit close enough together that the difference between them is noise rather than a date effect.",
     );
     // Its metrics disagree, but a noise verdict has already said everything that implies.
     expect(copy.caveats).toEqual([]);
     expect(copy.rupeeLine).toBe(
       "For a notional ₹10,000 monthly SIP, the highest- and lowest-value dates (the 1st and 20th) ended ₹59,476 apart on ₹16.4 lakh invested, 0.8% of the ₹74.0 lakh it grew to, over 13.7 years.",
     );
-    expect(copy.srSummary).toBe("Your window: 3rd to 12th. Your date: the 12th.");
+    expect(copy.srSummary).toBe("Best SIP day: the 26th.");
   });
 
   it("tells a 40-month fund's reader the history is too short, not that a date won (151713)", () => {
     const copy = realCopy(151713);
     expect(copy.headline).toBe(
-      "This fund has 40 months of history, too little to tell whether the date matters. The 4th fits your window.",
+      "The 13th had the highest full-history XIRR for this fund. But 40 months of history is too little to tell whether the date matters at all.",
     );
     // D21 keeps its caveat on every non-noise fund under eight years, this one included: the
     // sentence exists to defuse the 0.767 pp spread, not to report the month count. Because the
@@ -365,7 +364,7 @@ describe("copy for real published funds", () => {
   it("reports Quantum Value's 20 years as consistent but tiny (103490, marginal on stability)", () => {
     const copy = realCopy(103490);
     expect(copy.headline).toBe(
-      "The 12th has come out slightly ahead in your window fairly consistently, but by very little: 0.02 pp of XIRR.",
+      "The 24th had the highest full-history XIRR for this fund. The same dates kept doing well across the history, but by very little: 0.04 pp above the middle of the month.",
     );
     expect(copy.caveats).toEqual([
       "The date with the highest XIRR and the date with the highest final value differ here, which points to noise.",
@@ -381,7 +380,7 @@ describe("copy for real published funds", () => {
   it("states the edge for the one real meaningful fund with nothing to hedge (142110)", () => {
     const copy = realCopy(142110);
     expect(copy.headline).toBe(
-      "In this fund the 12th has come out ahead of the other dates in your window: +0.04 pp of XIRR over 8.6 years.",
+      "The 22nd had the highest full-history XIRR for this fund. It sits 0.20 pp above the middle of the month, over 8.6 years.",
     );
     // 103 instalments and metrics that agree: the only real fund here with no caveat at all.
     expect(copy.caveats).toEqual([]);
@@ -390,7 +389,7 @@ describe("copy for real published funds", () => {
   it("hedges the meaningful verdict of a 94-month fund, which is the whole point of D21 (145137)", () => {
     const copy = realCopy(145137);
     expect(copy.headline).toBe(
-      "In this fund the 12th has come out ahead of the other dates in your window: +0.08 pp of XIRR over 7.9 years.",
+      "The 22nd had the highest full-history XIRR for this fund. It sits 0.20 pp above the middle of the month, over 7.9 years.",
     );
     expect(copy.caveats).toEqual([
       "The date with the highest XIRR and the date with the highest final value differ here, which points to noise.",
@@ -403,12 +402,11 @@ describe("copy for real published funds", () => {
     expect(copy.caveats).toContain(
       "The published history starts on 22 April 2013, where a re-denomination or a gap months long cut the series. Everything before that is missing, so this is not the fund's whole life.",
     );
-    // 160 months and 125 rolling windows is not a short history, so the page no longer withholds
-    // this fund's answer: the short-history row keys on `windows` now, not on `confidence`. Its
-    // edge rounds below 0.005 pp, so the verdict lands on the tiebreak line. The caveat above
-    // still carries the scope warning, which is what makes giving the verdict back honest.
+    // 160 months and 125 rolling windows is not a short history, so the page does not withhold
+    // this fund's answer: the short-history row keys on `windows`, not on `confidence`. The
+    // caveat above carries the scope warning, which is what makes giving the verdict honest.
     expect(copy.headline).toBe(
-      "Any date in your window has done about the same in this fund. The 11th is a tiebreak: across 3-year stretches it ranked a little higher on average.",
+      "The 26th had the highest full-history XIRR for this fund. The same dates kept doing well across the history, but by very little: 0.01 pp above the middle of the month.",
     );
     expect(copy.headline).not.toContain("too little to tell");
     expect(copy.headline).not.toContain("couldn't be used");
@@ -476,14 +474,23 @@ describe("the words this page can't use", () => {
     ["top performing", /(?<![\w-])top[- ]perform/i],
   ];
 
-  const offences = (text: string) => BANNED.filter(([, pattern]) => pattern.test(text)).map(([word]) => word);
+  /**
+   * "Best" left the banned list when the product became "the best day of the month". It is still
+   * forbidden of a fund — there is no ranking of funds anywhere — so the phrases that may carry
+   * it are named rather than the word being let go entirely.
+   */
+  const ALLOWED = ["Best SIP day", "Best day", "best day of the month"];
 
-  it("stays out of every line produced for a real fund, in both a plain and a wrapped window", () => {
+  const offences = (text: string) => {
+    let copy = text;
+    for (const allowed of ALLOWED) copy = copy.split(allowed).join(" ");
+    return BANNED.filter(([, pattern]) => pattern.test(copy)).map(([word]) => word);
+  };
+
+  it("stays out of every line produced for a real fund", () => {
     for (const code of [119775, 151713, 103490, 142110, 145137, 120497]) {
-      for (const window of [WINDOW, WRAPPED]) {
-        for (const line of allStrings(realCopy(code, window))) {
-          expect(offences(line), line).toEqual([]);
-        }
+      for (const line of allStrings(realCopy(code))) {
+        expect(offences(line), line).toEqual([]);
       }
     }
   });
@@ -504,11 +511,18 @@ describe("the words this page can't use", () => {
     }
   });
 
-  it("says 'your window' rather than naming the window after its own safety", () => {
-    // The symbol is safeWindow; the copy never borrows that word, which next to investing reads
-    // as a promise about risk.
+  it("never says 'safe', which next to investing reads as a promise about risk", () => {
     const copy = copyFor({ verdict: "marginal", spreadPp: 0.3 }, answerOn(12, 0.06));
-    expect(copy.headline).toContain("your window");
     expect(offences(allStrings(copy).join(" "))).toEqual([]);
+  });
+
+  it("calls only the day the best one, never the fund", () => {
+    // "Best" is the product's own word now, and the line between the two readings is the whole
+    // no-ranking rule: a best day inside one fund is a fact, a best fund is a recommendation.
+    for (const code of [119775, 151713, 103490, 142110, 145137, 120497]) {
+      for (const line of allStrings(realCopy(code))) {
+        expect(line, line).not.toMatch(/best (fund|scheme|performing|plan)/i);
+      }
+    }
   });
 });

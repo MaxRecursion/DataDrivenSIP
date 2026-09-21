@@ -47,9 +47,9 @@ export const SPREAD_THRESHOLD_PP = 0.25;
 export const STABILITY_THRESHOLD = 0.6;
 
 /**
- * Under this, the answer's lead over the rest of the window is smaller than the resolution the
- * page prints, so every verdict falls back to the tiebreak line (D7). Claiming an edge the
- * reader can't see rounded to two decimals is exactly the overclaiming D7 exists to stop.
+ * Under this, the answer's lead over the middle of the month is smaller than the resolution the
+ * page prints, so every verdict falls back to the noise line. Claiming an edge the reader can't
+ * see rounded to two decimals is exactly the overclaiming these rows exist to stop.
  */
 export const MIN_EDGE_PP = 0.005;
 
@@ -93,33 +93,29 @@ function corpusExtremes(fund: FundArtifact, answer: Answer): { highest: DateResu
 }
 
 /**
- * The D7 table, in precedence order. Each row is reached only when every row above it has been
- * ruled out, which is what keeps a short history from ever being described as a date effect.
+ * The headline, in precedence order. Every row states the same fact — which date had the highest
+ * full-history XIRR — and then qualifies it by what the fund's history can actually support. A
+ * row is reached only when every row above it has been ruled out, which is what keeps a short
+ * history from ever being described as a date effect.
  */
 function headlineFor(fund: FundArtifact, answer: Answer): string {
   const nth = ordinal(answer.date);
+  const fact = `The ${nth} had the highest full-history XIRR for this fund.`;
 
-  // Too little history to say anything about dates, whatever the verdict computed. A fund whose
-  // series was cut is always reduced (D21), so this row also covers a truncated history.
   // Too little history for the question to have an answer at all. A fund whose series was cut
   // says which of the two things is wrong with it, since "too little history" would contradict
   // itself on a fund that kept thirteen years of it.
   if (fund.windows < MIN_WINDOWS) {
     if (fund.trimmedFrom !== undefined) {
-      return `Part of this fund's history couldn't be used, so this reads on ${fund.instalments} months rather than the fund's whole life. The ${nth} fits your window.`;
+      return `${fact} Part of its history couldn't be used, so that reads on ${fund.instalments} months rather than the fund's whole life.`;
     }
-    return `This fund has ${fund.instalments} months of history, too little to tell whether the date matters. The ${nth} fits your window.`;
+    return `${fact} But ${fund.instalments} months of history is too little to tell whether the date matters at all.`;
   }
 
-  // A full-confidence fund has at least 24 rolling windows, so "across 3-year stretches" is
-  // always describing something that was actually measured.
-  // D7 wrote "came out slightly ahead more often", which is a frequency claim — and the artifact
-  // publishes exactly that statistic as `w`. But the pick is made on `meanPct`, never on `w`, and
-  // the named date does not lead its window on `w` for 403 of the 591 funds that see this line.
-  // PLAN.md §6.5 puts `w` in "How confident is this?", so a reader opening that section would
-  // have caught the page contradicting itself. This says what actually chose the date.
-  const tiebreak = `Any date in your window has done about the same in this fund. The ${nth} is a tiebreak: across 3-year stretches it ranked a little higher on average.`;
-  if (fund.verdict === "noise" || answer.edgePp <= MIN_EDGE_PP) return tiebreak;
+  // The dates are so close together that naming one is arithmetic rather than a finding. Saying
+  // so is the whole point: the difference is usually about a tenth of a percentage point.
+  const noise = `${fact} The 28 dates sit close enough together that the difference between them is noise rather than a date effect.`;
+  if (fund.verdict === "noise" || answer.edgePp <= MIN_EDGE_PP) return noise;
 
   const wideSpread = fund.spreadPp > SPREAD_THRESHOLD_PP;
   // An unknown stability is never read as stable, matching the engine.
@@ -127,21 +123,21 @@ function headlineFor(fund: FundArtifact, answer: Answer): string {
 
   if (fund.verdict === "marginal") {
     if (wideSpread && !stable) {
-      return `Dates in this fund have differed by up to ${formatPp(fund.spreadPp)}, but not consistently. The ${nth} came out slightly ahead in your window; the pattern may not hold.`;
+      return `${fact} Dates in this fund have differed by up to ${formatPp(fund.spreadPp)}, but not consistently, so the pattern may not hold.`;
     }
     if (stable && !wideSpread) {
-      return `The ${nth} has come out slightly ahead in your window fairly consistently, but by very little: ${formatPp(answer.edgePp)} of XIRR.`;
+      return `${fact} The same dates kept doing well across the history, but by very little: ${formatPp(answer.edgePp)} above the middle of the month.`;
     }
     // Marginal means exactly one test passed. An artifact that says otherwise is stale against
     // these constants, and the quietest line is the one to fall back to.
-    return tiebreak;
+    return noise;
   }
 
   if (fund.verdict === "meaningful") {
-    return `In this fund the ${nth} has come out ahead of the other dates in your window: +${formatPp(answer.edgePp)} of XIRR over ${formatYears(fund.navFrom, fund.navTo)}.`;
+    return `${fact} It sits ${formatPp(answer.edgePp)} above the middle of the month, over ${formatYears(fund.navFrom, fund.navTo)}.`;
   }
 
-  return tiebreak;
+  return noise;
 }
 
 /** The lines under the headline, each one only when it applies. */
@@ -209,17 +205,12 @@ function rupeeLineFor(
   return { before, gap, after, line: `${before}${formatRupees(gap)}${after}` };
 }
 
-/**
- * What a screen reader gets in place of the grid (PLAN.md 6.6). The window can wrap past the
- * 28th, so these are its first and last dates in window order, not its smallest and largest.
- */
-function srSummaryFor(answer: Answer, window: number[]): string {
-  const first = window[0] ?? answer.date;
-  const last = window[window.length - 1] ?? answer.date;
-  return `Your window: ${ordinal(first)} to ${ordinal(last)}. Your date: the ${ordinal(answer.date)}.`;
+/** What a screen reader gets in place of the grid, which is aria-hidden. */
+function srSummaryFor(answer: Answer): string {
+  return `Best SIP day: the ${ordinal(answer.date)}.`;
 }
 
-export function answerCopy(fund: FundArtifact, answer: Answer, window: number[]): AnswerCopy {
+export function answerCopy(fund: FundArtifact, answer: Answer): AnswerCopy {
   const rupees = rupeeLineFor(fund, answer);
   return {
     headline: headlineFor(fund, answer),
@@ -228,6 +219,6 @@ export function answerCopy(fund: FundArtifact, answer: Answer, window: number[])
     rupeeBefore: rupees.before,
     rupeeGap: rupees.gap,
     rupeeAfter: rupees.after,
-    srSummary: srSummaryFor(answer, window),
+    srSummary: srSummaryFor(answer),
   };
 }

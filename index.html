@@ -9,15 +9,6 @@
       content="Pick a SIP date for your mutual fund, with an honest read on how much the date matters."
     />
     <title>SIP Date Planner</title>
-    <script>
-      /* Every fund page is prerendered with DEFAULT parameters, so a URL asking for others has
-         the wrong date painted in it until React re-renders. Mark the page before first paint
-         and let the stylesheet hide what could be wrong (PLAN.md 6.2). Defaults are omitted
-         from the query string, so the presence of either key already means "not the default". */
-      if (/[?&](salary|buffer)=/.test(location.search)) {
-        document.documentElement.dataset.paramsPending = "1";
-      }
-    </script>
     <link
       rel="preload"
       href="/fonts/v1/cabinet-grotesk-700.woff2"

@@ -7,11 +7,11 @@
  * it feels instant.
  */
 import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router";
+import { useNavigate } from "react-router";
 import type { IndexRow } from "../../shared/artifacts";
 import { loadIndex, prefetchFund } from "../lib/data";
 import { searchFunds } from "../lib/search";
-import { fundPath, parseParams } from "../lib/url";
+import { fundPath } from "../lib/url";
 
 const SearchList = lazy(() => import("./search-list"));
 
@@ -27,7 +27,6 @@ export function FundSearch({ autoFocus = false }: { autoFocus?: boolean }) {
   const pending = useRef<ReturnType<typeof setTimeout> | null>(null);
   const input = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
-  const [search] = useSearchParams();
 
   const ensureIndex = useCallback(async (): Promise<IndexRow[]> => {
     index.current ??= await loadIndex();
@@ -50,9 +49,9 @@ export function FundSearch({ autoFocus = false }: { autoFocus?: boolean }) {
   const choose = useCallback(
     (row: IndexRow) => {
       setOpen(false);
-      navigate(fundPath(row[0], parseParams(search)));
+      navigate(fundPath(row[0]));
     },
-    [navigate, search],
+    [navigate],
   );
 
   const onChange = (value: string) => {

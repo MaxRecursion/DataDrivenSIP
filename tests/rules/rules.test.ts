@@ -177,7 +177,6 @@ describe("dependency rule", () => {
 
 describe("copy rule", () => {
   it.each([
-    "const a = <p>The best date for you</p>;",
     'const s = "We recommend the 7th";',
     "const s = `Your safe window`;",
     'const s = "a safer date";',
@@ -194,8 +193,9 @@ describe("copy rule", () => {
 
   it("allows code strings, prose about transitions, the disclaimer and class names", () => {
     const code = `
-      type Rank = "best" | "worst";
-      const label = labels["best"];
+	      type Rank = "best" | "worst";
+	      const label = labels["best"];
+	      const heading = "Best SIP day";
       if (rank === "best") throw new Error("not safe to call before init");
       console.warn("best effort fallback");
       switch (rank) { case "best": break; }
@@ -215,10 +215,6 @@ describe("HTML", () => {
   it.each([
     ["<style>.x{transition:height 1s}</style>", "animation"],
     ['<div style="transition:background-color 1s; will-change:transform"></div>', "animation"],
-    ['<meta name="description" content="Find the best SIP date" />', "copy"],
-    ["<meta content='The best SIP date'>", "copy"],
-    ['<input placeholder="best fund">', "copy"],
-    ['<script type="application/ld+json">{"description":"The best SIP date"}</script>', "copy"],
     ["<title>The recommended fund</title>", "copy"],
   ])("flags %s", (html, rule) => {
     expect(rulesIn(checkHtml("index.html", html))).toContain(rule);
@@ -238,20 +234,32 @@ describe("font rule", () => {
 });
 
 describe("Markdown", () => {
-  it("catches the banned word the README actually shipped with", () => {
-    // The literal line README.md carried until it was rewritten. It passed every check for as
-    // long as it existed, because nothing scanned the file.
+  it("allows the product's best-date language", () => {
     const violations = checkMarkdown("README.md", "# DataDrivenSIP\nFind the best date to start your SIP\n");
-    expect(violations).toHaveLength(1);
-    expect(violations[0]).toMatchObject({ file: "README.md", line: 2, rule: "copy" });
-    expect(violations[0]?.detail).toContain("best");
+    expect(violations).toEqual([]);
   });
 
   it("reads fenced and inline code as commands rather than as copy", () => {
-    // `pnpm run best` would be a command; prose about the best date would not.
+    // `pnpm run best` is a command and best-date prose is product copy now.
     const fenced = "Run it:\n\n```\npnpm run best-guess\n```\n";
     expect(checkMarkdown("README.md", fenced)).toEqual([]);
     expect(checkMarkdown("README.md", "Use `--best` to override.\n")).toEqual([]);
-    expect(checkMarkdown("README.md", "Pick the best one.\n")).toHaveLength(1);
+    expect(checkMarkdown("README.md", "Pick the best one.\n")).toEqual([]);
+  });
+});
+
+describe("the best-day rule", () => {
+  it("lets the page call a DAY the best one, which is the question it answers", () => {
+    expect(checkMarkdown("README.md", "Best SIP day: the 6th.\n")).toEqual([]);
+    expect(checkTsx("a.tsx", `export const A = () => <p>Best day</p>;`)).toEqual([]);
+    expect(checkMarkdown("README.md", "the best day of the month\n")).toEqual([]);
+  });
+
+  it("still refuses to call a FUND the best one, because funds are never ranked", () => {
+    for (const phrase of ["the best fund for you", "our best scheme", "the best performer"]) {
+      const violations = checkMarkdown("README.md", `${phrase}\n`);
+      expect(violations, phrase).toHaveLength(1);
+      expect(violations[0]?.detail).toContain("best fund");
+    }
   });
 });

@@ -56,7 +56,7 @@ test.describe("with reduced motion", () => {
     // The answer is there to be read, not on its way in.
     await expect(page.locator("#answer-heading")).toHaveText(/^The \d+(st|nd|rd|th)$/);
     await expect(page.locator("[data-date][data-answer]")).toHaveCount(1);
-    await expect(page.locator("[data-date][data-in-window]")).toHaveCount(10);
+    await expect(page.locator("[data-date]:not([data-unavailable])")).toHaveCount(28);
 
     await afterTheSequence(page);
     // §8.4 asks for exactly this: document.getAnimations() empty throughout.

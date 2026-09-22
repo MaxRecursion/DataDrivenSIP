@@ -4,6 +4,7 @@ import {
   addMonths,
   baselineDate,
   buildMonth,
+  calendarDayInIndia,
   daysInMonth,
   monthLabel,
   monthOf,
@@ -150,6 +151,7 @@ describe("baselineDate", () => {
     // 31st to compare against and every date on the grid has to have a figure.
     for (const day of [29, 30, 31]) {
       expect(baselineDate(new Date(`2026-01-${day}T06:00:00Z`))).toBe(MAX_SIP_DATE);
+      expect(calendarDayInIndia(new Date(`2026-01-${day}T06:00:00Z`))).toBe(day);
     }
   });
 

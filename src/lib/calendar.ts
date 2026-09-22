@@ -113,11 +113,15 @@ export function buildMonth(key: MonthKey): CalendarMonth {
  * The 29th, 30th and 31st clamp to the 28th, because those are not SIP dates and the baseline
  * has to be one — a reader looking at the calendar on the 31st is compared against the 28th.
  */
-export function baselineDate(now: Date): number {
+export function calendarDayInIndia(now: Date): number {
   const day = Number(
     new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata", day: "numeric" }).format(now),
   );
-  if (!Number.isFinite(day)) return 1;
+  return Number.isFinite(day) ? day : 1;
+}
+
+export function baselineDate(now: Date): number {
+  const day = calendarDayInIndia(now);
   return Math.min(MAX_SIP_DATE, Math.max(1, day));
 }
 

@@ -40,7 +40,14 @@ describe("writeArtifacts", () => {
     await writeArtifacts(dir, { artifacts: [kotak, quant], ...options });
     const index = JSON.parse(readFileSync(join(dir, "index.json"), "utf8")) as IndexRow[];
     expect(index.map((row) => row[0])).toEqual([119775, 151713]);
-    expect(index[0]).toEqual([kotak.code, kotak.name, kotak.house, kotak.category]);
+    expect(index[0]).toEqual([
+      kotak.code,
+      kotak.name,
+      kotak.house,
+      kotak.category,
+      kotak.verdict,
+      kotak.spreadPp,
+    ]);
   });
 
   it("writes the fund data before index and meta, so a half-finished run is never pointed at", async () => {

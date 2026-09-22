@@ -11,6 +11,8 @@
  * decides where the sentences sit and how much room they get, and nothing else — there is no
  * number to derive here, so there is nothing to get wrong twice.
  */
+import type { Verdict } from "../../shared/artifacts";
+import { verdictLabel } from "../lib/compare";
 import type { AnswerCopy } from "../lib/copy";
 import { formatRupees, ordinal } from "../lib/format";
 import { SCHEDULE, TICKER_MS } from "../lib/sequence";
@@ -42,11 +44,14 @@ type AnswerBlockProps = {
   copy: AnswerCopy;
   /** The date the page answers with, 1-28. Rendered as the heading, e.g. "The 12th". */
   answerDate: number;
+  verdict: Verdict;
+  /** A tapped or stored SIP date compared with the named day. */
+  compareText?: string | undefined;
   /** The reveal in flight, or null to render the final figure at once (§8.3, D10c). */
   reveal?: Reveal;
 };
 
-export function AnswerBlock({ copy, answerDate, reveal = null }: AnswerBlockProps) {
+export function AnswerBlock({ copy, answerDate, verdict, compareText, reveal = null }: AnswerBlockProps) {
   return (
     <section className="mt-6 max-w-[65ch]">
       {/*
@@ -61,13 +66,21 @@ export function AnswerBlock({ copy, answerDate, reveal = null }: AnswerBlockProp
 
       {/* Plain text, full opacity, never animated (PLAN.md §6.4). One line at every width, so
           its height is fixed and nothing below it moves when the date changes. */}
-      <h2
-        id={ANSWER_HEADING_ID}
-        tabIndex={-1}
-        className={HEADING_CLASS}
-      >
-        The {ordinal(answerDate)}
-      </h2>
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-2">
+        <h2
+          id={ANSWER_HEADING_ID}
+          tabIndex={-1}
+          className={HEADING_CLASS}
+        >
+          The {ordinal(answerDate)}
+        </h2>
+        <span
+          data-verdict={verdict}
+          className="rounded-full border border-line px-2.5 py-0.5 text-sm leading-none text-mute-text"
+        >
+          {verdictLabel(verdict)}
+        </span>
+      </div>
 
       {/*
        * Every line here is a function of the fund alone, so the prerendered HTML and the client
@@ -84,6 +97,14 @@ export function AnswerBlock({ copy, answerDate, reveal = null }: AnswerBlockProp
       <p data-answer-copy className="mt-4 min-h-[6.5rem] leading-relaxed text-ink sm:min-h-[4.875rem]">
         {copy.headline}
       </p>
+
+      {compareText ? (
+        <p data-compare-copy className="mt-3 text-sm leading-relaxed text-ink">
+          {compareText}
+        </p>
+      ) : null}
+
+      <p className="mt-3 text-sm leading-relaxed text-mute-text">{copy.mattersGlance}</p>
 
       {copy.caveats.map((caveat) => (
         <p key={caveat} className="mt-3 text-sm leading-relaxed text-mute-text">
@@ -104,6 +125,9 @@ export function AnswerBlock({ copy, answerDate, reveal = null }: AnswerBlockProp
         />
         {copy.rupeeAfter}
       </p>
+      {copy.xirrExtremes ? (
+        <p className="mt-3 text-sm leading-relaxed text-mute-text">{copy.xirrExtremes}</p>
+      ) : null}
     </section>
   );
 }

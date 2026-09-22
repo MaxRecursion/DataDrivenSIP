@@ -15,9 +15,16 @@ export function Home() {
   }, []);
 
   return (
-    <p className="max-w-[65ch] text-mute-text">
-      For most funds the date barely moves the outcome. This shows you what the history says,
-      and how much of it is noise.
-    </p>
+    <div>
+      <p className="max-w-[65ch] text-mute-text">
+        For most funds the date barely moves the outcome. This shows you what the history says,
+        and how much of it is noise.
+      </p>
+      <ol className="mt-6 max-w-[65ch] list-decimal space-y-2 pl-5 text-mute-text">
+        <li>Search a fund you already hold.</li>
+        <li>Read the chip: noise means the day barely matters.</li>
+        <li>If you SIP on another date, tap it to see the gap.</li>
+      </ol>
+    </div>
   );
 }

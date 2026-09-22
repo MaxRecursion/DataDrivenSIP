@@ -24,22 +24,15 @@
  * Every fill is a pre-painted overlay whose opacity carries the value, so the reveal has
  * something it is allowed to animate and no cell's colour is ever computed or swapped.
  */
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import {
-  baselineDate,
-  buildMonth,
-  monthOf,
-  monthsAhead,
-  weekdayLabels,
-  type CalendarMonth,
-  type MonthKey,
-} from "../lib/calendar";
-import { formatPp, formatXirr } from "../lib/format";
+import { useMemo, useState, type CSSProperties } from "react";
+import { buildMonth, weekdayLabels, type CalendarMonth } from "../lib/calendar";
+import { formatPp, formatRupees, formatXirr } from "../lib/format";
 import { heatForMonth, type Heat } from "../lib/heat";
 import { SCHEDULE, diagonalIndexAt } from "../lib/sequence";
 import { ANSWER_SPRING, SPEC_SPRING } from "../lib/spring";
 import type { Reveal } from "../lib/use-reveal";
 import { cn } from "../lib/utils";
+import { useToday } from "../lib/use-today";
 import { Animated } from "./animated";
 
 /** Always drawn, so the calendar's height never depends on which month is showing. */
@@ -57,8 +50,13 @@ type HeroGridProps = {
   answer: number | null;
   /** Each date's own XIRR, which the cells print and the shading compares. */
   values?: ReadonlyMap<number, number> | undefined;
+  /** Final value of the notional SIP, for the hover title. */
+  corpora?: ReadonlyMap<number, number> | undefined;
   /** How far the figures actually run, in percentage points, for the caption. */
   spanPp?: number | undefined;
+  /** A date the reader is comparing, 1–28. Does not change the named day. */
+  selected?: number | null;
+  onSelectDay?: ((day: number) => void) | undefined;
   /** The reveal this grid is playing under, or null to render its final state. */
   reveal?: Reveal;
   className?: string;
@@ -75,24 +73,6 @@ function Swatch({ className, style }: { className: string; style?: CSSProperties
   return <span className={cn("size-3 shrink-0 rounded-sm", className)} style={style} />;
 }
 
-/**
- * What the clock decides: the month on screen and the date the shading compares against. Both
- * are null until after mount, because reading a clock during render would put the build
- * machine's September into 994 prerendered pages.
- */
-function useToday(): { months: MonthKey[]; baseline: number | null; ready: boolean } {
-  const [today, setToday] = useState<{ month: MonthKey; baseline: number } | null>(null);
-  useEffect(() => {
-    const now = new Date();
-    setToday({ month: monthOf(now), baseline: baselineDate(now) });
-  }, []);
-  return {
-    months: today ? monthsAhead(today.month) : [],
-    baseline: today?.baseline ?? null,
-    ready: today !== null,
-  };
-}
-
 type CellProps = {
   day: number;
   /** Where this cell sits in the month grid, which is what orders the wave. */
@@ -101,11 +81,15 @@ type CellProps = {
   sip: boolean;
   isAnswer: boolean;
   isBaseline: boolean;
+  isSelected: boolean;
   value: number | undefined;
+  corpus: number | undefined;
+  namedValue: number | undefined;
   heat: Heat | undefined;
   playing: boolean;
   cellsArrive: boolean;
   generation: number | null;
+  onSelect?: ((day: number) => void) | undefined;
 };
 
 function Cell({
@@ -115,11 +99,15 @@ function Cell({
   sip,
   isAnswer,
   isBaseline,
+  isSelected,
   value,
+  corpus,
+  namedValue,
   heat,
   playing,
   cellsArrive,
   generation,
+  onSelect,
 }: CellProps) {
   const arrival = {
     play: cellsArrive ? generation : null,
@@ -150,14 +138,26 @@ function Cell({
   }
 
   const fill = (heat?.intensity ?? 0) * MAX_FILL;
+  const gap = value !== undefined && namedValue !== undefined ? value - namedValue : 0;
+  const title =
+    value === undefined
+      ? undefined
+      : `${day}: ${formatXirr(value)} XIRR` +
+        (corpus === undefined ? "" : `, ${formatRupees(corpus)}`) +
+        (isAnswer || namedValue === undefined
+          ? ""
+          : `, ${formatPp(Math.abs(gap))} ${gap < 0 ? "below" : gap > 0 ? "above" : "from"} the named day`);
 
   return (
     <div
       data-date={day}
       data-answer={isAnswer ? "" : undefined}
       data-baseline={isBaseline ? "" : undefined}
+      data-compare={isSelected ? "" : undefined}
       data-direction={heat?.direction}
-      className="relative aspect-square rounded-lg bg-raised"
+      title={title}
+      onClick={onSelect ? () => onSelect(day) : undefined}
+      className={cn("relative aspect-square rounded-lg bg-raised", onSelect && "cursor-pointer")}
     >
       <Animated className="absolute inset-0" {...arrival}>
         {/* D15: raised on surface is 1.14:1, so an unshaded cell needs a hairline. */}
@@ -196,6 +196,7 @@ function Cell({
         {/* Today is marked without colour, because neutral here is the absence of a fill and
             would otherwise be indistinguishable from a date whose figure happens to match. */}
         <Layer on={isBaseline && !isAnswer} className="border-2 border-dashed border-mute" />
+        <Layer on={isSelected && !isAnswer} className="border-2 border-teal" />
 
         <span className="absolute inset-x-0 top-1.5 text-center font-display text-sm leading-none font-bold text-ink sm:top-2 sm:text-lg 2xl:top-[12%] 2xl:text-[clamp(1.125rem,1.1vw,1.75rem)]">
           {day}
@@ -210,7 +211,16 @@ function Cell({
   );
 }
 
-export function HeroGrid({ answer, values, spanPp, reveal = null, className }: HeroGridProps) {
+export function HeroGrid({
+  answer,
+  values,
+  corpora,
+  spanPp,
+  selected = null,
+  onSelectDay,
+  reveal = null,
+  className,
+}: HeroGridProps) {
   const { months, baseline, ready } = useToday();
   const [offset, setOffset] = useState(0);
   const [navigated, setNavigated] = useState(false);
@@ -310,11 +320,15 @@ export function HeroGrid({ answer, values, spanPp, reveal = null, className }: H
                   sip={slot.sip}
                   isAnswer={answer === slot.day}
                   isBaseline={baselineHere === slot.day}
+                  isSelected={selected === slot.day}
                   value={values?.get(slot.day)}
+                  corpus={corpora?.get(slot.day)}
+                  namedValue={answer === null ? undefined : values?.get(answer)}
                   heat={heat?.get(slot.day)}
                   playing={playing}
                   cellsArrive={cellsArrive}
                   generation={generation}
+                  onSelect={onSelectDay}
                 />
               );
             }),
@@ -349,7 +363,8 @@ export function HeroGrid({ answer, values, spanPp, reveal = null, className }: H
         <p className="mt-1 max-w-[65ch] text-xs text-mute-text">
           Each SIP date shows its full-history XIRR. Green dates were higher than today’s date;
           red dates were lower. Weakest to strongest across all 28 is {formatPp(spanPp)}, and the
-          deeper the fill, the further from today’s figure that date sat.
+          deeper the fill, the further from today’s figure that date sat. Tap a date (1–28) to
+          compare it with the named day; that does not change the answer.
         </p>
       )}
 

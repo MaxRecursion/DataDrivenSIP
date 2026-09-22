@@ -12,6 +12,8 @@
  */
 import type { DateResult, FundArtifact } from "../../shared/artifacts";
 import type { Answer } from "./answer";
+import { mattersGlance, xirrExtremesLine } from "./compare";
+import { mattersFigures } from "./disclosure";
 import {
   formatLakh,
   formatNavDate,
@@ -34,6 +36,10 @@ export type AnswerCopy = {
   rupeeBefore: string;
   rupeeGap: number;
   rupeeAfter: string;
+  /** Null when every date has the same XIRR, so there is no pair of extremes to name. */
+  xirrExtremes: string | null;
+  /** One line from "What actually matters", shown above the fold. */
+  mattersGlance: string;
   srSummary: string;
 };
 
@@ -212,6 +218,7 @@ function srSummaryFor(answer: Answer): string {
 
 export function answerCopy(fund: FundArtifact, answer: Answer): AnswerCopy {
   const rupees = rupeeLineFor(fund, answer);
+  const figures = mattersFigures(fund, answer);
   return {
     headline: headlineFor(fund, answer),
     caveats: caveatsFor(fund),
@@ -219,6 +226,8 @@ export function answerCopy(fund: FundArtifact, answer: Answer): AnswerCopy {
     rupeeBefore: rupees.before,
     rupeeGap: rupees.gap,
     rupeeAfter: rupees.after,
+    xirrExtremes: xirrExtremesLine(fund, answer),
+    mattersGlance: mattersGlance(figures.perInstalment, figures.edgeRupees),
     srSummary: srSummaryFor(answer),
   };
 }

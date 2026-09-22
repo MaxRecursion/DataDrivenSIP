@@ -217,3 +217,17 @@ test("a keyboard-only reader can search a fund and land on its answer", async ({
   await expect(answerHeading(page)).toBeFocused();
   expect(errors).toEqual([]);
 });
+
+test("shows a verdict chip and compares a tapped SIP date without changing the named day", async ({ page }) => {
+  await page.goto(`/f/${KOTAK.code}`);
+  await settled(page);
+
+  const named = await answerFromHeading(page);
+  await expect(page.locator("[data-verdict]")).toHaveAttribute("data-verdict", /noise|marginal|meaningful/);
+
+  const other = named === 5 ? 6 : 5;
+  await page.locator(`${SIP_CELLS}[data-date="${other}"]`).click();
+  await expect(page.locator("[data-compare-copy]")).toContainText(new RegExp(`${other}(st|nd|rd|th)`));
+  await expect(page.locator(`[data-date="${other}"][data-compare]`)).toHaveCount(1);
+  await expect(answerHeading(page)).toHaveText(ANSWER_HEADING);
+});

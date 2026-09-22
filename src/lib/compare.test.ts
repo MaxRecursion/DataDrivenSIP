@@ -4,6 +4,8 @@ import type { Answer } from "./answer";
 import {
   compareDayCopy,
   mattersGlance,
+  namedDayShiftCopy,
+  paperworkCopy,
   shareCopy,
   stickyCopy,
   todayCopy,
@@ -161,10 +163,35 @@ describe("mattersGlance, share, sticky", () => {
       mattersGlance(10_000, 12_000),
       shareCopy(fund({ name: "A Fund - Direct Plan - Growth" }), answer),
       stickyCopy(fund(), answer),
+      paperworkCopy(5, 26, "noise"),
+      paperworkCopy(5, 26, "marginal"),
+      paperworkCopy(5, 26, "meaningful"),
+      namedDayShiftCopy(24, 26),
     ];
     for (const line of lines) {
       if (line === null) continue;
       expect(line.length, line).toBeLessThanOrEqual(80);
     }
+  });
+});
+
+describe("paperworkCopy", () => {
+  it("stays quiet until the reader names a different SIP day", () => {
+    expect(paperworkCopy(null, 26, "noise")).toBeNull();
+    expect(paperworkCopy(26, 26, "noise")).toBeNull();
+  });
+
+  it("puts AMC paperwork next to the verdict, without saying to move", () => {
+    expect(paperworkCopy(5, 26, "noise")).toBe(
+      "Changing a SIP date at the AMC is a form. This fund called that spread noise.",
+    );
+    expect(paperworkCopy(5, 26, "noise")).not.toMatch(/should|worth|recommend/i);
+  });
+});
+
+describe("namedDayShiftCopy", () => {
+  it("names the previous pick and not a quarter", () => {
+    expect(namedDayShiftCopy(24, 26)).toBe("When you last opened this page, it named the 24th.");
+    expect(namedDayShiftCopy(26, 26)).toBeNull();
   });
 });

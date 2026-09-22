@@ -33,9 +33,6 @@ const ConfidenceGauge = lazy(() => import("./charts/confidence-gauge"));
 const StretchesLed = lazy(() => import("./charts/stretches-led"));
 const MattersBars = lazy(() => import("./charts/matters-bars"));
 
-/** Matches the chart's own reserved height, so the fallback doesn't resize when it lands. */
-const CHART_HEIGHT = 208;
-
 type SectionProps = {
   id: string;
   title: string;
@@ -90,7 +87,11 @@ function Section({ id, title, preview, open, children }: SectionProps) {
          */}
         <div
           className="max-w-[65ch] px-0.5 pb-6 2xl:max-w-none 2xl:pb-4"
-          style={{ contentVisibility: "auto", containIntrinsicSize: "auto 480px" }}
+          style={
+            held
+              ? undefined
+              : { contentVisibility: "auto", containIntrinsicSize: "auto 480px" }
+          }
         >
           {children}
         </div>
@@ -127,10 +128,10 @@ export function CurveSection({ fund, answer, copy, open }: SectionPartProps) {
       open={open}
       preview={<CurveGlyph xirrs={fund.dates.map((row) => row.xirr)} />}
     >
-      <Suspense fallback={<div style={{ height: CHART_HEIGHT }} />}>
+      <Suspense fallback={<div className="h-[13rem] 2xl:h-[8.75rem]" />}>
         <SpreadChart fund={fund} answer={answer.date} />
       </Suspense>
-      <p className="mt-3 text-sm leading-relaxed text-mute-text">{copy.chartCaption}</p>
+      <p className="mt-3 text-sm leading-relaxed text-mute-text 2xl:mt-2">{copy.chartCaption}</p>
     </Section>
   );
 }

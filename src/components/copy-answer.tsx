@@ -23,7 +23,7 @@ export function CopyAnswer({ fund, answer }: { fund: FundArtifact; answer: Answe
   };
 
   return (
-    <p className="mt-4 2xl:mt-2">
+    <p className="mt-4 2xl:mt-0">
       <button
         type="button"
         onClick={() => void onCopy()}

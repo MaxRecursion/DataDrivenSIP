@@ -84,7 +84,7 @@ describe("the fund inlined into the page", () => {
 });
 
 describe("loadIndex", () => {
-  const index = JSON.stringify([[119775, "Kotak Mid Cap Fund", "Kotak", "Equity"]]);
+  const index = JSON.stringify([[119775, "Kotak Mid Cap Fund", "Kotak", "Equity", "noise", 0.11]]);
 
   it("fetches the index once and keeps it", async () => {
     const { fetcher, asked } = fakeFetch({ "/data/index.json": { body: index } });

@@ -225,11 +225,11 @@ export function FundPage() {
   const compareText = compareRow ? compareDayCopy(answer.result, compareRow) : undefined;
 
   /*
-   * One DOM for every width. Below 2xl the three column wrappers are `display: contents`, so
-   * their children become items of the flex column and `order-*` keeps the phone's reading
-   * order: name, calendar, answer, curve, confidence, matters. From 2xl the wrappers are real
-   * grid columns, balanced by measured height (e2e/wide.spec.ts): the name and calendar; the
-   * answer and the curve; then confidence and matters across the last two.
+   * One DOM for every width. Below 2xl the column wrappers are `display: contents`, so their
+   * children become items of the flex column and `order-*` keeps the phone's reading order:
+   * name, calendar, answer, curve, confidence, matters. From 2xl the first two wrappers are
+   * real grid columns (name and calendar; answer and curve) and confidence and matters stay
+   * `contents`, so they occupy columns 3 and 4 instead of stacking in a span.
    */
   const sections = { fund: state.fund, answer, copy: disclosure, open: wide };
   return (
@@ -264,16 +264,18 @@ export function FundPage() {
             compareText={compareText}
             reveal={reveal}
           />
-          <TodayLine named={answer.result} dates={state.fund.dates} />
-          <SipDaySelect value={compareDay} onChange={pickCompareDay} />
-          <CopyAnswer fund={state.fund} answer={answer} />
+          <div className="2xl:mt-2 2xl:flex 2xl:flex-wrap 2xl:items-baseline 2xl:gap-x-6">
+            <TodayLine named={answer.result} dates={state.fund.dates} />
+            <SipDaySelect value={compareDay} onChange={pickCompareDay} />
+            <CopyAnswer fund={state.fund} answer={answer} />
+          </div>
         </div>
-        <div className="order-4 mt-10 2xl:order-none 2xl:mt-4">
+        <div className="order-4 mt-10 2xl:order-none 2xl:mt-2">
           <CurveSection {...sections} />
         </div>
       </div>
 
-      <div className="contents 2xl:col-span-2 2xl:block">
+      <div className="contents">
         <div className="order-5 2xl:order-none">
           <ConfidenceSection {...sections} />
         </div>

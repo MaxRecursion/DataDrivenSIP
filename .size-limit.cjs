@@ -34,7 +34,11 @@ module.exports = [
     name: "All JavaScript",
     path: "dist/assets/*.js",
     gzip: true,
-    limit: "180 kB",
+    // Was 180 kB (PLAN.md §9). Raised for ApexCharts, which the user chose knowing its cost:
+    // measured at 317 kB total, of which Apex's core plus the bar and radialBar entries are
+    // ~175 kB. All of it is lazy, behind a disclosure a reader has to open — the Initial check
+    // below is unchanged, and is what proves none of it reaches first paint.
+    limit: "350 kB",
   },
   {
     name: "Initial JavaScript (entry and its static imports)",

@@ -126,8 +126,19 @@ them on 2026-09-15, so `PLAN.md` is the source of truth.
 ## Stack is fixed
 
 Vite 6, React 19 + strict TS, shadcn/ui (Radix), Tailwind CSS v4 (`@theme`), uPlot (never
-shadcn charts or Recharts), React Router v7 declarative mode, Vitest, Playwright, pnpm.
-Don't add dependencies outside this list without asking.
+shadcn charts or Recharts), ApexCharts, React Router v7 declarative mode, Vitest, Playwright,
+pnpm. Don't add dependencies outside this list without asking.
+
+**ApexCharts is lazy, always.** Added 2026-09-22 at the user's request for the confidence
+gauges, the stretches-led columns and the what-matters bars (`src/components/charts/`). Built
+from `apexcharts/core` plus the `bar` and `radialBar` entries only, it measures ~175 KB gzipped,
+which is more than the rest of the app. It is reached only through the dynamic `import()` in
+`charts/apex.tsx`, from chart files that `disclosures.tsx` loads with `lazy()`, inside sections
+Radix doesn't render until opened. Never import it statically. `.size-limit.cjs`'s unchanged
+115 KB "Initial JavaScript" check is what catches it if someone does, and an e2e test asserts
+no Apex request happens before a section opens. Its animations are off, and
+`src/styles/index.css` holds its injected transitions to opacity. uPlot still draws "The full
+curve".
 
 **No animation library.** The reveal is hand-written on WAAPI in `src/components/animated.tsx`,
 with springs solved in `src/lib/spring.ts` and compiled to CSS `linear()` easings, and the

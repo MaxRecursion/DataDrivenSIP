@@ -103,6 +103,17 @@
 }
 
 
+/*
+ * ApexCharts injects its own stylesheet at runtime, and several of its rules transition "all",
+ * a tooltip's left/top, or background-color — outside CLAUDE.md's transform-and-opacity rule.
+ * Everything inside an Apex canvas is held to opacity here. Its keyframes are already
+ * opacity-only, and chart animations themselves are switched off in charts/apex.tsx.
+ */
+.apexcharts-canvas,
+.apexcharts-canvas * {
+  transition-property: opacity !important;
+}
+
 @layer base {
   html {
     color-scheme: light;

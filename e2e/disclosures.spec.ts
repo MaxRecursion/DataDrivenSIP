@@ -144,3 +144,58 @@ test("opening a section leaves the answer above it alone", async ({ page }) => {
   expect(await page.locator("#answer-heading").textContent()).toBe(before);
   expect(await page.locator("[data-date][data-direction]").count()).toBe(shadedBefore);
 });
+
+/**
+ * The ApexCharts visuals. Apex is the heaviest thing the app can load — more than everything
+ * else put together — so the first claim is that a page nobody opens a section on never
+ * requests it. The rest check the charts agree with the answer, structurally rather than by
+ * pinning a number a nightly refresh would move.
+ */
+const isApex = (url: string) => /\/assets\/(core|bar|radialBar)\.esm-/.test(url);
+
+test("ApexCharts is not requested until a section that uses it is opened", async ({ page }) => {
+  const requested: string[] = [];
+  page.on("request", (request) => requested.push(request.url()));
+
+  await page.goto(`/f/${KOTAK.code}`);
+  await ready(page);
+  await trigger(page, TRIGGERS.curve).click();
+  await expect(page.locator("[data-spread-chart]")).toBeVisible();
+  expect(requested.filter(isApex), "Apex loaded for a section that doesn't use it").toEqual([]);
+
+  await trigger(page, TRIGGERS.confidence).click();
+  await expect(page.locator("[data-chart='confidence'] svg").first()).toBeVisible();
+  expect(requested.some(isApex)).toBe(true);
+});
+
+test("the confidence section draws its gauges and the stretches each date led", async ({ page }) => {
+  const errors = watchForErrors(page);
+  await page.goto(`/f/${KOTAK.code}`);
+  await ready(page);
+  await trigger(page, TRIGGERS.confidence).click();
+
+  await expect(page.locator("[data-chart='confidence'] svg.apexcharts-svg")).toHaveCount(2);
+  await expect(page.locator("[data-chart='stretches-led'] svg.apexcharts-svg")).toHaveCount(1);
+
+  // One column per SIP date, and the one marked is the day the headline names.
+  const items = page.locator("[data-chart='stretches-led'] [data-led-date]");
+  await expect(items).toHaveCount(28);
+  const marked = page.locator("[data-chart='stretches-led'] [data-led-date]", { hasText: "the named day" });
+  await expect(marked).toHaveCount(1);
+  const heading = (await page.locator("#answer-heading").textContent()) ?? "";
+  expect(heading).toContain(String(await marked.getAttribute("data-led-date")));
+  expect(errors).toEqual([]);
+});
+
+test("the what-matters bars set a date's worth beside one missed instalment", async ({ page }) => {
+  const errors = watchForErrors(page);
+  await page.goto(`/f/${KOTAK.code}`);
+  await ready(page);
+  await trigger(page, TRIGGERS.matters).click();
+
+  const chart = page.locator("[data-chart='matters']");
+  await expect(chart.locator("svg.apexcharts-svg")).toHaveCount(1);
+  await expect(chart).toContainText(/Missing one instalment cost ₹[\d,]+/);
+  await expect(chart).toContainText(/Picking the \d+(st|nd|rd|th) over a typical day/);
+  expect(errors).toEqual([]);
+});

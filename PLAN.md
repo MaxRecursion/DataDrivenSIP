@@ -1342,6 +1342,15 @@ How the limits get set:
   - `index.json` ≤ 120 KB
   - each fund JSON ≤ 2 KB
 
+> **Amended 2026-09-22.** "All JavaScript" is now 350 KB, not 180 KB. The user asked for
+> ApexCharts visuals in the disclosure sections and chose to pay for them after seeing the
+> measured cost. Apex's core plus the `bar` and `radialBar` entries come to ~175 KB gzipped,
+> and the total measured 317 KB. All of it is lazy, behind a section a reader has to open, so
+> "Initial JavaScript" stays at 115 KB (measured 100.3 KB), and LCP and CLS are untouched. This
+> is the first time the total budget has been traded for a feature rather than held for
+> speed. It was a decision, not drift: Motion was removed in Phase 6 for costing 67 KB
+> *up front*.
+
 ### LCP < 1.2 s on "Fast 3G"
 
 "Fast 3G" here means Lighthouse's default mobile profile: 150 ms RTT, 1.6 Mbps, 4× CPU. To

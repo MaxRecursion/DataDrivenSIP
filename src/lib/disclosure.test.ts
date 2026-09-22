@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import meta from "../../public/data/meta.json";
 import type { DateResult, FundArtifact } from "../../shared/artifacts";
 import { pickAnswer } from "./answer";
-import { disclosureCopy } from "./disclosure";
+import { disclosureCopy, mattersFigures } from "./disclosure";
 import { formatPp } from "./format";
 const dateAt = (d: number, over: Partial<DateResult> = {}): DateResult => ({
   d,
@@ -252,5 +252,30 @@ describe("copy for real published funds", () => {
         expect(line).not.toMatch(banned);
       }
     }
+  });
+});
+
+describe("mattersFigures", () => {
+  it("is the same pair of numbers the 'What actually matters' sentences print", () => {
+    const dates = Array.from({ length: 28 }, (_, i) =>
+      dateAt(i + 1, { xirr: i === 11 ? 13 : 12, corpus: i === 11 ? 1_000_630 : 1_000_000 }),
+    );
+    const fund = fundWith({ dates });
+    const answer = pickAnswer(fund);
+    const figures = mattersFigures(fund, answer);
+    const [edge, missed] = disclosureCopy(fund, answer).matters;
+
+    expect(figures.edgeRupees).toBe(630);
+    expect(edge).toContain("₹630");
+    expect(missed).toContain(`₹${figures.perInstalment.toLocaleString("en-IN")}`);
+    expect(figures.invested).toBe(fund.instalments * 10_000);
+  });
+
+  it("keeps a negative edge negative, so a chart can say 'less' instead of inventing a gain", () => {
+    const dates = Array.from({ length: 28 }, (_, i) =>
+      dateAt(i + 1, { xirr: i === 11 ? 13 : 12, corpus: i === 11 ? 999_000 : 1_000_000 }),
+    );
+    const fund = fundWith({ dates });
+    expect(mattersFigures(fund, pickAnswer(fund)).edgeRupees).toBe(-1000);
   });
 });

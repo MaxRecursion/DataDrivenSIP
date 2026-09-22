@@ -5,6 +5,7 @@ import {
   formatPercentOfValue,
   formatPp,
   formatRupees,
+  formatRupeesAxis,
   formatXirr,
   formatYears,
   formatYearsOfMonths,
@@ -226,5 +227,15 @@ describe("formatYears", () => {
   it("rejects anything that isn't YYYY-MM-DD", () => {
     expect(() => formatYears("2013-1-3", "2026-09-15")).toThrow();
     expect(() => formatYears("2013-01-03", "15 September 2026")).toThrow();
+  });
+});
+
+describe("formatRupeesAxis", () => {
+  it("shortens thousands to k and lakhs to L, so five ticks fit on a phone", () => {
+    expect(formatRupeesAxis(40_000)).toBe("₹40k");
+    expect(formatRupeesAxis(125_000)).toBe("₹1.3L");
+    expect(formatRupeesAxis(100_000)).toBe("₹1L");
+    expect(formatRupeesAxis(0)).toBe("₹0");
+    expect(formatRupeesAxis(-9_990)).toBe("−₹10k");
   });
 });

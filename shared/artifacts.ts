@@ -66,6 +66,16 @@ export type FundArtifact = {
 /** One row of public/data/index.json. Rows are in scheme-code order, never ordered by a metric. */
 export type IndexRow = [code: number, name: string, house: string, category: string];
 
+/** One row of public/data/trending.json: a fund and its NAV change over the past month. */
+export type TrendingRow = { code: number; name: string; house: string; monthPct: number };
+
+/**
+ * public/data/trending.json — the funds whose NAV rose most over the past month, shown when the
+ * search box is focused empty. `basis` is shown to the reader, because "trending" here means
+ * price momentum, never popularity: nothing in this project counts visits.
+ */
+export type Trending = { navAsOf: string; basis: string; funds: TrendingRow[] };
+
 /** public/data/meta.json */
 export type Meta = {
   builtAt: string;

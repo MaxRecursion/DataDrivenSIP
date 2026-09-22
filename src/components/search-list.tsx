@@ -3,7 +3,9 @@
  * list; the input and its keyboard handling stay in FundSearch so nothing swaps under the
  * reader's caret mid-typing.
  *
- * Rows are ordered by text relevance only, never by any metric (CLAUDE.md).
+ * Search matches are ordered by text relevance only. The one ranked list is the trending list
+ * shown for an empty field, ordered by NAV change over the past month and labelled as such —
+ * ranking funds was allowed from 2026-09-22 (CLAUDE.md).
  */
 import { Command } from "cmdk";
 import type { IndexRow } from "../../shared/artifacts";
@@ -14,11 +16,23 @@ type SearchListProps = {
   highlighted: number;
   onHighlight: (index: number) => void;
   onChoose: (row: IndexRow) => void;
+  /** Shown above the rows, saying what a ranked list is ranked by. */
+  heading?: string | undefined;
+  /** A short figure per fund code, shown on the row's right (the trending list's change). */
+  notes?: ReadonlyMap<number, string> | undefined;
 };
 
 const identity = (row: IndexRow) => `${row[1]}|${row[2]}|${row[3]}`;
 
-export default function SearchList({ query, results, highlighted, onHighlight, onChoose }: SearchListProps) {
+export default function SearchList({
+  query,
+  results,
+  highlighted,
+  onHighlight,
+  onChoose,
+  heading,
+  notes,
+}: SearchListProps) {
   const active = results[highlighted];
 
   // Three pairs of schemes share a name, house and category exactly. They are different
@@ -30,11 +44,16 @@ export default function SearchList({ query, results, highlighted, onHighlight, o
   return (
     <Command
       shouldFilter={false}
-      label="Matching funds"
+      label={heading ?? "Matching funds"}
       value={active ? String(active[0]) : ""}
       className="mt-2 overflow-hidden rounded-xl border border-line bg-raised"
       id="fund-search-results"
     >
+      {heading ? (
+        <p data-list-heading className="border-b border-line px-4 pt-3 pb-2 text-xs text-mute-text">
+          {heading}
+        </p>
+      ) : null}
       <Command.List className="max-h-80 overflow-y-auto py-1">
         {results.length === 0 ? (
           <Command.Empty className="px-4 py-3 text-sm text-mute-text">
@@ -51,9 +70,20 @@ export default function SearchList({ query, results, highlighted, onHighlight, o
             className="cursor-pointer px-4 py-2 data-[selected=true]:bg-surface"
           >
             <span className="block text-ink">{row[1]}</span>
-            <span className="block text-sm text-mute-text">
-              {row[2]}, {row[3]}
-              {ambiguous.has(identity(row)) ? ` · code ${row[0]}` : ""}
+            {/* The change sits on the house line, so a long fund name keeps the full width. */}
+            <span className="flex items-baseline justify-between gap-3 text-sm text-mute-text">
+              <span>
+                {row[3] ? `${row[2]}, ${row[3]}` : row[2]}
+                {ambiguous.has(identity(row)) ? `, code ${row[0]}` : ""}
+              </span>
+              {notes?.has(row[0]) ? (
+                <span
+                  data-trend-change
+                  className={`tabular shrink-0 font-medium ${notes.get(row[0])?.startsWith("−") ? "text-loss" : "text-teal"}`}
+                >
+                  {notes.get(row[0])}
+                </span>
+              ) : null}
             </span>
           </Command.Item>
         ))}

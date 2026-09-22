@@ -177,3 +177,14 @@ export function formatRupeesAxis(rupees: number): string {
   if (magnitude >= 1_000) return `${sign}₹${Math.round(magnitude / 1_000)}k`;
   return `${sign}₹${Math.round(magnitude)}`;
 }
+
+/**
+ * A month's NAV change for the trending list: "+4.3%", "−1.2%", "0.0%". One decimal is all a
+ * list needs, and the sign always shows, since "up" is the whole claim the list makes.
+ */
+export function formatSignedPercent(percent: number): string {
+  assertFinite(percent);
+  const rounded = Number(percent.toFixed(1));
+  if (rounded === 0) return "0.0%";
+  return `${rounded > 0 ? "+" : "−"}${Math.abs(rounded).toFixed(1)}%`;
+}

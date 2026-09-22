@@ -1,5 +1,14 @@
 # SIP Date Planner — design and implementation plan
 
+> ## Amendment, 2026-09-22 — funds may be ranked, in one place
+>
+> The user lifted "no fund ranking, ever" for the search box: clicking the empty field shows the
+> five funds whose NAV rose most over the past month. There is no usage data anywhere in this
+> project, so "trending" is price momentum, labelled as such, never popularity. Computed nightly
+> by `pipeline/analysis/momentum.ts` (tested, pure), written to `/data/trending.json`, and
+> limited to funds actually priced on `navAsOf`, so a fund that stopped publishing can't top it
+> on a stale number. Fund artifacts are unchanged, so criterion 3's golden Kotak fixture is too.
+
 
 > ## Amendment, 2026-09-21 — the product changed
 >

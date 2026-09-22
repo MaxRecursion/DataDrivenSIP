@@ -8,7 +8,9 @@
 import { createHash } from "node:crypto";
 import { mkdir, readdir, rename, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { FundArtifact, IndexRow, Meta } from "../shared/artifacts";
+import type { FundArtifact, IndexRow, Meta, Trending } from "../shared/artifacts";
+import { dayFromIso } from "./analysis/dates";
+import { topMovers, type Momentum } from "./analysis/momentum";
 import { checkArtifactSize, checkIndexSize, validateArtifact } from "./validate";
 
 export type WriteOptions = {
@@ -21,6 +23,8 @@ export type WriteOptions = {
    */
   keepVersions?: number;
   source?: string;
+  /** Each fund's month-on-month NAV change, for trending.json. Absent means none is written. */
+  momentum?: readonly Momentum[];
 };
 
 export type WriteResult = {
@@ -54,7 +58,7 @@ function navAsOfFrom(artifacts: readonly FundArtifact[]): string {
 }
 
 export async function writeArtifacts(outDir: string, options: WriteOptions): Promise<WriteResult> {
-  const { artifacts, builtAt, pipelineVersion, keepVersions = 3, source = "mfapi.in" } = options;
+  const { artifacts, builtAt, pipelineVersion, keepVersions = 3, source = "mfapi.in", momentum } = options;
   if (artifacts.length === 0) throw new Error("Refusing to publish an empty data set");
 
   const sorted = [...artifacts].sort((a, b) => a.code - b.code);
@@ -91,6 +95,20 @@ export async function writeArtifacts(outDir: string, options: WriteOptions): Pro
   const meta: Meta = { builtAt, fundCount: sorted.length, navAsOf, pipelineVersion, dataVersion, source };
   // Written through a temp file and renamed, so a reader never sees half an index.
   await writeAtomic(join(outDir, "index.json"), indexJson);
+  if (momentum) {
+    // Only funds that are published, and priced on navAsOf itself — see analysis/momentum.ts.
+    const byCode = new Map(sorted.map((artifact) => [artifact.code, artifact]));
+    const published = momentum.filter((entry) => byCode.has(entry.code));
+    const trending: Trending = {
+      navAsOf,
+      basis: "NAV change over the past month",
+      funds: topMovers(published, dayFromIso(navAsOf)).map((entry) => {
+        const artifact = byCode.get(entry.code)!;
+        return { code: entry.code, name: artifact.name, house: artifact.house, monthPct: entry.monthPct };
+      }),
+    };
+    await writeAtomic(join(outDir, "trending.json"), `${JSON.stringify(trending)}\n`);
+  }
   await writeAtomic(join(outDir, "meta.json"), `${JSON.stringify(meta, null, 2)}\n`);
 
   const older = (await readdir(outDir, { withFileTypes: true }))

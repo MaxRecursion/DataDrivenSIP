@@ -103,3 +103,32 @@ test.describe("the landing page", () => {
     await page.screenshot({ path: `${OUT}/390-landing.png`, fullPage: true });
   });
 });
+
+test.describe("the trending list", () => {
+  test.use({ viewport: { width: 390, height: 900 } });
+
+  test("opened from the empty field", async ({ page }) => {
+    // Its own fixed figures: trending.json is nightly data, and a shot should show the design.
+    await page.route("**/data/trending.json", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          navAsOf: "2026-09-18",
+          basis: "NAV change over the past month",
+          funds: [
+            { code: 140327, name: "Edelweiss Emerging Markets Opportunities Equity Offshore Fund - Direct Plan - Growth", house: "Edelweiss Mutual Fund", monthPct: 1.703 },
+            { code: 148063, name: "Edelweiss US Technology Equity Fund of Fund - Direct Plan - Growth", house: "Edelweiss Mutual Fund", monthPct: 1.575 },
+            { code: 139527, name: "BANK OF INDIA AGGRESSIVE HYBRID FUND - Direct Plan - Growth", house: "Bank of India Mutual Fund", monthPct: 1.267 },
+            { code: 119588, name: "Sundaram Small Cap Fund - Direct Plan - GROWTH", house: "Sundaram Mutual Fund", monthPct: 0.901 },
+            { code: 125497, name: "SBI SMALL CAP FUND - Direct Plan - Growth", house: "SBI Mutual Fund", monthPct: -0.672 },
+          ],
+        }),
+      }),
+    );
+    await page.goto("/");
+    await page.getByRole("combobox", { name: "Search for a fund" }).click();
+    await expect(page.getByRole("option")).toHaveCount(5);
+    await page.screenshot({ path: `${OUT}/390-trending.png` });
+  });
+});

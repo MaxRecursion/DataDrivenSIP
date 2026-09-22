@@ -6,6 +6,7 @@ import {
   formatPp,
   formatRupees,
   formatRupeesAxis,
+  formatSignedPercent,
   formatXirr,
   formatYears,
   formatYearsOfMonths,
@@ -237,5 +238,14 @@ describe("formatRupeesAxis", () => {
     expect(formatRupeesAxis(100_000)).toBe("₹1L");
     expect(formatRupeesAxis(0)).toBe("₹0");
     expect(formatRupeesAxis(-9_990)).toBe("−₹10k");
+  });
+});
+
+describe("formatSignedPercent", () => {
+  it("always shows the sign, uses a real minus, and never prints a signed zero", () => {
+    expect(formatSignedPercent(4.25)).toBe("+4.3%");
+    expect(formatSignedPercent(-1.24)).toBe("−1.2%");
+    expect(formatSignedPercent(0.04)).toBe("0.0%");
+    expect(formatSignedPercent(-0.04)).toBe("0.0%");
   });
 });

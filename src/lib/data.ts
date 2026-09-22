@@ -5,7 +5,7 @@
  * build and can be cached hard. Workers answers an unknown data path with the app shell and
  * a 200, so anything that isn't JSON means "not covered" rather than an error.
  */
-import type { FundArtifact, IndexRow, Meta } from "../../shared/artifacts";
+import type { FundArtifact, IndexRow, Meta, Trending } from "../../shared/artifacts";
 
 export type FundResult = { ok: true; fund: FundArtifact } | { ok: false; reason: "not-covered" | "unavailable" };
 
@@ -101,11 +101,33 @@ export function loadIndex(fetcher: typeof fetch = fetch): Promise<IndexRow[]> {
   return indexRequest;
 }
 
+let trendingRequest: Promise<Trending | null> | null = null;
+
+/**
+ * The funds whose NAV rose most over the past month (pipeline/analysis/momentum.ts). Loaded
+ * the first time a reader opens the empty search box, never on page load. Null when the file
+ * is missing or isn't JSON — a missing file answers with the app shell and a 200 (PLAN.md D20).
+ */
+export function loadTrending(fetcher: typeof fetch = fetch): Promise<Trending | null> {
+  trendingRequest ??= (async () => {
+    try {
+      const response = await fetcher("/data/trending.json");
+      if (!isJson(response)) return null;
+      const trending = (await response.json()) as Trending;
+      return Array.isArray(trending.funds) ? trending : null;
+    } catch {
+      return null;
+    }
+  })();
+  return trendingRequest;
+}
+
 /** Tests only. */
 export function resetDataCache(): void {
   version = null;
   versionRequest = null;
   indexRequest = null;
+  trendingRequest = null;
   funds.clear();
   seeded.clear();
 }

@@ -17,6 +17,9 @@ test("home renders the question and the compliance footer without errors", async
     "Educational tool. Not investment advice. Past performance does not indicate future results.",
   );
   await expect(footer).toContainText("Not registered with SEBI.");
+  await expect(
+    footer.getByRole("link", { name: /Product Hunt/ }),
+  ).toHaveAttribute("href", /producthunt\.com\/products\/sip-date-planner/);
   expect(errors).toEqual([]);
 });
 

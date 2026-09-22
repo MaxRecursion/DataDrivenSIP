@@ -8,7 +8,7 @@
 import { createHash } from "node:crypto";
 import { mkdir, readdir, rename, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { FundArtifact, IndexRow, Meta, Trending } from "../shared/artifacts";
+import { indexRowFrom, type FundArtifact, type IndexRow, type Meta, type Trending } from "../shared/artifacts";
 import { dayFromIso } from "./analysis/dates";
 import { topMovers, type Momentum } from "./analysis/momentum";
 import { checkArtifactSize, checkIndexSize, validateArtifact } from "./validate";
@@ -76,7 +76,7 @@ export async function writeArtifacts(outDir: string, options: WriteOptions): Pro
 
   // Everything that can fail happens before a single file is written, so a rejected run never
   // leaves a half-built version directory behind for pruning to trip over.
-  const index: IndexRow[] = sorted.map((artifact) => [artifact.code, artifact.name, artifact.house, artifact.category]);
+  const index: IndexRow[] = sorted.map(indexRowFrom);
   const indexJson = JSON.stringify(index);
   const indexIssues = checkIndexSize(indexJson);
   if (indexIssues.length > 0) throw new Error(indexIssues.map((issue) => issue.problem).join("; "));

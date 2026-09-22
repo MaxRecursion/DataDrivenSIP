@@ -6,15 +6,17 @@
  * keystroke, never on page load, and the highlighted fund's data is prefetched so choosing
  * it feels instant.
  *
- * Clicked (or arrowed into) while empty, it shows the funds whose NAV rose most over the past
- * month (trending.json). Not on focus: the home page autofocuses this field, and a list that
- * opened on arrival would cover the page before anyone asked for it.
+ * Clicked (or arrowed into) while empty, it shows recently opened funds, then the funds whose
+ * NAV rose most over the past month (trending.json). Not on focus: the home page autofocuses
+ * this field, and a list that opened on arrival would cover the page before anyone asked.
  */
 import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
-import type { IndexRow, Trending } from "../../shared/artifacts";
+import { indexRowFrom, type IndexRow, type Trending } from "../../shared/artifacts";
 import { loadIndex, loadTrending, prefetchFund } from "../lib/data";
-import { formatSignedPercent } from "../lib/format";
+import { verdictLabel } from "../lib/compare";
+import { formatPp, formatSignedPercent } from "../lib/format";
+import { readRecents } from "../lib/memory";
 import { searchFunds } from "../lib/search";
 import { fundPath } from "../lib/url";
 
@@ -29,6 +31,7 @@ export function FundSearch({ autoFocus = false }: { autoFocus?: boolean }) {
   const [open, setOpen] = useState(false);
   /** Non-null while the list is showing trending funds rather than search matches. */
   const [trending, setTrending] = useState<Trending | null>(null);
+  const [recentCount, setRecentCount] = useState(0);
 
   const index = useRef<IndexRow[] | null>(null);
   const pending = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -45,6 +48,7 @@ export function FundSearch({ autoFocus = false }: { autoFocus?: boolean }) {
       const rows = await ensureIndex();
       const hits = searchFunds(rows, value);
       setTrending(null);
+      setRecentCount(0);
       setResults(hits);
       setHighlighted(0);
       // Warm the fund the reader is most likely to choose.
@@ -63,23 +67,45 @@ export function FundSearch({ autoFocus = false }: { autoFocus?: boolean }) {
   );
 
   /** The empty field's list: trending funds, shaped as index rows so keyboard handling is shared. */
-  const showTrending = useCallback(async () => {
+  const showEmpty = useCallback(async () => {
+    const recents = readRecents();
     const loaded = await loadTrending();
-    if (!loaded || loaded.funds.length === 0) return;
-    // The reader may have started typing while the file was in flight; their query wins.
     if (input.current && input.current.value.trim().length > 0) return;
+
+    const recentRows: IndexRow[] = recents.map((row) =>
+      row.verdict !== undefined && row.spreadPp !== undefined
+        ? indexRowFrom({
+            code: row.code,
+            name: row.name,
+            house: row.house,
+            category: row.category,
+            verdict: row.verdict,
+            spreadPp: row.spreadPp,
+          })
+        : [row.code, row.name, row.house, row.category],
+    );
+    const seen = new Set(recentRows.map((row) => row[0]));
+    const trendRows: IndexRow[] =
+      loaded?.funds
+        .filter((row) => !seen.has(row.code))
+        .map((row) => [row.code, row.name, row.house, ""]) ?? [];
+
+    if (recentRows.length === 0 && (!loaded || loaded.funds.length === 0)) return;
+
     setTrending(loaded);
-    setResults(loaded.funds.map((row): IndexRow => [row.code, row.name, row.house, ""]));
+    setRecentCount(recentRows.length);
+    setResults([...recentRows, ...trendRows]);
     setHighlighted(0);
     setOpen(true);
-    const first = loaded.funds[0];
-    if (first) prefetchFund(first.code);
+    const first = recentRows[0] ?? trendRows[0];
+    if (first) prefetchFund(first[0]);
   }, []);
 
   const onChange = (value: string) => {
     setQuery(value);
     // Typing replaces the trending list at once, not after the debounce.
     setTrending(null);
+    setRecentCount(0);
     setOpen(value.trim().length > 0);
     if (pending.current) clearTimeout(pending.current);
     if (value.trim().length === 0) {
@@ -92,7 +118,7 @@ export function FundSearch({ autoFocus = false }: { autoFocus?: boolean }) {
   const onKeyDown = async (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "ArrowDown" && !open && query.trim().length === 0) {
       event.preventDefault();
-      void showTrending();
+      void showEmpty();
       return;
     }
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
@@ -150,7 +176,7 @@ export function FundSearch({ autoFocus = false }: { autoFocus?: boolean }) {
         onKeyDown={(event) => void onKeyDown(event)}
         onFocus={() => setOpen(query.trim().length > 0)}
         onClick={() => {
-          if (query.trim().length === 0) void showTrending();
+          if (query.trim().length === 0) void showEmpty();
         }}
         role="combobox"
         aria-expanded={open}
@@ -164,11 +190,24 @@ export function FundSearch({ autoFocus = false }: { autoFocus?: boolean }) {
             query={query}
             results={results}
             heading={trending ? "Trending: biggest NAV gains over the past month" : undefined}
-            notes={
-              trending
-                ? new Map(trending.funds.map((row) => [row.code, `${formatSignedPercent(row.monthPct)} in a month`]))
-                : undefined
-            }
+            recentCount={recentCount}
+            notes={(() => {
+              const notes = new Map<number, string>();
+              for (const row of results) {
+                if (row[4] !== undefined && typeof row[5] === "number") {
+                  notes.set(row[0], `${verdictLabel(row[4])} · ${formatPp(row[5])}`);
+                }
+              }
+              if (trending) {
+                const recentCodes = new Set(results.slice(0, recentCount).map((row) => row[0]));
+                for (const row of trending.funds) {
+                  if (!recentCodes.has(row.code)) {
+                    notes.set(row.code, `${formatSignedPercent(row.monthPct)} in a month`);
+                  }
+                }
+              }
+              return notes.size > 0 ? notes : undefined;
+            })()}
             highlighted={highlighted}
             onHighlight={setHighlighted}
             onChoose={choose}

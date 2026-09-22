@@ -16,8 +16,12 @@ import { useEffect, useState } from "react";
 import { useNavigationType, useParams } from "react-router";
 import type { FundArtifact } from "../../shared/artifacts";
 import { ANSWER_HEADING_ID, AnswerBlock } from "../components/answer-block";
+import { CopyAnswer } from "../components/copy-answer";
 import { GlanceStrip } from "../components/glance-strip";
 import { HeroGrid } from "../components/hero-grid";
+import { SipDaySelect } from "../components/sip-day-select";
+import { StickyAnswer } from "../components/sticky-answer";
+import { TodayLine } from "../components/today-line";
 /**
  * Imported eagerly, against §6.5's "lazy chunk", on a measurement: the sections come to 1.79 kB
  * gzipped, not the ~7 kB the budget assumed. Lazy-loading them put a Suspense boundary into the
@@ -28,8 +32,10 @@ import { HeroGrid } from "../components/hero-grid";
  */
 import { ConfidenceSection, CurveSection, MattersSection } from "../components/disclosures";
 import { pickAnswer } from "../lib/answer";
+import { compareDayCopy, stickyCopy } from "../lib/compare";
 import { disclosureCopy } from "../lib/disclosure";
 import { heatSpanPp } from "../lib/heat";
+import { readSipDay, rememberFund, writeSipDay } from "../lib/memory";
 import { useReveal } from "../lib/use-reveal";
 import { useWide } from "../lib/use-wide";
 import { answerCopy } from "../lib/copy";
@@ -133,6 +139,28 @@ export function FundPage() {
    * place from the first paint. Called here, before the early returns, because it is a hook.
    */
   const wide = useWide();
+  const [compareDay, setCompareDay] = useState<number | null>(null);
+
+  useEffect(() => {
+    setCompareDay(readSipDay());
+  }, [code]);
+
+  useEffect(() => {
+    if (state.status !== "ready") return;
+    rememberFund({
+      code: state.fund.code,
+      name: state.fund.name,
+      house: state.fund.house,
+      category: state.fund.category,
+      verdict: state.fund.verdict,
+      spreadPp: state.fund.spreadPp,
+    });
+  }, [state]);
+
+  const pickCompareDay = (day: number) => {
+    writeSipDay(day);
+    setCompareDay(day);
+  };
 
   if (state.status === "loading") {
     // The window comes from the URL, not the fund, so the grid is already correct and already
@@ -190,8 +218,11 @@ export function FundPage() {
   // date, which is a clock read, so the grid resolves it after mount and derives the heat there;
   // computing it here would bake the build machine's date into 994 prerendered pages.
   const values = new Map(state.fund.dates.map((row) => [row.d, row.xirr]));
+  const corpora = new Map(state.fund.dates.map((row) => [row.d, row.corpus]));
   const spanPp = heatSpanPp(values);
   const disclosure = disclosureCopy(state.fund, answer);
+  const compareRow = compareDay === null ? undefined : state.fund.dates.find((row) => row.d === compareDay);
+  const compareText = compareRow ? compareDayCopy(answer.result, compareRow) : undefined;
 
   /*
    * One DOM for every width. Below 2xl the three column wrappers are `display: contents`, so
@@ -202,7 +233,7 @@ export function FundPage() {
    */
   const sections = { fund: state.fund, answer, copy: disclosure, open: wide };
   return (
-    <section className="flex flex-col 2xl:grid 2xl:grid-cols-4 2xl:items-start 2xl:gap-x-10">
+    <section className="flex flex-col pb-16 2xl:grid 2xl:grid-cols-4 2xl:items-start 2xl:gap-x-10 2xl:pb-0">
       <div className="contents 2xl:block">
         <div className="order-1 2xl:order-none">
           <h1 className="font-display text-2xl leading-snug font-bold text-balance">{state.fund.name}</h1>
@@ -213,7 +244,10 @@ export function FundPage() {
           <HeroGrid
             answer={answer.date}
             values={values}
+            corpora={corpora}
             spanPp={spanPp}
+            selected={compareDay}
+            onSelectDay={pickCompareDay}
             reveal={reveal}
             className="mt-6 2xl:mt-4"
           />
@@ -223,7 +257,16 @@ export function FundPage() {
 
       <div className="contents 2xl:block">
         <div className="order-3 2xl:order-none [&>section]:2xl:mt-0">
-          <AnswerBlock copy={copy} answerDate={answer.date} reveal={reveal} />
+          <AnswerBlock
+            copy={copy}
+            answerDate={answer.date}
+            verdict={state.fund.verdict}
+            compareText={compareText}
+            reveal={reveal}
+          />
+          <TodayLine named={answer.result} dates={state.fund.dates} />
+          <SipDaySelect value={compareDay} onChange={pickCompareDay} />
+          <CopyAnswer fund={state.fund} answer={answer} />
         </div>
         <div className="order-4 mt-10 2xl:order-none 2xl:mt-4">
           <CurveSection {...sections} />
@@ -238,6 +281,7 @@ export function FundPage() {
           <MattersSection {...sections} />
         </div>
       </div>
+      <StickyAnswer text={stickyCopy(state.fund, answer)} />
     </section>
   );
 }

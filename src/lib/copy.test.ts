@@ -56,7 +56,9 @@ const allStrings = (copy: ReturnType<typeof answerCopy>) => [
   copy.headline,
   ...copy.caveats,
   copy.rupeeLine,
+  copy.mattersGlance,
   copy.srSummary,
+  ...(copy.xirrExtremes ? [copy.xirrExtremes] : []),
 ];
 
 // ---------------------------------------------------------------------------------------------
@@ -282,6 +284,7 @@ describe("the rupee line", () => {
     );
     expect(copy.rupeeLine).toContain("(the 5th and 9th)");
     expect(copy.rupeeLine).not.toContain("26th");
+    expect(copy.xirrExtremes).toBe("The highest and lowest XIRR were on the 26th and the 1st.");
   });
 
   it("reads as one sentence with the notional amount, the base and the span all stated", () => {

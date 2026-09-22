@@ -63,8 +63,24 @@ export type FundArtifact = {
   trimmedFrom?: string;
 };
 
-/** One row of public/data/index.json. Rows are in scheme-code order, never ordered by a metric. */
-export type IndexRow = [code: number, name: string, house: string, category: string];
+/**
+ * One row of public/data/index.json. Rows are in scheme-code order, never ordered by a metric.
+ * The last two fields are labels only — search still ranks by text match (CLAUDE.md).
+ */
+export type IndexRow = [
+  code: number,
+  name: string,
+  house: string,
+  category: string,
+  verdict?: Verdict,
+  spreadPp?: number,
+];
+
+export function indexRowFrom(
+  artifact: Pick<FundArtifact, "code" | "name" | "house" | "category" | "verdict" | "spreadPp">,
+): IndexRow {
+  return [artifact.code, artifact.name, artifact.house, artifact.category, artifact.verdict, artifact.spreadPp];
+}
 
 /** One row of public/data/trending.json: a fund and its NAV change over the past month. */
 export type TrendingRow = { code: number; name: string; house: string; monthPct: number };

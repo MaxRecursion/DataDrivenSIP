@@ -8,6 +8,7 @@
  * ranking funds was allowed from 2026-09-22 (CLAUDE.md).
  */
 import { Command } from "cmdk";
+import { Fragment } from "react";
 import type { IndexRow } from "../../shared/artifacts";
 
 type SearchListProps = {
@@ -18,6 +19,8 @@ type SearchListProps = {
   onChoose: (row: IndexRow) => void;
   /** Shown above the rows, saying what a ranked list is ranked by. */
   heading?: string | undefined;
+  /** How many leading rows are recents, so they can carry their own heading. */
+  recentCount?: number;
   /** A short figure per fund code, shown on the row's right (the trending list's change). */
   notes?: ReadonlyMap<number, string> | undefined;
 };
@@ -31,6 +34,7 @@ export default function SearchList({
   onHighlight,
   onChoose,
   heading,
+  recentCount = 0,
   notes,
 }: SearchListProps) {
   const active = results[highlighted];
@@ -49,7 +53,11 @@ export default function SearchList({
       className="mt-2 overflow-hidden rounded-xl border border-line bg-raised"
       id="fund-search-results"
     >
-      {heading ? (
+      {recentCount > 0 ? (
+        <p data-list-heading className="border-b border-line px-4 pt-3 pb-2 text-xs text-mute-text">
+          Recently opened
+        </p>
+      ) : heading ? (
         <p data-list-heading className="border-b border-line px-4 pt-3 pb-2 text-xs text-mute-text">
           {heading}
         </p>
@@ -62,30 +70,39 @@ export default function SearchList({
         ) : null}
 
         {results.map((row, index) => (
-          <Command.Item
-            key={row[0]}
-            value={String(row[0])}
-            onSelect={() => onChoose(row)}
-            onPointerMove={() => onHighlight(index)}
-            className="cursor-pointer px-4 py-2 data-[selected=true]:bg-surface"
-          >
-            <span className="block text-ink">{row[1]}</span>
-            {/* The change sits on the house line, so a long fund name keeps the full width. */}
-            <span className="flex items-baseline justify-between gap-3 text-sm text-mute-text">
-              <span>
-                {row[3] ? `${row[2]}, ${row[3]}` : row[2]}
-                {ambiguous.has(identity(row)) ? `, code ${row[0]}` : ""}
-              </span>
-              {notes?.has(row[0]) ? (
-                <span
-                  data-trend-change
-                  className={`tabular shrink-0 font-medium ${notes.get(row[0])?.startsWith("−") ? "text-loss" : "text-teal"}`}
-                >
-                  {notes.get(row[0])}
+          <Fragment key={row[0]}>
+            {index === recentCount && recentCount > 0 && heading ? (
+              <p className="border-t border-line px-4 pt-3 pb-2 text-xs text-mute-text">{heading}</p>
+            ) : null}
+            <Command.Item
+              value={String(row[0])}
+              onSelect={() => onChoose(row)}
+              onPointerMove={() => onHighlight(index)}
+              className="cursor-pointer px-4 py-2 data-[selected=true]:bg-surface"
+            >
+              <span className="block text-ink">{row[1]}</span>
+              <span className="flex items-baseline justify-between gap-3 text-sm text-mute-text">
+                <span>
+                  {row[3] ? `${row[2]}, ${row[3]}` : row[2]}
+                  {ambiguous.has(identity(row)) ? `, code ${row[0]}` : ""}
                 </span>
-              ) : null}
-            </span>
-          </Command.Item>
+                {notes?.has(row[0]) ? (
+                  <span
+                    data-trend-change={notes.get(row[0])?.includes("%") ? "" : undefined}
+                    className={`tabular shrink-0 font-medium ${
+                      notes.get(row[0])?.startsWith("−")
+                        ? "text-loss"
+                        : notes.get(row[0])?.includes("%")
+                          ? "text-teal"
+                          : "text-mute-text"
+                    }`}
+                  >
+                    {notes.get(row[0])}
+                  </span>
+                ) : null}
+              </span>
+            </Command.Item>
+          </Fragment>
         ))}
       </Command.List>
     </Command>

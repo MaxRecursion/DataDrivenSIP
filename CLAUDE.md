@@ -23,7 +23,7 @@ Two halves that never mix:
 - The answer is the highest full-history XIRR of the 28, ties going to the earliest date
 - `verdict: "noise"` is a correct result — never tune thresholds to avoid it
 - Animate transform and opacity only
-- No fund ranking, ever
+- Funds are ranked in exactly one place: the trending list (see below)
 
 ## What those mean in practice
 
@@ -43,10 +43,16 @@ Two halves that never mix:
   shadow/height transitions or keyframes. Colour fills and rings are pre-painted overlays
   whose opacity animates. State changes that aren't animated are fine.
 - Under `prefers-reduced-motion: reduce` the reveal sequence doesn't run at all.
-- No ranking, sorting or comparing funds by returns anywhere: UI, copy, index order, URLs,
-  metadata. Never write "best fund", "top performing" or "recommended fund". "Best" is fine of a
-  DAY — it is the question the product asks — and `scripts/check-rules.ts` draws exactly that
-  line. Typeahead results are ordered by text-match relevance only.
+- **Ranking funds was allowed on 2026-09-22, by the user, for one feature.** Until then "no
+  fund ranking, ever" was a non-negotiable. The one ranked list is the search box's trending
+  list: the five funds whose NAV rose most over the past month, computed nightly
+  (`pipeline/analysis/momentum.ts`), written to `/data/trending.json`, and shown only when the
+  empty field is clicked. It is labelled with what it measures ("biggest NAV gains over the
+  past month"), because nothing in this project counts visits, so "trending" can never honestly
+  mean popular. Everything else stays unranked: typed search matches are ordered by text
+  relevance only, and the fund page never compares funds. Copy still never says "best fund",
+  "top performing" or "recommended fund" — `scripts/check-rules.ts` still bans those, and
+  "best" stays fine of a DAY.
 - The URL is `/f/{code}` and carries no state beyond which fund is shown. No Redux, Zustand,
   React Query, analytics SDKs or auth.
 - The compliance footer and visible `navAsOf` appear on every page.

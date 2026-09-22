@@ -2,7 +2,8 @@ import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFil
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import type { FundArtifact, IndexRow, Meta } from "../shared/artifacts";
+import type { FundArtifact, IndexRow, Meta, Trending } from "../shared/artifacts";
+import { dayFromIso } from "./analysis/dates";
 import { writeArtifacts } from "./write";
 
 const kotak = JSON.parse(
@@ -75,5 +76,36 @@ describe("writeArtifacts", () => {
   it("refuses to write an artifact that fails validation", async () => {
     const broken = { ...kotak, verdict: "excellent" } as unknown as FundArtifact;
     await expect(writeArtifacts(out(), { artifacts: [broken], ...options })).rejects.toThrow(/valid/i);
+  });
+});
+
+describe("trending.json", () => {
+  it("ranks published funds priced on navAsOf by their month's change, and names them", async () => {
+    const dir = out();
+    const navAsOf = kotak.navTo;
+    const today = dayFromIso(navAsOf);
+    await writeArtifacts(dir, {
+      artifacts: [quant, kotak],
+      ...options,
+      momentum: [
+        { code: 151713, lastDay: today, monthPct: 1.5 },
+        { code: 119775, lastDay: today, monthPct: 4.25 },
+        // Not a published fund, so it can't appear however large its number.
+        { code: 999999, lastDay: today, monthPct: 80 },
+      ],
+    });
+
+    const trending = JSON.parse(readFileSync(join(dir, "trending.json"), "utf8")) as Trending;
+    expect(trending.basis).toBe("NAV change over the past month");
+    expect(trending.funds.map((row) => row.code)).toEqual(
+      quant.navTo === navAsOf ? [119775, 151713] : [119775],
+    );
+    expect(trending.funds[0]).toEqual({ code: 119775, name: kotak.name, house: kotak.house, monthPct: 4.25 });
+  });
+
+  it("writes no trending.json when no momentum was measured", async () => {
+    const dir = out();
+    await writeArtifacts(dir, { artifacts: [kotak], ...options });
+    expect(existsSync(join(dir, "trending.json"))).toBe(false);
   });
 });

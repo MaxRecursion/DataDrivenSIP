@@ -94,7 +94,7 @@ export function AnswerBlock({ copy, answerDate, verdict, compareText, reveal = n
        * it push the rupee line, the controls and the footer down.
        */}
       {/* Marked so the e2e suite can find the qualifying sentence apart from the heading. */}
-      <p data-answer-copy className="mt-4 min-h-[6.5rem] leading-relaxed text-ink sm:min-h-[4.875rem]">
+      <p data-answer-copy className="mt-4 min-h-[6.5rem] leading-relaxed text-ink sm:min-h-[4.875rem] 2xl:min-h-0">
         {copy.headline}
       </p>
 
@@ -104,10 +104,10 @@ export function AnswerBlock({ copy, answerDate, verdict, compareText, reveal = n
         </p>
       ) : null}
 
-      <p className="mt-3 text-sm leading-relaxed text-mute-text">{copy.mattersGlance}</p>
+      <p className="mt-3 text-sm leading-relaxed text-mute-text 2xl:hidden">{copy.mattersGlance}</p>
 
       {copy.caveats.map((caveat) => (
-        <p key={caveat} className="mt-3 text-sm leading-relaxed text-mute-text">
+        <p key={caveat} className="mt-3 text-sm leading-relaxed text-mute-text 2xl:mt-2">
           {caveat}
         </p>
       ))}
@@ -126,7 +126,7 @@ export function AnswerBlock({ copy, answerDate, verdict, compareText, reveal = n
         {copy.rupeeAfter}
       </p>
       {copy.xirrExtremes ? (
-        <p className="mt-3 text-sm leading-relaxed text-mute-text">{copy.xirrExtremes}</p>
+        <p className="mt-3 text-sm leading-relaxed text-mute-text 2xl:hidden">{copy.xirrExtremes}</p>
       ) : null}
     </section>
   );

@@ -58,6 +58,21 @@ describe("searchFunds", () => {
     expect(results.every((row) => /mirae/i.test(row[1]) || /mirae/i.test(row[2]))).toBe(true);
   });
 
+  it("does not reorder matches by verdict or spread", () => {
+    const rows: IndexRow[] = [
+      [2, "Alpha Special Fund - Direct Plan - Growth", "House", "Eq", "noise", 0.01],
+      [1, "Alpha Fund - Direct Plan - Growth", "House", "Eq", "meaningful", 0.9],
+    ];
+    const codesOnly = searchFunds(rows, "alpha", 8).map((row) => row[0]);
+    expect(codesOnly).toEqual([1, 2]);
+
+    const swapped: IndexRow[] = [
+      [2, "Alpha Special Fund - Direct Plan - Growth", "House", "Eq", "meaningful", 0.9],
+      [1, "Alpha Fund - Direct Plan - Growth", "House", "Eq", "noise", 0.01],
+    ];
+    expect(searchFunds(swapped, "alpha", 8).map((row) => row[0])).toEqual(codesOnly);
+  });
+
   it("finds a fund by its plan words being ignored", () => {
     expect(codes("kotak mid cap direct growth")[0]).toBe(119775);
   });

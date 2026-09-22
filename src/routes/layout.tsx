@@ -57,7 +57,7 @@ export function Layout() {
     // Below 2xl a reading column; from 2xl (large desktops) the whole width, so the fund page's
     // four columns fit the screen without a scroll (routes/fund.tsx).
     <div className="mx-auto flex min-h-dvh max-w-3xl flex-col px-5 2xl:max-w-none 2xl:px-10">
-      <header className="pt-10 2xl:pt-4">
+      <header className="pt-10 2xl:pt-3">
         {onHome ? (
           <h1 className="font-display text-4xl leading-tight font-bold text-balance">
             Which date should I run my SIP on?
@@ -69,7 +69,7 @@ export function Layout() {
         </div>
       </header>
 
-      <main className="flex-1 py-8 2xl:py-4">
+      <main className="flex-1 py-8 2xl:py-2">
         <PublishNavDate value={setPublished}>
           <Outlet />
         </PublishNavDate>

@@ -14,7 +14,7 @@ const PRODUCT_HUNT_SRC =
 export function Footer({ navAsOf, source = "mfapi.in" }: FooterProps) {
   return (
     // One line on a large desktop, where every pixel of height goes to the fund page's columns.
-    <footer className="border-t border-line py-6 text-sm leading-relaxed text-mute-text 2xl:flex 2xl:flex-wrap 2xl:items-center 2xl:gap-x-6 2xl:py-3 2xl:text-xs">
+    <footer className="border-t border-line py-6 text-sm leading-relaxed text-mute-text 2xl:flex 2xl:flex-wrap 2xl:items-center 2xl:gap-x-6 2xl:py-2 2xl:text-xs">
       {navAsOf ? <p>NAVs up to {formatNavDate(navAsOf)}.</p> : null}
       <p className="mt-2 max-w-[65ch] 2xl:mt-0 2xl:max-w-none">
         Educational tool. Not investment advice. Past performance does not indicate future

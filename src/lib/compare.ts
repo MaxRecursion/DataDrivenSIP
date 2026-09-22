@@ -54,7 +54,7 @@ export function compareDayCopy(named: DateResult, other: DateResult): string {
   const money =
     rupeeGap === 0
       ? "The notional SIP ended in the same rupees."
-      : `On the notional SIP that ended ${formatRupees(Math.abs(rupeeGap))} ${rupeeGap < 0 ? "lower" : "higher"}.`;
+      : `Notional SIP ended ${formatRupees(Math.abs(rupeeGap))} ${rupeeGap < 0 ? "lower" : "higher"}.`;
   return `The ${nthOther} sits ${formatPp(Math.abs(xirrGap))} ${side} the ${nthNamed}. ${money}`;
 }
 
@@ -64,11 +64,16 @@ export function todayCopy(
   todayRow: DateResult | undefined,
 ): string {
   const nthToday = ordinal(today);
+  const nthNamed = ordinal(named.d);
   if (today > 28 || todayRow === undefined) {
-    return `Today is the ${nthToday}, which is not a SIP date. The named day is the ${ordinal(named.d)}.`;
+    return `Today is the ${nthToday}, which is not a SIP date. The named day is the ${nthNamed}.`;
   }
-  if (today === named.d) return `Today is the named day, the ${ordinal(named.d)}.`;
-  return `Today is the ${nthToday}. ${compareDayCopy(named, todayRow)}`;
+  if (today === named.d) return `Today is the named day, the ${nthNamed}.`;
+  if (todayRow.xirr === named.xirr) {
+    return `Today is the ${nthToday}, same full-history XIRR as the ${nthNamed}.`;
+  }
+  const side = todayRow.xirr < named.xirr ? "below" : "above";
+  return `Today is the ${nthToday}, ${formatPp(Math.abs(todayRow.xirr - named.xirr))} ${side} the ${nthNamed}.`;
 }
 
 export function shareCopy(fund: FundArtifact, answer: Answer): string {

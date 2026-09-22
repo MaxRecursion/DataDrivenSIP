@@ -9,5 +9,7 @@ export function TodayLine({ named, dates }: { named: DateResult; dates: readonly
   const { day, ready } = useToday();
   if (!ready || day === null) return null;
   const todayRow = dates.find((row) => row.d === day);
-  return <p className="mt-3 text-sm leading-relaxed text-mute-text">{todayCopy(day, named, todayRow)}</p>;
+  return (
+    <p className="mt-3 text-sm leading-relaxed text-mute-text 2xl:mt-0">{todayCopy(day, named, todayRow)}</p>
+  );
 }

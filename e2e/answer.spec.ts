@@ -147,8 +147,9 @@ test("offers no salary or buffer control, and no longer asks when you are paid",
   await expect(page.getByRole("main")).not.toContainText(/salary/i);
   await expect(page.getByRole("main")).not.toContainText(/your window/i);
 
-  // The only combobox left is the search field, which is how a stray one would show up.
-  await expect(page.getByRole("combobox")).toHaveCount(1);
+  // Search is the typeahead; "I SIP on" is a native select for comparing a date.
+  await expect(page.getByRole("combobox", { name: "Search for a fund" })).toHaveCount(1);
+  await expect(page.getByLabel(/I SIP on the/)).toBeVisible();
 });
 
 test("ignores salary and buffer in the URL rather than answering differently", async ({ page }) => {

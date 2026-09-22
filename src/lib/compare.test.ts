@@ -68,7 +68,7 @@ describe("compareDayCopy", () => {
     const answer = dateAt(26, { xirr: 20.3, corpus: 1_050_000 });
     const other = dateAt(5, { xirr: 20.2, corpus: 1_038_000 });
     expect(compareDayCopy(answer, other)).toBe(
-      "The 5th sits 0.10 pp below the 26th. On the notional SIP that ended ₹12,000 lower.",
+      "The 5th sits 0.10 pp below the 26th. Notional SIP ended ₹12,000 lower.",
     );
   });
 
@@ -91,6 +91,12 @@ describe("todayCopy", () => {
   it("says when today is the named day", () => {
     const row = dateAt(22, { xirr: 20.3 });
     expect(todayCopy(22, row, row)).toBe("Today is the named day, the 22nd.");
+  });
+
+  it("places today against the named day without repeating the rupee sentence", () => {
+    const namedRow = dateAt(26, { xirr: 20.3 });
+    const todayRow = dateAt(5, { xirr: 20.2 });
+    expect(todayCopy(5, namedRow, todayRow)).toBe("Today is the 5th, 0.10 pp below the 26th.");
   });
 });
 
@@ -128,5 +134,37 @@ describe("mattersGlance, share, sticky", () => {
 
   it("packs the sticky summary", () => {
     expect(stickyCopy(fund(), named(26))).toBe("The 26th · Noise · 0.11 pp range");
+  });
+
+  it("keeps each decision-aid line under 80 characters", () => {
+    const answer = named(26);
+    const namedRow = dateAt(26, { xirr: 20.3, corpus: 1_050_000 });
+    const other = dateAt(5, { xirr: 20.2, corpus: 1_038_000 });
+    const lines = [
+      verdictLabel("noise"),
+      verdictLabel("marginal"),
+      verdictLabel("meaningful"),
+      compareDayCopy(namedRow, namedRow),
+      compareDayCopy(namedRow, other),
+      todayCopy(30, namedRow, undefined),
+      todayCopy(26, namedRow, namedRow),
+      todayCopy(5, namedRow, other),
+      xirrExtremesLine(
+        fund({
+          dates: Array.from({ length: 28 }, (_, i) =>
+            dateAt(i + 1, { xirr: i + 1 === 26 ? 21 : i + 1 === 9 ? 19 : 20 }),
+          ),
+        }),
+        answer,
+      ),
+      mattersGlance(80_000, 12_000),
+      mattersGlance(10_000, 12_000),
+      shareCopy(fund({ name: "A Fund - Direct Plan - Growth" }), answer),
+      stickyCopy(fund(), answer),
+    ];
+    for (const line of lines) {
+      if (line === null) continue;
+      expect(line.length, line).toBeLessThanOrEqual(80);
+    }
   });
 });

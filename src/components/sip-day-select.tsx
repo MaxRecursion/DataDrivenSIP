@@ -9,7 +9,7 @@ export function SipDaySelect({
   onChange: (day: number) => void;
 }) {
   return (
-    <p className="mt-4 flex flex-wrap items-center gap-2 text-sm text-ink 2xl:mt-2">
+    <p className="mt-4 flex flex-wrap items-center gap-2 text-sm text-ink 2xl:mt-0">
       <label htmlFor="sip-day">
         I SIP on the
         <select

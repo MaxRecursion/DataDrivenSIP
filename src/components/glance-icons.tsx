@@ -12,6 +12,7 @@
 import type { Confidence } from "../../shared/artifacts";
 import { curvePoints } from "../lib/glance";
 
+/** In viewBox units; drawn at the same size in rem, so it scales with the page on a large screen. */
 const WIDTH = 36;
 const HEIGHT = 16;
 /** Kept off the edges so the stroke's own width doesn't clip against the viewBox. */
@@ -28,7 +29,7 @@ export function CurveGlyph({ xirrs }: { xirrs: readonly number[] }) {
     .join(" ");
 
   return (
-    <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} width={WIDTH} height={HEIGHT} aria-hidden="true" className="shrink-0">
+    <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} width={`${WIDTH / 16}rem`} height={`${HEIGHT / 16}rem`} aria-hidden="true" className="shrink-0">
       <path d={path} fill="none" stroke="var(--teal)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
@@ -38,7 +39,7 @@ export function CurveGlyph({ xirrs }: { xirrs: readonly number[] }) {
 export function ConfidenceGlyph({ confidence }: { confidence: Confidence }) {
   const full = confidence === "full";
   return (
-    <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" className="shrink-0">
+    <svg viewBox="0 0 16 16" width="0.875rem" height="0.875rem" aria-hidden="true" className="shrink-0">
       <circle
         cx="8"
         cy="8"

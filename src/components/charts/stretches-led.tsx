@@ -11,15 +11,18 @@ import type { FundArtifact } from "../../../shared/artifacts";
 import type { Answer } from "../../lib/answer";
 import { ledSeries } from "../../lib/charts";
 import { ordinal } from "../../lib/format";
+import { useWide } from "../../lib/use-wide";
 import { ApexChart, type Palette } from "./apex";
 
 const HEIGHT = 190;
+const WIDE_HEIGHT = 150;
 /** Labels only where a reader can find their place, as the full-curve chart does. */
 const LABELLED = new Set([1, 7, 14, 21, 28]);
 
 type Props = { fund: FundArtifact; answer: Answer };
 
 export default function StretchesLed({ fund, answer }: Props) {
+  const height = useWide() ? WIDE_HEIGHT : HEIGHT;
   const series = ledSeries(fund, answer.date);
   if (series === null) return null;
 
@@ -32,14 +35,14 @@ export default function StretchesLed({ fund, answer }: Props) {
     xaxis: {
       categories: series.dates.map(String),
       labels: {
-        style: { colors: palette.mute, fontSize: "10px" },
+        style: { colors: palette.mute, fontSize: "0.625rem" },
         formatter: (value: string) => (LABELLED.has(Number(value)) ? value : ""),
         rotate: 0,
       },
       axisBorder: { show: false },
       axisTicks: { show: false },
     },
-    yaxis: { labels: { style: { colors: palette.mute, fontSize: "10px" } }, forceNiceScale: true },
+    yaxis: { labels: { style: { colors: palette.mute, fontSize: "0.625rem" } }, forceNiceScale: true },
     grid: { borderColor: palette.line, strokeDashArray: 3 },
     legend: { show: false },
     tooltip: {
@@ -52,7 +55,7 @@ export default function StretchesLed({ fund, answer }: Props) {
   const most = Math.max(...series.led);
   return (
     <figure data-chart="stretches-led" className="m-0 mb-4">
-      <ApexChart height={HEIGHT} version={`${fund.code}:${answer.date}:${series.led.join(",")}`} build={build} />
+      <ApexChart height={height} version={`${fund.code}:${answer.date}:${series.led.join(",")}`} build={build} />
       <figcaption className="text-xs text-mute-text">
         Rolling 3-year stretches each date led, the {ordinal(answer.date)} marked
       </figcaption>

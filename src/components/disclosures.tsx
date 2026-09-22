@@ -39,6 +39,11 @@ const CHART_HEIGHT = 208;
 type SectionProps = {
   id: string;
   title: string;
+  /**
+   * Held open, with no toggle: the wide dashboard, where every section is on screen at once.
+   * Undefined leaves it an ordinary disclosure that starts closed.
+   */
+  open?: boolean | undefined;
   /** A small, silent preview of what this section says — see glance-icons.tsx. */
   preview?: ReactNode;
   children: ReactNode;
@@ -59,16 +64,24 @@ function Chevron() {
   );
 }
 
-function Section({ id, title, preview, children }: SectionProps) {
+function Section({ id, title, preview, open, children }: SectionProps) {
+  const held = open === true;
   return (
-    <Collapsible.Root data-disclosure={id} className="border-t border-line">
+    <Collapsible.Root
+      data-disclosure={id}
+      className="border-t border-line"
+      {...(held ? { open: true, onOpenChange: () => {} } : {})}
+    >
       {/* §8.1's response-to-action motion: transform only, and instant under reduced motion. */}
-      <Collapsible.Trigger className="group flex w-full items-center gap-3 py-4 text-left font-display text-base font-bold text-ink outline-none transition-transform duration-100 active:scale-[0.99] motion-reduce:transition-none focus-visible:ring-2 focus-visible:ring-teal">
+      <Collapsible.Trigger
+        disabled={held}
+        className="group flex w-full items-center gap-3 py-4 text-left font-display text-base font-bold text-ink outline-none transition-transform duration-100 active:scale-[0.99] disabled:cursor-default disabled:active:scale-100 motion-reduce:transition-none focus-visible:ring-2 focus-visible:ring-teal 2xl:py-3"
+      >
         <span className="flex flex-1 items-center gap-2.5">
           {title}
           {preview}
         </span>
-        <Chevron />
+        {held ? null : <Chevron />}
       </Collapsible.Trigger>
       <Collapsible.Content>
         {/*
@@ -76,7 +89,7 @@ function Section({ id, title, preview, children }: SectionProps) {
          * `content-visibility` set would otherwise be clipped by the containment box.
          */}
         <div
-          className="max-w-[65ch] px-0.5 pb-6"
+          className="max-w-[65ch] px-0.5 pb-6 2xl:max-w-none 2xl:pb-4"
           style={{ contentVisibility: "auto", containIntrinsicSize: "auto 480px" }}
         >
           {children}
@@ -88,50 +101,80 @@ function Section({ id, title, preview, children }: SectionProps) {
 
 const paragraphs = (lines: string[]) =>
   lines.map((line) => (
-    <p key={line} className="mt-3 text-sm leading-relaxed text-mute-text first:mt-0">
+    <p key={line} className="mt-3 text-sm leading-relaxed text-mute-text first:mt-0 2xl:mt-2 2xl:leading-normal">
       {line}
     </p>
   ));
 
-type DisclosuresProps = {
+type SectionPartProps = {
   fund: FundArtifact;
   answer: Answer;
   copy: DisclosureCopy;
+  /** True on the wide dashboard: shown open, with no toggle. */
+  open?: boolean | undefined;
 };
 
-export default function Disclosures({ fund, answer, copy }: DisclosuresProps) {
-  return (
-    <section className="mt-10">
-      <Section
-        id="curve"
-        title="The full curve"
-        preview={<CurveGlyph xirrs={fund.dates.map((row) => row.xirr)} />}
-      >
-        <Suspense fallback={<div style={{ height: CHART_HEIGHT }} />}>
-          <SpreadChart fund={fund} answer={answer.date} />
-        </Suspense>
-        <p className="mt-3 text-sm leading-relaxed text-mute-text">{copy.chartCaption}</p>
-      </Section>
+/*
+ * Three sections, exported separately so the fund page can place them: stacked in order on a
+ * phone or a laptop, spread across columns on a large screen (routes/fund.tsx).
+ */
 
-      <Section
-        id="confidence"
-        title="How confident is this?"
-        preview={<ConfidenceGlyph confidence={fund.confidence} />}
-      >
+export function CurveSection({ fund, answer, copy, open }: SectionPartProps) {
+  return (
+    <Section
+      id="curve"
+      title="The full curve"
+      open={open}
+      preview={<CurveGlyph xirrs={fund.dates.map((row) => row.xirr)} />}
+    >
+      <Suspense fallback={<div style={{ height: CHART_HEIGHT }} />}>
+        <SpreadChart fund={fund} answer={answer.date} />
+      </Suspense>
+      <p className="mt-3 text-sm leading-relaxed text-mute-text">{copy.chartCaption}</p>
+    </Section>
+  );
+}
+
+export function ConfidenceSection({ fund, answer, copy, open }: SectionPartProps) {
+  return (
+    <Section
+      id="confidence"
+      title="How confident is this?"
+      open={open}
+      preview={<ConfidenceGlyph confidence={fund.confidence} />}
+    >
+      {/* On a wide screen the gauges and the columns sit side by side, and the paragraphs run in
+          two columns beneath them, so the whole section fits the height it has. */}
+      <div className="2xl:grid 2xl:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] 2xl:items-end 2xl:gap-6">
         {/* Fallbacks are sized to the charts they stand in for, so nothing shifts when they land. */}
         <Suspense fallback={<div style={{ height: 190 }} />}>
           <ConfidenceGauge fund={fund} answer={answer} />
+        </Suspense>
+        <Suspense fallback={<div style={{ height: 190 }} />}>
           <StretchesLed fund={fund} answer={answer} />
         </Suspense>
-        {paragraphs(copy.confidence)}
-      </Section>
+      </div>
+      <div className="2xl:columns-2 2xl:gap-8 [&>p]:break-inside-avoid">{paragraphs(copy.confidence)}</div>
+    </Section>
+  );
+}
 
-      <Section id="matters" title="What actually matters">
-        <Suspense fallback={<div style={{ height: 150 }} />}>
-          <MattersBars fund={fund} answer={answer} />
-        </Suspense>
-        {paragraphs(copy.matters)}
-      </Section>
-    </section>
+export function MattersSection({ fund, answer, copy, open }: SectionPartProps) {
+  return (
+    <Section id="matters" title="What actually matters" open={open}>
+      {/*
+       * On a wide screen, two balanced columns: the bars with the sentence that prices them,
+       * then the rest. Stacked, the same DOM reads in the same order as before.
+       */}
+      <div className="2xl:grid 2xl:grid-cols-2 2xl:items-start 2xl:gap-8">
+        <div>
+          <Suspense fallback={<div style={{ height: 150 }} />}>
+            <MattersBars fund={fund} answer={answer} />
+          </Suspense>
+          {paragraphs(copy.matters.slice(0, 1))}
+        </div>
+        <div className="mt-3 2xl:mt-0">{paragraphs(copy.matters.slice(1))}</div>
+      </div>
+    </Section>
   );
 }

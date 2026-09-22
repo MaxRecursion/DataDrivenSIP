@@ -155,7 +155,7 @@ export function FundSearch({ autoFocus = false }: { autoFocus?: boolean }) {
         role="combobox"
         aria-expanded={open}
         aria-controls="fund-search-results"
-        className="w-full rounded-xl border border-line bg-raised px-4 py-3 text-ink outline-none focus-visible:ring-2 focus-visible:ring-teal"
+        className="w-full rounded-xl border border-line bg-raised px-4 py-3 text-ink 2xl:py-2 outline-none focus-visible:ring-2 focus-visible:ring-teal"
       />
 
       {open ? (

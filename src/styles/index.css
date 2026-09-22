@@ -104,6 +104,20 @@
 
 
 /*
+ * Large desktops: the root font size grows with the screen, bounded by width and height alike,
+ * so the fund page's four columns fill the display instead of sitting in its top-left corner.
+ * 16px at 1920×960 (a 4K monitor at 200%), about 21px at 2560×1320 (150%), about 32px at
+ * 3840×2080 (100%). Everything in rem follows; the few pixel sizes (chart heights, a canvas
+ * font) read the same scale through useRootScale(). The 96rem breakpoint is Tailwind's 2xl and
+ * is measured against the default 16px, not this rule, so it can't feed back into itself.
+ */
+@media (min-width: 96rem) {
+  html {
+    font-size: max(1rem, min(100vw / 120, 100vh / 60));
+  }
+}
+
+/*
  * ApexCharts injects its own stylesheet at runtime, and several of its rules transition "all",
  * a tooltip's left/top, or background-color — outside CLAUDE.md's transform-and-opacity rule.
  * Everything inside an Apex canvas is held to opacity here. Its keyframes are already

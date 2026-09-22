@@ -231,4 +231,28 @@ test("shows a verdict chip and compares a tapped SIP date without changing the n
   await expect(page.locator("[data-compare-copy]")).toContainText(new RegExp(`${other}(st|nd|rd|th)`));
   await expect(page.locator(`[data-date="${other}"][data-compare]`)).toHaveCount(1);
   await expect(answerHeading(page)).toHaveText(ANSWER_HEADING);
+  await expect(page.locator("[data-paperwork]")).toContainText("Changing a SIP date at the AMC is a form");
+});
+
+test("notes when the named day changed since the reader last opened the page", async ({ page }) => {
+  await page.goto(`/f/${KOTAK.code}`);
+  await settled(page);
+  const named = await answerFromHeading(page);
+  const previous = named === 1 ? 2 : 1;
+
+  await page.evaluate(
+    ([code, day]) => {
+      localStorage.setItem(
+        "sip-date-planner.named-days.v1",
+        JSON.stringify([{ code, day }]),
+      );
+    },
+    [KOTAK.code, previous] as const,
+  );
+  await page.reload();
+  await settled(page);
+  await expect(page.locator("[data-named-shift]")).toContainText(
+    new RegExp(`When you last opened this page, it named the ${previous}(st|nd|rd|th)`),
+  );
+  await expect(answerHeading(page)).toHaveText(ANSWER_HEADING);
 });

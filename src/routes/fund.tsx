@@ -32,10 +32,10 @@ import { TodayLine } from "../components/today-line";
  */
 import { ConfidenceSection, CurveSection, MattersSection } from "../components/disclosures";
 import { pickAnswer } from "../lib/answer";
-import { compareDayCopy, stickyCopy } from "../lib/compare";
+import { compareDayCopy, namedDayShiftCopy, paperworkCopy, stickyCopy } from "../lib/compare";
 import { disclosureCopy } from "../lib/disclosure";
 import { heatSpanPp } from "../lib/heat";
-import { readSipDay, rememberFund, writeSipDay } from "../lib/memory";
+import { readSipDay, rememberFund, takeNamedDayShift, writeSipDay } from "../lib/memory";
 import { useReveal } from "../lib/use-reveal";
 import { useWide } from "../lib/use-wide";
 import { answerCopy } from "../lib/copy";
@@ -140,9 +140,11 @@ export function FundPage() {
    */
   const wide = useWide();
   const [compareDay, setCompareDay] = useState<number | null>(null);
+  const [shiftFrom, setShiftFrom] = useState<number | null>(null);
 
   useEffect(() => {
     setCompareDay(readSipDay());
+    setShiftFrom(null);
   }, [code]);
 
   useEffect(() => {
@@ -155,6 +157,7 @@ export function FundPage() {
       verdict: state.fund.verdict,
       spreadPp: state.fund.spreadPp,
     });
+    setShiftFrom(takeNamedDayShift(state.fund.code, pickAnswer(state.fund).date));
   }, [state]);
 
   const pickCompareDay = (day: number) => {
@@ -223,6 +226,8 @@ export function FundPage() {
   const disclosure = disclosureCopy(state.fund, answer);
   const compareRow = compareDay === null ? undefined : state.fund.dates.find((row) => row.d === compareDay);
   const compareText = compareRow ? compareDayCopy(answer.result, compareRow) : undefined;
+  const paperwork = paperworkCopy(compareDay, answer.date, state.fund.verdict);
+  const shiftText = shiftFrom === null ? null : namedDayShiftCopy(shiftFrom, answer.date);
 
   /*
    * One DOM for every width. Below 2xl the column wrappers are `display: contents`, so their
@@ -264,6 +269,16 @@ export function FundPage() {
             compareText={compareText}
             reveal={reveal}
           />
+          {shiftText ? (
+            <p data-named-shift className="mt-3 text-sm leading-relaxed text-mute-text 2xl:hidden">
+              {shiftText}
+            </p>
+          ) : null}
+          {paperwork ? (
+            <p data-paperwork className="mt-3 text-sm leading-relaxed text-mute-text 2xl:hidden">
+              {paperwork}
+            </p>
+          ) : null}
           <div className="2xl:mt-2 2xl:flex 2xl:flex-wrap 2xl:items-baseline 2xl:gap-x-6">
             <TodayLine named={answer.result} dates={state.fund.dates} />
             <SipDaySelect value={compareDay} onChange={pickCompareDay} />

@@ -26,7 +26,9 @@ export function browserStore(): MemoryStore {
 
 export const RECENTS_KEY = "sip-date-planner.recents.v1";
 export const SIP_DAY_KEY = "sip-date-planner.sip-day.v1";
+export const NAMED_DAYS_KEY = "sip-date-planner.named-days.v1";
 export const MAX_RECENTS = 5;
+export const MAX_NAMED_DAYS = 50;
 
 export type RecentFund = {
   code: number;
@@ -73,4 +75,48 @@ export function writeSipDay(day: number, store: MemoryStore = browserStore()): n
   if (!Number.isInteger(day) || day < 1 || day > 28) return readSipDay(store);
   store.setItem(SIP_DAY_KEY, String(day));
   return day;
+}
+
+type NamedDayEntry = { code: number; day: number };
+
+function readNamedDays(store: MemoryStore): NamedDayEntry[] {
+  const raw = store.getItem(NAMED_DAYS_KEY);
+  if (!raw) return [];
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((row): row is NamedDayEntry => {
+      if (row === null || typeof row !== "object") return false;
+      const candidate = row as NamedDayEntry;
+      return (
+        typeof candidate.code === "number" &&
+        Number.isInteger(candidate.day) &&
+        candidate.day >= 1 &&
+        candidate.day <= 28
+      );
+    });
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Writes this visit's named day. Returns the previous named day for this fund when it differs,
+ * otherwise null — first visit and an unchanged pick stay quiet.
+ */
+export function takeNamedDayShift(
+  code: number,
+  namedDay: number,
+  store: MemoryStore = browserStore(),
+): number | null {
+  if (!Number.isInteger(namedDay) || namedDay < 1 || namedDay > 28) return null;
+  const entries = readNamedDays(store);
+  const previous = entries.find((row) => row.code === code)?.day ?? null;
+  const next = [{ code, day: namedDay }, ...entries.filter((row) => row.code !== code)].slice(
+    0,
+    MAX_NAMED_DAYS,
+  );
+  store.setItem(NAMED_DAYS_KEY, JSON.stringify(next));
+  if (previous === null || previous === namedDay) return null;
+  return previous;
 }

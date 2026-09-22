@@ -5,6 +5,7 @@ import {
   readRecents,
   readSipDay,
   rememberFund,
+  takeNamedDayShift,
   writeSipDay,
 } from "./memory";
 
@@ -57,5 +58,20 @@ describe("sip day", () => {
     expect(writeSipDay(31, store)).toBe(12);
     store.setItem("sip-date-planner.sip-day.v1", "salary");
     expect(readSipDay(store)).toBeNull();
+  });
+});
+
+describe("named day shift", () => {
+  it("is silent on the first visit and when the pick has not moved", () => {
+    const store = memory();
+    expect(takeNamedDayShift(119775, 26, store)).toBeNull();
+    expect(takeNamedDayShift(119775, 26, store)).toBeNull();
+  });
+
+  it("returns the previous named day when this visit disagrees", () => {
+    const store = memory();
+    takeNamedDayShift(119775, 24, store);
+    expect(takeNamedDayShift(119775, 26, store)).toBe(24);
+    expect(takeNamedDayShift(119775, 26, store)).toBeNull();
   });
 });

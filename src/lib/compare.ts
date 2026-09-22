@@ -85,3 +85,25 @@ export function shareCopy(fund: FundArtifact, answer: Answer): string {
 export function stickyCopy(fund: FundArtifact, answer: Answer): string {
   return `The ${ordinal(answer.date)} · ${verdictLabel(fund.verdict)} · ${formatPp(fund.spreadPp)} range`;
 }
+
+/**
+ * Factual AMC-friction line once the reader has named their own SIP day. It does not say
+ * whether moving is worth it — only that a date change is paperwork, next to this fund's
+ * verdict. Null when they have not said a day, or already SIP on the named day.
+ */
+export function paperworkCopy(sipDay: number | null, namedDay: number, verdict: Verdict): string | null {
+  if (sipDay === null || sipDay === namedDay) return null;
+  if (verdict === "noise") {
+    return "Changing a SIP date at the AMC is a form. This fund called that spread noise.";
+  }
+  if (verdict === "marginal") {
+    return "Changing a SIP date at the AMC is a form. This fund called the edge thin.";
+  }
+  return "Changing a SIP date at the AMC is a form. This fund found a date effect.";
+}
+
+/** Local last-visit note. Not a quarter-on-quarter log — we have no published history of picks. */
+export function namedDayShiftCopy(previous: number, current: number): string | null {
+  if (previous === current) return null;
+  return `When you last opened this page, it named the ${ordinal(previous)}.`;
+}

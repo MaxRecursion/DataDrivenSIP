@@ -164,3 +164,16 @@ export function formatYears(navFrom: string, navTo: string): string {
   const span = parseIsoUtc(navTo).getTime() - parseIsoUtc(navFrom).getTime();
   return `${(span / MS_PER_DAY / DAYS_PER_YEAR).toFixed(1)} years`;
 }
+
+/**
+ * A chart axis label, short enough that five fit on a phone: "₹40k", "₹1.2L", "₹0". Axis ticks
+ * only — a figure a reader is meant to read exactly goes through formatRupees.
+ */
+export function formatRupeesAxis(rupees: number): string {
+  assertFinite(rupees);
+  const magnitude = Math.abs(rupees);
+  const sign = rupees < 0 ? "−" : "";
+  if (magnitude >= 100_000) return `${sign}₹${Number((magnitude / 100_000).toFixed(1))}L`;
+  if (magnitude >= 1_000) return `${sign}₹${Math.round(magnitude / 1_000)}k`;
+  return `${sign}₹${Math.round(magnitude)}`;
+}

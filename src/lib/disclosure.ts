@@ -150,13 +150,31 @@ function confidenceLines(fund: FundArtifact, answer: Answer): string[] {
   return lines;
 }
 
-function mattersLines(fund: FundArtifact, answer: Answer): string[] {
-  const middle = median(fund.dates.map((row) => row.corpus));
-  const edgeRupees = Math.round(answer.result.corpus - middle);
+export type MattersFigures = {
+  /** The named day's final value minus the median date's, in rupees. Can be negative. */
+  edgeRupees: number;
+  /** What one ₹10,000 instalment has been worth today, averaged across the history. */
+  perInstalment: number;
+  /** Total notional money put in over the history. */
+  invested: number;
+};
 
-  const invested = fund.instalments * NOTIONAL_MONTHLY;
+/**
+ * The two rupee figures "What actually matters" weighs against each other. Exported so the
+ * sentence and the bar chart beside it are one calculation, not two that happen to agree.
+ */
+export function mattersFigures(fund: FundArtifact, answer: Answer): MattersFigures {
+  const middle = median(fund.dates.map((row) => row.corpus));
   const meanCorpus = fund.dates.reduce((total, row) => total + row.corpus, 0) / fund.dates.length;
-  const perInstalment = Math.round(meanCorpus / fund.instalments);
+  return {
+    edgeRupees: Math.round(answer.result.corpus - middle),
+    perInstalment: Math.round(meanCorpus / fund.instalments),
+    invested: fund.instalments * NOTIONAL_MONTHLY,
+  };
+}
+
+function mattersLines(fund: FundArtifact, answer: Answer): string[] {
+  const { edgeRupees, perInstalment, invested } = mattersFigures(fund, answer);
 
   const edge =
     edgeRupees <= 0

@@ -24,6 +24,15 @@ import { ConfidenceGlyph, CurveGlyph } from "./glance-icons";
 /** The heavy one. Loaded when the section holding it is opened, never before. */
 const SpreadChart = lazy(() => import("./spread-chart"));
 
+/**
+ * The ApexCharts visuals — lazier still. Apex is ~250 KB gzipped, so these chunks are only
+ * requested when the section holding them opens (Radix renders a closed section as nothing),
+ * and a page nobody opens a section on never downloads it. Never import these statically.
+ */
+const ConfidenceGauge = lazy(() => import("./charts/confidence-gauge"));
+const StretchesLed = lazy(() => import("./charts/stretches-led"));
+const MattersBars = lazy(() => import("./charts/matters-bars"));
+
 /** Matches the chart's own reserved height, so the fallback doesn't resize when it lands. */
 const CHART_HEIGHT = 208;
 
@@ -109,10 +118,18 @@ export default function Disclosures({ fund, answer, copy }: DisclosuresProps) {
         title="How confident is this?"
         preview={<ConfidenceGlyph confidence={fund.confidence} />}
       >
+        {/* Fallbacks are sized to the charts they stand in for, so nothing shifts when they land. */}
+        <Suspense fallback={<div style={{ height: 190 }} />}>
+          <ConfidenceGauge fund={fund} answer={answer} />
+          <StretchesLed fund={fund} answer={answer} />
+        </Suspense>
         {paragraphs(copy.confidence)}
       </Section>
 
       <Section id="matters" title="What actually matters">
+        <Suspense fallback={<div style={{ height: 150 }} />}>
+          <MattersBars fund={fund} answer={answer} />
+        </Suspense>
         {paragraphs(copy.matters)}
       </Section>
     </section>

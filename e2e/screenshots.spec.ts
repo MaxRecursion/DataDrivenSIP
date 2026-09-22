@@ -84,6 +84,10 @@ for (const width of [390, 1280]) {
       // The chart is a lazy chunk inside a lazy chunk; without this the shot can catch its gap.
       await expect(page.locator("[data-spread-chart]")).toBeVisible();
       await expect(page.locator("canvas")).toHaveCount(1);
+      // The ApexCharts visuals arrive later still: a lazy chunk that loads Apex itself lazily.
+      await expect(page.locator("[data-chart='confidence'] svg.apexcharts-svg")).toHaveCount(2);
+      await expect(page.locator("[data-chart='stretches-led'] svg.apexcharts-svg")).toHaveCount(1);
+      await expect(page.locator("[data-chart='matters'] svg.apexcharts-svg")).toHaveCount(1);
 
       await page.screenshot({ path: `${OUT}/${width}-disclosures-open.png`, fullPage: true });
     });

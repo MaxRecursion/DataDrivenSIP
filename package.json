@@ -25,6 +25,7 @@
     "lighthouse:summary": "tsx scripts/lighthouse-summary.ts"
   },
   "dependencies": {
+    "apexcharts": "7.5.1",
     "cmdk": "1.1.1",
     "cn": "0.3.0",
     "radix-ui": "1.6.7",

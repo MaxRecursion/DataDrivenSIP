@@ -5,6 +5,7 @@
  * roughly four minutes on one core against a twenty-minute budget; worker threads would buy
  * time we don't need and cost determinism we do.
  */
+import { monthReturn, type Momentum } from "./analysis/momentum";
 import { analyse, AnalysisError, type FundMeta } from "./analysis/analyse";
 import { withCohortSpread } from "./analysis/cohort";
 import { dayFromNavDate, type DayNum } from "./analysis/dates";
@@ -80,6 +81,7 @@ export async function runPipeline(options: PipelineOptions): Promise<PipelineRep
 
   const failures: PipelineFailure[] = [];
   const artifacts: FundArtifact[] = [];
+  const momentum: Momentum[] = [];
 
   const results = await pool(eligible, options.concurrency ?? DEFAULT_CONCURRENCY, async (scheme) => {
     try {
@@ -101,7 +103,8 @@ export async function runPipeline(options: PipelineOptions): Promise<PipelineRep
         category: scheme.category,
       };
       const artifact = analyse(history, meta, trimmedAt === null ? {} : { trimmedFrom: trimmedAt });
-      return { scheme, artifact, trimmed: trimmedAt !== null };
+      const month = monthReturn(history);
+      return { scheme, artifact, trimmed: trimmedAt !== null, month };
     } catch (error) {
       const reason = error instanceof AnalysisError ? error.reason : (error as Error).message;
       return { scheme, failure: reason };
@@ -112,6 +115,7 @@ export async function runPipeline(options: PipelineOptions): Promise<PipelineRep
   for (const result of results) {
     if ("artifact" in result && result.artifact) {
       artifacts.push(result.artifact);
+      if ("month" in result && result.month) momentum.push({ code: result.scheme.code, ...result.month });
       if ("trimmed" in result && result.trimmed) trimmed++;
     }
     else if ("drop" in result && result.drop) drop(result.drop);
@@ -130,6 +134,7 @@ export async function runPipeline(options: PipelineOptions): Promise<PipelineRep
           artifacts: withCohortSpread(artifacts),
           builtAt: options.builtAt,
           pipelineVersion: options.pipelineVersion,
+          momentum,
           ...(options.keepVersions === undefined ? {} : { keepVersions: options.keepVersions }),
         });
   log(write ? `published ${write.fundCount} funds as ${write.dataVersion}` : "published nothing: no fund analysed");

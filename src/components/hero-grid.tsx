@@ -197,11 +197,11 @@ function Cell({
             would otherwise be indistinguishable from a date whose figure happens to match. */}
         <Layer on={isBaseline && !isAnswer} className="border-2 border-dashed border-mute" />
 
-        <span className="absolute inset-x-0 top-1.5 text-center font-display text-sm leading-none font-bold text-ink sm:top-2 sm:text-lg">
+        <span className="absolute inset-x-0 top-1.5 text-center font-display text-sm leading-none font-bold text-ink sm:top-2 sm:text-lg 2xl:top-[12%] 2xl:text-[clamp(1.125rem,1.1vw,1.75rem)]">
           {day}
         </span>
         {value === undefined ? null : (
-          <span className="tabular absolute inset-x-0 bottom-1 text-center text-[0.5625rem] leading-none font-medium text-ink sm:bottom-1.5 sm:text-xs">
+          <span className="tabular absolute inset-x-0 bottom-1 text-center text-[0.5625rem] leading-none font-medium text-ink sm:bottom-1.5 sm:text-xs 2xl:bottom-[12%] 2xl:text-[clamp(0.75rem,0.6vw,1rem)]">
             {formatXirr(value)}
           </span>
         )}
@@ -256,7 +256,7 @@ export function HeroGrid({ answer, values, spanPp, reveal = null, className }: H
        * answer block says in prose, so it stays decorative — but a focusable button inside
        * `aria-hidden` is invalid ARIA, and `‹` alone is not a name.
        */}
-      <div className="mb-2 flex w-full max-w-[496px] items-center justify-between gap-2">
+      <div className="mb-2 flex w-full max-w-[496px] items-center justify-between gap-2 2xl:max-w-none">
         <button
           type="button"
           onClick={() => {
@@ -289,7 +289,7 @@ export function HeroGrid({ answer, values, spanPp, reveal = null, className }: H
       </div>
 
       <div aria-hidden="true" data-hero-grid="">
-        <div className="grid w-full max-w-[496px] grid-cols-7 gap-1 sm:gap-2">
+        <div className="grid w-full max-w-[496px] grid-cols-7 gap-1 sm:gap-2 2xl:max-w-none">
           {weekdayLabels().map((label) => (
             <span key={label} className="pb-1 text-center text-[0.625rem] text-mute-text">
               {label}

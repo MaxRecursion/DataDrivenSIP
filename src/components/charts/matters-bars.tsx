@@ -26,7 +26,7 @@ export default function MattersBars({ fund, answer }: Props) {
   const labels = [`The ${day} vs a typical day`, "One missed instalment"];
   const values = [edgeRupees, -perInstalment];
 
-  const build = (palette: Palette): ApexOptions => ({
+  const build = (palette: Palette, scale: number): ApexOptions => ({
     chart: { type: "bar" },
     series: [{ name: "Rupees", data: values }],
     colors: values.map((value) => (value >= 0 ? palette.teal : palette.loss)),
@@ -36,21 +36,27 @@ export default function MattersBars({ fund, answer }: Props) {
     dataLabels: {
       enabled: true,
       formatter: (value: number) => `${value < 0 ? "−" : "+"}${formatRupees(Math.abs(value))}`,
-      style: { fontSize: "11px", fontWeight: 600, colors: [palette.ink] },
+      style: { fontSize: "0.6875rem", fontWeight: 600, colors: [palette.ink] },
       offsetX: 0,
     },
     xaxis: {
       categories: labels,
       labels: {
-        style: { colors: palette.mute, fontSize: "10px" },
+        style: { colors: palette.mute, fontSize: "0.625rem" },
         formatter: (value: string) => formatRupeesAxis(Math.abs(Number(value))),
       },
       tickAmount: 4,
       axisBorder: { show: false },
       axisTicks: { show: false },
     },
-    yaxis: { labels: { style: { colors: palette.ink, fontSize: "11px" }, maxWidth: 200 } },
-    grid: { borderColor: palette.line, xaxis: { lines: { show: true } }, yaxis: { lines: { show: false } } },
+    yaxis: { labels: { style: { colors: palette.ink, fontSize: "0.6875rem" }, maxWidth: 200 * scale } },
+    grid: {
+      borderColor: palette.line,
+      xaxis: { lines: { show: true } },
+      yaxis: { lines: { show: false } },
+      // Room for a bar's label when the bar itself is a sliver at the axis edge (the −₹99 case).
+      padding: { right: 28 * scale },
+    },
     legend: { show: false },
     tooltip: { enabled: false },
   });

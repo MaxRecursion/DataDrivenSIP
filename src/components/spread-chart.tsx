@@ -18,9 +18,11 @@ import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
 import type { FundArtifact } from "../../shared/artifacts";
 import { formatPp, ordinal } from "../lib/format";
+import { useRootScale } from "../lib/use-wide";
 
 /** Reserved so opening the section doesn't shift what is under it (D13: CLS 0). */
-const HEIGHT = 208;
+/** At 16px root; scaled with it on a large screen (useRootScale). */
+const BASE_HEIGHT = 208;
 
 type SpreadChartProps = {
   fund: FundArtifact;
@@ -39,6 +41,9 @@ function palette(): { neutral: string; answer: string; axis: string } {
 }
 
 export default function SpreadChart({ fund, answer }: SpreadChartProps) {
+  const scale = useRootScale();
+  const HEIGHT = Math.round(BASE_HEIGHT * scale);
+  const axisFont = `${Math.round(11 * scale)}px Satoshi, system-ui, sans-serif`;
   const host = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -93,7 +98,7 @@ export default function SpreadChart({ fund, answer }: SpreadChartProps) {
           stroke: colours.axis,
           grid: { show: false },
           ticks: { show: false },
-          font: "11px Satoshi, system-ui, sans-serif",
+          font: axisFont,
           // Chosen here rather than filtered from uPlot's own splits: left to itself it picked
           // ticks that my filter then blanked, and the axis came out labelled "15" and nothing
           // else. A 28-bar chart whose bars can't be identified is a decoration.
@@ -104,8 +109,8 @@ export default function SpreadChart({ fund, answer }: SpreadChartProps) {
           stroke: colours.axis,
           grid: { stroke: colours.neutral, width: 1 },
           ticks: { show: false },
-          font: "11px Satoshi, system-ui, sans-serif",
-          size: 52,
+          font: axisFont,
+          size: Math.round(52 * scale),
           values: (_u, splits) => splits.map((value) => `${value.toFixed(2)}%`),
         },
       ],
@@ -129,7 +134,7 @@ export default function SpreadChart({ fund, answer }: SpreadChartProps) {
       observer.disconnect();
       chart.destroy();
     };
-  }, [fund, answer]);
+  }, [fund, answer, HEIGHT, axisFont]);
 
   return (
     <div data-spread-chart="">

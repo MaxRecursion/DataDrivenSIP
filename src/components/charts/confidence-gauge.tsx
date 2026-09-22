@@ -14,15 +14,19 @@ import type { FundArtifact } from "../../../shared/artifacts";
 import type { Answer } from "../../lib/answer";
 import { sharePercent, stabilityPercent } from "../../lib/charts";
 import { ordinal } from "../../lib/format";
+import { useWide } from "../../lib/use-wide";
 import { ApexChart, type Palette } from "./apex";
 
+/** Shorter on the wide dashboard, where the half-circle's empty lower half is height it can't spare. */
 const HEIGHT = 170;
+const WIDE_HEIGHT = 140;
 const THRESHOLD = 0.6;
 const CHANCE = 25;
 
 /** A half-circle radial gauge: this fund's ring outside, the bar it needs to clear inside. */
 function gauge(
   palette: Palette,
+  scale: number,
   series: [number, number],
   labels: [string, string],
   formatValue: (value: number) => string,
@@ -44,11 +48,11 @@ function gauge(
            * phone is never. `total` pins this fund's own figure in the centre permanently; the
            * inner ring's figure is in the caption instead.
            */
-          name: { show: true, offsetY: 16, fontSize: "11px", color: palette.mute },
+          name: { show: true, offsetY: 16 * scale, fontSize: "0.6875rem", color: palette.mute },
           value: {
             show: true,
-            offsetY: -20,
-            fontSize: "22px",
+            offsetY: -20 * scale,
+            fontSize: "1.375rem",
             fontFamily: "Cabinet Grotesk, system-ui, sans-serif",
             fontWeight: 700,
             color: palette.ink,
@@ -70,6 +74,7 @@ function gauge(
 type Props = { fund: FundArtifact; answer: Answer };
 
 export default function ConfidenceGauge({ fund, answer }: Props) {
+  const height = useWide() ? WIDE_HEIGHT : HEIGHT;
   const stability = stabilityPercent(fund.stability);
   const share = sharePercent(answer.result.topQ);
   if (stability === null && share === null) return null;
@@ -82,15 +87,15 @@ export default function ConfidenceGauge({ fund, answer }: Props) {
       {stability === null ? null : (
         <figure className="m-0">
           <ApexChart
-            height={HEIGHT}
+            height={height}
             version={`stability:${version}`}
-            build={(palette) =>
-              gauge(palette, [stability, stabilityPercent(THRESHOLD)!], ["This fund", "Needs"], (value) =>
+            build={(palette, scale) =>
+              gauge(palette, scale, [stability, stabilityPercent(THRESHOLD)!], ["This fund", "Needs"], (value) =>
                 (value / 50 - 1).toFixed(2),
               )
             }
           />
-          <figcaption className="-mt-12 text-center text-xs text-mute-text">
+          <figcaption className="-mt-12 text-center text-xs text-mute-text 2xl:-mt-9">
             Ordering repeated between halves. Inner ring: the 0.60 needed
           </figcaption>
         </figure>
@@ -98,13 +103,13 @@ export default function ConfidenceGauge({ fund, answer }: Props) {
       {share === null ? null : (
         <figure className="m-0">
           <ApexChart
-            height={HEIGHT}
+            height={height}
             version={`share:${version}`}
-            build={(palette) =>
-              gauge(palette, [share, CHANCE], [`The ${day}`, "Chance"], (value) => `${Math.round(value)}%`)
+            build={(palette, scale) =>
+              gauge(palette, scale, [share, CHANCE], [`The ${day}`, "Chance"], (value) => `${Math.round(value)}%`)
             }
           />
-          <figcaption className="-mt-12 text-center text-xs text-mute-text">
+          <figcaption className="-mt-12 text-center text-xs text-mute-text 2xl:-mt-9">
             Top-quarter finishes. Inner ring: {CHANCE}% by chance
           </figcaption>
         </figure>

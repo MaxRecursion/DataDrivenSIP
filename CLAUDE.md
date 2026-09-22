@@ -75,6 +75,15 @@ Two halves that never mix:
 - Rounding is a claim. `formatPp`'s floor exists so a real difference is never printed as
   "0.00", and a ticker must not sit on a zero inside a sentence — "ended ₹0 apart" was on
   screen for half a second before anyone noticed.
+- **On large desktops (2xl, ≥1536px) the fund page is a one-screen dashboard.** Four columns
+  (name and calendar; answer and curve; confidence and matters across the last two), every
+  section held open, and the root font size scaled by `min(100vw / 120, 100vh / 60)` so the
+  columns fill the screen rather than sitting in a corner. `e2e/wide.spec.ts` measures
+  `scrollHeight ≤ innerHeight` at 1920×960, 2560×1320 and 3840×2080 on the longest-copy funds;
+  all 999 were swept at 1920×960 when it shipped. It is still one fund per page. It uses the
+  same DOM at every width (`contents` wrappers plus `order-*`), so the prerendered page never
+  jumps, and anything sized in pixels must scale with `useRootScale()`. A new section or longer
+  copy has to be re-measured there.
 - **The prerendered stylesheet is inlined, never linked.** `scripts/prerender.ts` reads the
   built CSS and writes it into every page's `<head>` as a `<style>` tag. A linked stylesheet
   measured as 99% of LCP under real throttling — a render-blocking file, however small, costs a

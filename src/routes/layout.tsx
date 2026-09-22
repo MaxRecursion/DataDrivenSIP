@@ -54,19 +54,22 @@ export function Layout() {
     code === null ? undefined : published?.code === code ? published.navTo : peekFund(code)?.navTo;
 
   return (
-    <div className="mx-auto flex min-h-dvh max-w-3xl flex-col px-5">
-      <header className="pt-10">
+    // Below 2xl a reading column; from 2xl (large desktops) the whole width, so the fund page's
+    // four columns fit the screen without a scroll (routes/fund.tsx).
+    <div className="mx-auto flex min-h-dvh max-w-3xl flex-col px-5 2xl:max-w-none 2xl:px-10">
+      <header className="pt-10 2xl:pt-4">
         {onHome ? (
           <h1 className="font-display text-4xl leading-tight font-bold text-balance">
             Which date should I run my SIP on?
           </h1>
         ) : null}
-        <div className={onHome ? "mt-6" : "pt-2"}>
+        {/* A search box stretched across a 4K screen is a very long empty bar. */}
+        <div className={`${onHome ? "mt-6" : "pt-2"} 2xl:max-w-xl`}>
           <FundSearch autoFocus={onHome} />
         </div>
       </header>
 
-      <main className="flex-1 py-8">
+      <main className="flex-1 py-8 2xl:py-4">
         <PublishNavDate value={setPublished}>
           <Outlet />
         </PublishNavDate>

@@ -1572,6 +1572,8 @@ Rule tests fail CI if any of these appear:
 | 9 | Bundle-size and Lighthouse CI pass | CI run link (D13) | 8 |
 | 10 | Cold pipeline < 20 min | `data.yml` dispatched with `full=true` and an empty cache; timing from the log | 8 |
 
+> **Criterion 10 — proven 2026-09-22.** `data.yml` dispatched with `full=true` ([run 35757145057](https://github.com/MaxRecursion/DataDrivenSIP/actions/runs/35757145057)): `pnpm pipeline --full` refetched every NAV history for 999 funds in 773.5 s (12m54s), and the whole job including typecheck, tests, build and the production deploy check took ~13.6 minutes. `--full` reads no cache, so this is a cold run without deleting the Actions caches.
+
 ---
 
 ## 14. Phases and gates

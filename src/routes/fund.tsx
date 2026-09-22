@@ -26,11 +26,12 @@ import { HeroGrid } from "../components/hero-grid";
  * is the 24 kB that actually justified a chunk, stays lazy inside — and its boundary is only
  * created when a reader opens the section, long after hydration.
  */
-import Disclosures from "../components/disclosures";
+import { ConfidenceSection, CurveSection, MattersSection } from "../components/disclosures";
 import { pickAnswer } from "../lib/answer";
 import { disclosureCopy } from "../lib/disclosure";
 import { heatSpanPp } from "../lib/heat";
 import { useReveal } from "../lib/use-reveal";
+import { useWide } from "../lib/use-wide";
 import { answerCopy } from "../lib/copy";
 import { loadFund, peekFund } from "../lib/data";
 import { setHead } from "../lib/head";
@@ -126,6 +127,13 @@ export function FundPage() {
    */
   const reveal = useReveal(code, state.status === "ready");
 
+  /**
+   * On a large screen every section is held open, so the four-column dashboard shows the whole
+   * answer without a scroll. Known only after mount; the columns themselves are CSS and are in
+   * place from the first paint. Called here, before the early returns, because it is a hook.
+   */
+  const wide = useWide();
+
   if (state.status === "loading") {
     // The window comes from the URL, not the fund, so the grid is already correct and already
     // the right size: when the data lands, the figures and the ring appear (PLAN.md §6.6).
@@ -185,23 +193,51 @@ export function FundPage() {
   const spanPp = heatSpanPp(values);
   const disclosure = disclosureCopy(state.fund, answer);
 
+  /*
+   * One DOM for every width. Below 2xl the three column wrappers are `display: contents`, so
+   * their children become items of the flex column and `order-*` keeps the phone's reading
+   * order: name, calendar, answer, curve, confidence, matters. From 2xl the wrappers are real
+   * grid columns, balanced by measured height (e2e/wide.spec.ts): the name and calendar; the
+   * answer and the curve; then confidence and matters across the last two.
+   */
+  const sections = { fund: state.fund, answer, copy: disclosure, open: wide };
   return (
-    <section>
-      <h1 className="font-display text-2xl leading-snug font-bold text-balance">{state.fund.name}</h1>
-      <p className="mt-1 text-mute-text">{state.fund.house}</p>
-      <p className="text-sm text-mute-text">{state.fund.category}</p>
+    <section className="flex flex-col 2xl:grid 2xl:grid-cols-4 2xl:items-start 2xl:gap-x-10">
+      <div className="contents 2xl:block">
+        <div className="order-1 2xl:order-none">
+          <h1 className="font-display text-2xl leading-snug font-bold text-balance">{state.fund.name}</h1>
+          <p className="mt-1 text-mute-text">{state.fund.house}</p>
+          <p className="text-sm text-mute-text">{state.fund.category}</p>
+        </div>
+        <div className="order-2 2xl:order-none">
+          <HeroGrid
+            answer={answer.date}
+            values={values}
+            spanPp={spanPp}
+            reveal={reveal}
+            className="mt-6 2xl:mt-4"
+          />
+          <GlanceStrip fund={state.fund} />
+        </div>
+      </div>
 
-      <HeroGrid
-        answer={answer.date}
-        values={values}
-        spanPp={spanPp}
-        reveal={reveal}
-        className="mt-6"
-      />
-      <GlanceStrip fund={state.fund} />
-      <AnswerBlock copy={copy} answerDate={answer.date} reveal={reveal} />
+      <div className="contents 2xl:block">
+        <div className="order-3 2xl:order-none [&>section]:2xl:mt-0">
+          <AnswerBlock copy={copy} answerDate={answer.date} reveal={reveal} />
+        </div>
+        <div className="order-4 mt-10 2xl:order-none 2xl:mt-4">
+          <CurveSection {...sections} />
+        </div>
+      </div>
 
-      <Disclosures fund={state.fund} answer={answer} copy={disclosure} />
+      <div className="contents 2xl:col-span-2 2xl:block">
+        <div className="order-5 2xl:order-none">
+          <ConfidenceSection {...sections} />
+        </div>
+        <div className="order-6 2xl:order-none">
+          <MattersSection {...sections} />
+        </div>
+      </div>
     </section>
   );
 }

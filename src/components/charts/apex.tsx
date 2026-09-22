@@ -15,6 +15,7 @@
  * at once when a section opens is faster to read anyway.
  */
 import { useEffect, useRef } from "react";
+import { useRootScale } from "../../lib/use-wide";
 import type { ApexOptions } from "apexcharts";
 
 /**
@@ -81,16 +82,21 @@ function withBase(options: ApexOptions, height: number): ApexOptions {
 }
 
 type ApexChartProps = {
-  /** Builds the options once the palette can be read, which is only after mount. */
-  build: (palette: Palette) => ApexOptions;
+  /**
+   * Builds the options once the palette can be read, which is only after mount. `scale` is the
+   * large-screen multiplier (useRootScale) for anything the options size in pixels.
+   */
+  build: (palette: Palette, scale: number) => ApexOptions;
   /** Rebuild when this changes; the caller's fund and answer, flattened to a string. */
   version: string;
   /** Reserved up front, so opening a section doesn't shift what's under it (CLS 0). */
   height: number;
 };
 
-export function ApexChart({ build, version, height }: ApexChartProps) {
+export function ApexChart({ build, version, height: baseHeight }: ApexChartProps) {
   const host = useRef<HTMLDivElement>(null);
+  const scale = useRootScale();
+  const height = Math.round(baseHeight * scale);
   // The latest builder, without making every render a reason to rebuild the chart.
   const builder = useRef(build);
   builder.current = build;
@@ -102,7 +108,7 @@ export function ApexChart({ build, version, height }: ApexChartProps) {
     void loadApex().then((Apex) => {
       const element = host.current;
       if (cancelled || !element) return;
-      chart = new Apex(element, withBase(builder.current(palette()), height));
+      chart = new Apex(element, withBase(builder.current(palette(), scale), height));
       void chart.render();
     });
 
@@ -110,7 +116,7 @@ export function ApexChart({ build, version, height }: ApexChartProps) {
       cancelled = true;
       chart?.destroy();
     };
-  }, [version, height]);
+  }, [version, height, scale]);
 
   return <div ref={host} aria-hidden="true" style={{ height }} />;
 }

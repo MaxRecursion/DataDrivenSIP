@@ -65,6 +65,20 @@ test("the directory is a real page with real links, before any JavaScript runs",
   expect(new Set(links).size).toBe(links.length);
 
   expect(html).toContain("<title>All funds");
+
+  // The markup lists what the page lists, in the page's order and under the page's names.
+  const block = /<script type="application\/ld\+json">(\{"@context":"https:\/\/schema.org","@type":"CollectionPage".*?)<\/script>/.exec(html)?.[1];
+  expect(block, "no CollectionPage markup").toBeDefined();
+  const marked = (JSON.parse(block ?? "{}") as { mainEntity: { itemListElement: Array<{ name: string; url: string }> } })
+    .mainEntity.itemListElement;
+  const shown = [...html.matchAll(/<a[^>]*href="\/f\/(\d+)"[^>]*>([^<]*(?:<!-- -->[^<]*)*)<\/a>/g)].map((match) => ({
+    code: match[1],
+    text: (match[2] ?? "").replace(/<!-- -->/g, "").replace(/&#x27;/g, "'").replace(/&amp;/g, "&"),
+  }));
+  for (const [index, item] of marked.slice(0, 20).entries()) {
+    expect(item.url.endsWith(`/f/${shown[index]?.code}`), `position ${index + 1}`).toBe(true);
+    expect(shown[index]?.text, `position ${index + 1}`).toBe(item.name);
+  }
   expect(html).toContain("Every mutual fund covered");
   expect(html).toContain('rel="canonical"');
   expect(html).toContain('"@type":"BreadcrumbList"');
@@ -137,4 +151,44 @@ test("the home page answers the questions it marks up, in visible text", async (
     expect(text, `question not on the page: ${entry.name}`).toContain(entry.name);
     expect(text.includes(entry.acceptedAnswer.text.replace(/\s+/g, " "))).toBe(true);
   }
+});
+
+test("hydration keeps the head the prerender wrote, which is what Google indexes", async ({ page, request }) => {
+  // Google renders the page and indexes the head as it stands afterwards. Until 2026-09-27 the
+  // fund page's effect replaced the prerendered title with a shared template sentence, so every
+  // fund went back to one title the moment JavaScript ran. Fetching the raw HTML, as the checks
+  // above do, cannot see that — this runs the page.
+  // 119588 is one of the schemes AMFI publishes under a shared name; its title carries its code.
+  for (const code of [119775, 119588]) {
+    const served = await (await request.get(`/f/${code}`)).text();
+    const title = /<title>([^<]*)<\/title>/.exec(served)?.[1]?.replace(/&amp;/g, "&") ?? "";
+    const description = /<meta name="description" content="([^"]*)"/.exec(served)?.[1]?.replace(/&amp;/g, "&") ?? "";
+    const canonical = /<link rel="canonical" href="([^"]+)"/.exec(served)?.[1] ?? "";
+
+    await page.goto(`/f/${code}`);
+    await expect(page.locator("#answer-heading")).toHaveText(/^The \d+(st|nd|rd|th)$/);
+
+    await expect(page).toHaveTitle(title);
+    const head = await page.evaluate(() => ({
+      description: document.querySelector('meta[name="description"]')?.getAttribute("content"),
+      twitter: document.querySelector('meta[name="twitter:title"]')?.getAttribute("content"),
+      canonical: document.querySelector('link[rel="canonical"]')?.getAttribute("href"),
+      canonicals: document.querySelectorAll('link[rel="canonical"]').length,
+    }));
+    expect(head.description, `${code} description`).toBe(description);
+    expect(head.twitter, `${code} twitter:title`).toBe(title);
+    expect(head.canonical, `${code} canonical`).toBe(canonical);
+    expect(head.canonicals).toBe(1);
+  }
+  expect(await page.title()).toContain("(scheme 119588)");
+});
+
+test("moving between pages inside the app moves the canonical with it", async ({ page }) => {
+  await page.goto("/f/119775");
+  await expect(page.locator("#answer-heading")).toBeVisible();
+  await page.getByRole("contentinfo").getByRole("link", { name: "All funds" }).click();
+  await expect(page).toHaveURL(/\/funds$/);
+  await expect(page).toHaveTitle(/^All funds/);
+  const canonical = await page.evaluate(() => document.querySelector('link[rel="canonical"]')?.getAttribute("href"));
+  expect(canonical?.endsWith("/funds")).toBe(true);
 });

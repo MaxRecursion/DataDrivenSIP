@@ -27,23 +27,31 @@ export function FundsPage() {
   // Seeded by the prerender and by main.tsx, so the first render on both sides of hydration has
   // the whole list and produces identical markup.
   const [rows, setRows] = useState<IndexRow[]>(() => peekIndex() ?? []);
+  // `loadIndex` never rejects: a failed fetch resolves to an empty list, and that result is cached
+  // for the session. So an empty list after a load is a failure, not a list still on its way, and
+  // saying "loading" forever would be claiming something that will never happen.
+  const [settled, setSettled] = useState(() => peekIndex() !== null);
 
   useEffect(() => {
-    if (rows.length > 0) return;
+    if (settled) return;
     let live = true;
     void loadIndex().then((loaded) => {
-      if (live) setRows(loaded);
+      if (!live) return;
+      setRows(loaded);
+      setSettled(true);
     });
     return () => {
       live = false;
     };
-  }, [rows.length]);
+  }, [settled]);
 
   const groups = buildDirectory(rows);
   const count = directoryCount(groups);
 
   useEffect(() => {
-    setHead({ title: FUNDS_TITLE, description: fundsDescription(count) });
+    // Not until the list is in: "every one of the 0 funds" is not a description worth writing.
+    if (count === 0) return;
+    setHead({ title: FUNDS_TITLE, description: fundsDescription(count), path: "/funds" });
   }, [count]);
 
   return (
@@ -57,7 +65,11 @@ export function FundsPage() {
       </p>
 
       {count === 0 ? (
-        <p className="mt-6 text-mute-text">The fund list is still loading.</p>
+        <p className="mt-6 text-mute-text">
+          {settled
+            ? "The fund list didn’t load. Check your connection and reload the page."
+            : "The fund list is still loading."}
+        </p>
       ) : (
         <>
           <p className="mt-2 text-sm text-mute-text">

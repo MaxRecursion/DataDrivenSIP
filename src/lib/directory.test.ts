@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { IndexRow } from "../../shared/artifacts";
-import { buildDirectory, categorySlug, directoryCount } from "./directory";
+import { buildDirectory, categorySlug, directoryCount, directoryListing } from "./directory";
 
 const row = (code: number, name: string, house: string, category: string): IndexRow => [
   code,
@@ -69,5 +69,22 @@ describe("the directory", () => {
   it("counts nothing when there is nothing", () => {
     expect(buildDirectory([])).toEqual([]);
     expect(directoryCount([])).toBe(0);
+  });
+});
+
+describe("the listing the structured data is built from", () => {
+  it("follows the page's order, and names shared-name schemes the way the page does", () => {
+    const listing = directoryListing(
+      buildDirectory([
+        row(7, "Twice Fund", "A AMC", "Equity"),
+        row(3, "Twice Fund", "B AMC", "Equity"),
+        row(5, "Alone Fund", "A AMC", "Debt"),
+      ]),
+    );
+    expect(listing).toEqual([
+      { code: 5, name: "Alone Fund" },
+      { code: 3, name: "Twice Fund (scheme 3)" },
+      { code: 7, name: "Twice Fund (scheme 7)" },
+    ]);
   });
 });

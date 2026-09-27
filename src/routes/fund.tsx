@@ -39,8 +39,10 @@ import { readSipDay, rememberFund, takeNamedDayShift, writeSipDay } from "../lib
 import { useReveal } from "../lib/use-reveal";
 import { useWide } from "../lib/use-wide";
 import { answerCopy } from "../lib/copy";
-import { loadFund, peekFund } from "../lib/data";
+import { loadFund, peekFund, peekIndex } from "../lib/data";
 import { setHead } from "../lib/head";
+import { fundDescription, fundTitle, sharedNames } from "../lib/seo";
+import { fundPath } from "../lib/url";
 import { usePublishNavDate } from "./layout";
 
 type State =
@@ -91,10 +93,24 @@ export function FundPage() {
 
   useEffect(() => {
     if (state.status !== "ready") return;
+    const fund = state.fund;
+    const answer = pickAnswer(fund);
+    // Whether this name is one AMFI publishes for another scheme too. The index answers it when
+    // it is loaded (the search box and the directory both load it). A direct load of a fund page
+    // has no index, but it does have the prerendered title, which already made that call.
+    //
+    // One gap, accepted: a shared-name fund reached from the empty search box's recents, before
+    // anything has loaded the index, reads the previous page's title and so leaves its code off
+    // the tab. It can never add a code wrongly, crawlers always take the direct-load path, and
+    // closing it would mean fetching the index on page load, which spec §9 rules out.
+    const rows = peekIndex();
+    const ambiguous = rows
+      ? sharedNames(rows).has(fund.name)
+      : document.title.includes(`(scheme ${fund.code})`);
     setHead({
-      title: `${state.fund.name} — SIP Date Planner`,
-      description: `Which date of the month to run a SIP in ${state.fund.name}, and how much the date has actually mattered.`,
-      url: `${window.location.origin}/f/${state.fund.code}`,
+      title: fundTitle(fund, answer, ambiguous),
+      description: fundDescription(fund, answer, ambiguous),
+      path: fundPath(fund.code),
     });
   }, [state]);
 

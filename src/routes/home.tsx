@@ -17,13 +17,14 @@
  */
 import { useEffect } from "react";
 import { Link } from "react-router";
+import { SPREAD_THRESHOLD_PP } from "../lib/copy";
 import { HOME_FAQ } from "../lib/faq";
 import { setHead } from "../lib/head";
 import { HOME_DESCRIPTION, HOME_TITLE } from "../lib/seo";
 
 export function Home() {
   useEffect(() => {
-    setHead({ title: HOME_TITLE, description: HOME_DESCRIPTION });
+    setHead({ title: HOME_TITLE, description: HOME_DESCRIPTION, path: "/" });
   }, []);
 
   return (
@@ -58,9 +59,9 @@ export function Home() {
         Across the funds here, the gap between the strongest and weakest date of the month is
         typically around a tenth of a percentage point of XIRR. On a corpus built over a decade
         that is a few thousand rupees — real money, and far less than most people expect. Where
-        the spread is under 0.25 percentage points, or where the ordering of dates did not
-        repeat between the two halves of a fund’s history, the verdict is noise, and the page
-        says so instead of dressing the number up.
+        the spread is no wider than {SPREAD_THRESHOLD_PP} percentage points and the ordering of
+        dates did not repeat between the two halves of a fund’s history, the verdict is noise,
+        and the page says so instead of dressing the number up.
       </p>
       <p className="mt-3 text-mute-text">
         Missing an instalment costs more than the date does, on almost every fund here. That

@@ -37,6 +37,7 @@ import {
   websiteJsonLd,
   type SitemapEntry,
 } from "../src/lib/seo";
+import { buildDirectory, directoryListing } from "../src/lib/directory";
 import { HOME_FAQ } from "../src/lib/faq";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
@@ -193,7 +194,7 @@ async function main(): Promise<void> {
       meta,
       index,
       jsonLd: [
-        directoryJsonLd(origin, index),
+        directoryJsonLd(origin, directoryListing(buildDirectory(index))),
         breadcrumbJsonLd(origin, [
           { name: "Home", path: "/" },
           { name: "All funds", path: "/funds" },

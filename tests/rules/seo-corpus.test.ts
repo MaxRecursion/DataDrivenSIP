@@ -69,6 +69,28 @@ describe("every published fund page", () => {
     }
   });
 
+  it("never describes a trimmed series as the fund's whole published history", () => {
+    // CLAUDE.md: a fund whose history was cut "must never present a truncated series as the
+    // fund's whole life". The description is the first thing a searcher reads about the page.
+    const trimmed = funds.filter((fund) => fund.trimmedFrom);
+    expect(trimmed.length, "no trimmed funds to check — has D21 stopped cutting series?").toBeGreaterThan(0);
+    for (const fund of trimmed) {
+      const description = descriptionOf(fund);
+      expect(description, `${fund.code}`).not.toContain("published NAV history");
+      expect(description, `${fund.code}`).toContain("where its usable series begins");
+    }
+  });
+
+  it("uses the same verdict words the page's own chip does", () => {
+    // Noise, Thin edge, Date effect (verdictLabel). A result that says one thing and a page that
+    // says another is a reader who clicked on a promise the page doesn't keep.
+    for (const fund of funds) {
+      const description = descriptionOf(fund).toLowerCase();
+      const expected = { noise: "noise", marginal: "thin edge", meaningful: "date effect" }[fund.verdict];
+      expect(description, `${fund.code} ${fund.verdict}`).toContain(expected);
+    }
+  });
+
   it("describes the fund in a length a search result will print", () => {
     for (const fund of funds) {
       const description = descriptionOf(fund);

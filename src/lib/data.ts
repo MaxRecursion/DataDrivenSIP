@@ -98,7 +98,11 @@ export function seedIndex(rows: IndexRow[]): void {
   indexRequest = Promise.resolve(rows);
 }
 
-/** Synchronous, for the same reason `peekFund` is: both sides of hydration render from it. */
+/**
+ * Synchronous, for the same reason `peekFund` is: both sides of hydration render from it. Also
+ * returns an index the search box has already fetched, which is how a fund page reached by a
+ * search knows whether its name is one AMFI shares with another scheme.
+ */
 export function peekIndex(): IndexRow[] | null {
   return seededIndex;
 }
@@ -109,7 +113,9 @@ export function loadIndex(fetcher: typeof fetch = fetch): Promise<IndexRow[]> {
     try {
       const response = await fetcher("/data/index.json");
       if (!isJson(response)) return [];
-      return (await response.json()) as IndexRow[];
+      const rows = (await response.json()) as IndexRow[];
+      seededIndex ??= rows;
+      return rows;
     } catch {
       return [];
     }

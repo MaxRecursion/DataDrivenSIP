@@ -46,8 +46,10 @@ Two halves that never mix:
 - **Themes are static CSS, chosen by two attributes.** Light and dark × four palettes, added
   2026-09-27 at the user's request (PLAN.md's amendment at its head). `<html>` carries
   `data-theme` and `data-palette`; `src/styles/index.css` holds all eight blocks, generated from
-  the table in `src/lib/theme.ts` by `pnpm theme:css`. Nothing paints a colour from JavaScript,
-  and the switch is never animated. The inline script in `index.html`'s head sets both attributes
+  the table in `src/lib/theme.ts` by `pnpm theme:css`. Nothing paints the page's colours from
+  JavaScript, and the switch is never animated. Two values do leave the table at runtime, both
+  because CSS can't carry them: the palette swatches, which have to preview palettes that aren't
+  active, and the `theme-color` meta, which the browser's toolbar reads as a literal. The inline script in `index.html`'s head sets both attributes
   before the first paint — a dark page that starts white is the failure this design exists to
   prevent — and `theme-stylesheet.test.ts` fails if that script, the stylesheet and the table
   drift apart. The token names are unchanged, so components still say `bg-raised` and

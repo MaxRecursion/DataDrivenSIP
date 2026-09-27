@@ -236,7 +236,7 @@ describe("structured data", () => {
   });
 
   it("caps the directory list rather than describing a thousand items", () => {
-    const rows: IndexRow[] = Array.from({ length: 300 }, (_, i) => [i, `Fund ${i}`, "House", "Category"]);
+    const rows = Array.from({ length: 300 }, (_, i) => ({ code: i, name: `Fund ${i}` }));
     const block = parse(directoryJsonLd(ORIGIN, rows));
     const list = block.mainEntity as { numberOfItems: number; itemListElement: unknown[] };
     expect(list.numberOfItems).toBe(300);

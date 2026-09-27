@@ -21,7 +21,7 @@
  */
 import type { FundArtifact, IndexRow } from "../../shared/artifacts";
 import type { Answer } from "./answer";
-import { formatPp, ordinal } from "./format";
+import { formatNavDate, formatPp, ordinal } from "./format";
 
 export const SITE_NAME = "SIP Date Planner";
 export const DEFAULT_ORIGIN = "https://sip-date-planner.kulkarniakshay1989.workers.dev";
@@ -116,20 +116,27 @@ export function fundTitle(
  * content signal, not a keyword win.
  */
 export function fundDescription(
-  fund: Pick<FundArtifact, "name" | "code" | "spreadPp" | "instalments" | "verdict">,
+  fund: Pick<FundArtifact, "name" | "code" | "spreadPp" | "instalments" | "verdict" | "trimmedFrom">,
   answer: Answer,
   disambiguate = false,
 ): string {
+  // The page's own chip says Noise, Thin edge or Date effect (`verdictLabel`). The search result
+  // uses the same words, so what someone reads before clicking is what they find after.
   const verdict =
     fund.verdict === "noise"
       ? "close enough that the date is noise"
       : fund.verdict === "marginal"
-        ? "a marginal difference"
-        : "a difference worth having";
+        ? "a thin edge"
+        : "a date effect in its history";
+  // A trimmed fund's series starts where its usable history does, not where the fund does
+  // (PLAN.md D21), and CLAUDE.md forbids presenting a cut series as the fund's whole life.
+  const history = fund.trimmedFrom
+    ? `across ${fund.instalments} instalments of NAV history from ` +
+      `${formatNavDate(fund.trimmedFrom)}, where its usable series begins`
+    : `across ${fund.instalments} instalments of published NAV history`;
   return (
     `The ${ordinal(answer.date)} has been the strongest SIP date for ${displayName(fund, disambiguate)}, ` +
-    `across ${fund.instalments} instalments of published NAV history. ` +
-    `All 28 dates sit within ${formatPp(fund.spreadPp)} of XIRR — ${verdict}.`
+    `${history}. All 28 dates sit within ${formatPp(fund.spreadPp)} of XIRR — ${verdict}.`
   );
 }
 
@@ -273,23 +280,35 @@ export function fundJsonLd(
   });
 }
 
-/** The directory, as a list of the pages it links to. Capped: a 1001-item list helps nobody. */
-export function directoryJsonLd(origin: string, rows: readonly IndexRow[], limit = 100): string {
+/**
+ * The directory, as a list of the pages it links to: in the order the page lists them, under the
+ * names the page prints, so the markup describes the page rather than the index file behind it.
+ * The caller passes `buildDirectory`'s output flattened — this module can't import it, because
+ * `directory.ts` imports `sharedNames` from here.
+ *
+ * Capped at a hundred: a thousand-item list helps nobody, and `numberOfItems` still says how many
+ * there are.
+ */
+export function directoryJsonLd(
+  origin: string,
+  listed: ReadonlyArray<{ code: number; name: string }>,
+  limit = 100,
+): string {
   return JSON.stringify({
     "@context": "https://schema.org",
     "@type": "CollectionPage",
     name: FUNDS_TITLE,
-    description: fundsDescription(rows.length),
+    description: fundsDescription(listed.length),
     url: `${origin}/funds`,
     inLanguage: "en-IN",
     mainEntity: {
       "@type": "ItemList",
-      numberOfItems: rows.length,
-      itemListElement: rows.slice(0, limit).map((row, index) => ({
+      numberOfItems: listed.length,
+      itemListElement: listed.slice(0, limit).map((fund, index) => ({
         "@type": "ListItem",
         position: index + 1,
-        name: row[1],
-        url: `${origin}/f/${row[0]}`,
+        name: fund.name,
+        url: `${origin}/f/${fund.code}`,
       })),
     },
   });

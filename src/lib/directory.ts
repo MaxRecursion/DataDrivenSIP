@@ -82,3 +82,17 @@ export function buildDirectory(rows: readonly IndexRow[]): DirectoryGroup[] {
 export function directoryCount(groups: readonly DirectoryGroup[]): number {
   return groups.reduce((total, group) => total + group.funds.length, 0);
 }
+
+/**
+ * Every fund as the page lists it, in order, under the name the page prints — the scheme code
+ * appended where AMFI shares the name. The structured data is built from this so that it
+ * describes the page a reader sees, not the index file behind it.
+ */
+export function directoryListing(groups: readonly DirectoryGroup[]): Array<{ code: number; name: string }> {
+  return groups.flatMap((group) =>
+    group.funds.map((fund) => ({
+      code: fund.code,
+      name: fund.ambiguous ? `${fund.name} (scheme ${fund.code})` : fund.name,
+    })),
+  );
+}

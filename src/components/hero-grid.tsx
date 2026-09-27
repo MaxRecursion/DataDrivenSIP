@@ -39,9 +39,14 @@ import { Animated } from "./animated";
 const WEEK_ROWS = 6;
 
 /**
- * The strongest a cell paints. Ink holds 4.5:1 over a white card up to about here on both
- * ramps; past it the text would have to flip to white, and white does not reach 4.5:1 until the
- * fill is almost solid. Capping below that band means one text colour works on every cell.
+ * The strongest a cell paints. Ink holds a little over 4:1 against the default palette's fills at
+ * this depth, and every other palette and mode is held to at least that by `theme.test.ts`; past
+ * it the text would have to flip, and the other direction does not reach 4.5:1 until the fill is
+ * almost solid. Capping below that band means one text colour works on every cell, in every theme.
+ *
+ * The fills are `--up` and `--down` rather than `--teal` and `--loss`: in a light theme they are
+ * the same two colours, but a dark theme needs a deep fill under near-white numerals, while the
+ * text colours it shares a name with have to be bright enough to read on a card.
  */
 const MAX_FILL = 0.85;
 
@@ -172,7 +177,7 @@ function Cell({
         <Animated
           className={cn(
             "absolute inset-0 rounded-lg",
-            heat?.direction === "down" ? "bg-loss" : "bg-teal",
+            heat?.direction === "down" ? "bg-down" : "bg-up",
           )}
           play={playing ? generation : null}
           from={{ opacity: 0 }}
@@ -338,11 +343,11 @@ export function HeroGrid({
 
       <p className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-mute-text">
         <span className="flex items-center gap-1.5">
-          <Swatch className="bg-teal" style={{ opacity: MAX_FILL }} />
+          <Swatch className="bg-up" style={{ opacity: MAX_FILL }} />
           Higher than today
         </span>
         <span className="flex items-center gap-1.5">
-          <Swatch className="bg-loss" style={{ opacity: MAX_FILL }} />
+          <Swatch className="bg-down" style={{ opacity: MAX_FILL }} />
           Lower than today
         </span>
         <span className="flex items-center gap-1.5">

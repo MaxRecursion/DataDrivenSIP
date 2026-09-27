@@ -25,8 +25,13 @@ parses a NAV history and never solves an XIRR. Everything it shows was computed 
 page was served, so the answer appears in well under 150 ms and the whole app is static.
 
 The day it names is the one with the greatest full-history XIRR, and the calendar shades every
-other day by how it compares to the day you are reading on. Nothing is configurable: a fund URL
-is just the fund.
+other day by how it compares to the day you are reading on. Nothing about the answer is
+configurable: a fund URL is just the fund.
+
+The one thing you can change is how it looks. Light, dark or whatever your system asks for, in
+one of four palettes, chosen in the header and kept in local storage — never in the URL, and
+never an input to the answer. Every palette is static CSS selected by two attributes on `<html>`,
+which an inline script sets before the first paint, so a dark page never starts out white.
 
 ## What it will not do
 
@@ -46,9 +51,10 @@ pnpm fonts:fetch     # licensed fonts, not redistributed in this repository
 pnpm dev
 ```
 
-`pnpm pipeline` rebuilds the fund data. `pnpm typecheck && pnpm test && pnpm build` is the
-gate every commit has to pass, and `pnpm e2e` runs the Playwright suite against
-`wrangler dev`.
+`pnpm pipeline` rebuilds the fund data. `pnpm theme:css` regenerates the palette blocks in
+`src/styles/index.css` from the table in `src/lib/theme.ts`.
+`pnpm typecheck && pnpm test && pnpm build` is the gate every commit has to pass, and
+`pnpm e2e` runs the Playwright suite against `wrangler dev`.
 
 `PLAN.md` is the design and the source of truth for every decision in here. `CLAUDE.md`
 holds the invariants that survive a change of author.

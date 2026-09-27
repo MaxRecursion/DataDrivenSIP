@@ -3,6 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!--
+      Theme before paint. This runs ahead of the stylesheet the prerender inlines, so a reader
+      who chose dark — or whose OS did — never sees the light page first. It is the string
+      NO_FLASH_SCRIPT in src/lib/theme.ts, and theme.test.ts fails if the two differ.
+    -->
+    <script>
+      (function(){try{var r=document.documentElement,c=JSON.parse(localStorage.getItem("sip-date-planner.theme.v1")||"{}"),p=c.palette,m=c.mode;r.dataset.palette=["marigold","indigo","sandstone","graphite"].indexOf(p)>-1?p:"marigold";r.dataset.theme=m==="light"||m==="dark"?m:matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}catch(e){}})();
+    </script>
+    <!-- The light palette's surface. The theme service rewrites it once the choice is known. -->
     <meta name="theme-color" content="#EEF0F4" />
     <meta
       name="description"

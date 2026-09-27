@@ -41,7 +41,25 @@ Two halves that never mix:
   page must never present a truncated series as the fund's whole life.
 - "Transform and opacity only" covers CSS too: no `transition-colors`, `transition-all`,
   shadow/height transitions or keyframes. Colour fills and rings are pre-painted overlays
-  whose opacity animates. State changes that aren't animated are fine.
+  whose opacity animates. State changes that aren't animated are fine — which is exactly how
+  the theme switch is allowed to exist at all.
+- **Themes are static CSS, chosen by two attributes.** Light and dark × four palettes, added
+  2026-09-27 at the user's request (PLAN.md's amendment at its head). `<html>` carries
+  `data-theme` and `data-palette`; `src/styles/index.css` holds all eight blocks, generated from
+  the table in `src/lib/theme.ts` by `pnpm theme:css`. Nothing paints a colour from JavaScript,
+  and the switch is never animated. The inline script in `index.html`'s head sets both attributes
+  before the first paint — a dark page that starts white is the failure this design exists to
+  prevent — and `theme-stylesheet.test.ts` fails if that script, the stylesheet and the table
+  drift apart. The token names are unchanged, so components still say `bg-raised` and
+  `text-mute-text`; two were added, `--up` and `--down`, for the calendar's fills, because a dark
+  theme needs a deep fill under near-white numerals while `--teal` and `--loss` have to stay
+  readable as text. A chart that reads the tokens into a canvas takes `useThemeKey()` in its
+  effect's dependencies, or it keeps the colours of the theme it was drawn in.
+- **Marigold light is the palette that shipped, to the digit, and D15's ratios are its floor.**
+  `theme.test.ts` holds every pair in all eight combinations to AA where Marigold light reaches
+  AA, and to Marigold light's own figure where it doesn't. Changing a Marigold light value is
+  changing an approved D-item and needs the user. Adding a palette means adding a column that
+  passes, and running `pnpm theme:css`.
 - Under `prefers-reduced-motion: reduce` the reveal sequence doesn't run at all.
 - **Ranking funds was allowed on 2026-09-22, by the user, for one feature.** Until then "no
   fund ranking, ever" was a non-negotiable. The one ranked list is the search box's trending
@@ -53,7 +71,8 @@ Two halves that never mix:
   relevance only, and the fund page never compares funds. Copy still never says "best fund",
   "top performing" or "recommended fund" — `scripts/check-rules.ts` still bans those, and
   "best" stays fine of a DAY.
-- The URL is `/f/{code}` and carries no state beyond which fund is shown. No Redux, Zustand,
+- The theme is a preference, not state: local storage only, never the URL, and never an input to
+  the answer. The URL is `/f/{code}` and carries no state beyond which fund is shown. No Redux, Zustand,
   React Query, analytics SDKs or auth.
 - The compliance footer and visible `navAsOf` appear on every page.
 - **The grid and the answer are the same number now, and that is worth protecting.** Cells print

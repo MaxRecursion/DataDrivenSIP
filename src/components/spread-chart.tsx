@@ -18,6 +18,7 @@ import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
 import type { FundArtifact } from "../../shared/artifacts";
 import { formatPp, ordinal } from "../lib/format";
+import { useThemeKey } from "../lib/use-theme";
 import { useRootScale, useWide } from "../lib/use-wide";
 
 /** Reserved so opening the section doesn't shift what is under it (D13: CLS 0). */
@@ -30,7 +31,11 @@ type SpreadChartProps = {
   answer: number;
 };
 
-/** The palette lives in one place; the canvas reads it rather than repeating the hex. */
+/**
+ * The palette lives in one place; the canvas reads it rather than repeating the hex — which is
+ * also what makes a theme switch free here: the same read against a different `data-theme`
+ * returns the other theme's colours. The effect below is keyed on the theme so it happens.
+ */
 function palette(): { neutral: string; answer: string; axis: string } {
   const style = getComputedStyle(document.documentElement);
   const read = (name: string, fallback: string) => style.getPropertyValue(name).trim() || fallback;
@@ -42,6 +47,7 @@ function palette(): { neutral: string; answer: string; axis: string } {
 }
 
 export default function SpreadChart({ fund, answer }: SpreadChartProps) {
+  const themeKey = useThemeKey();
   const scale = useRootScale();
   const wide = useWide();
   const HEIGHT = Math.round((wide ? WIDE_HEIGHT : BASE_HEIGHT) * scale);
@@ -136,7 +142,8 @@ export default function SpreadChart({ fund, answer }: SpreadChartProps) {
       observer.disconnect();
       chart.destroy();
     };
-  }, [fund, answer, HEIGHT, axisFont]);
+    // themeKey: a canvas keeps the colours it was drawn with, so a theme switch has to redraw it.
+  }, [fund, answer, HEIGHT, axisFont, themeKey]);
 
   return (
     <div data-spread-chart="">

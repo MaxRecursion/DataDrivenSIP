@@ -3,11 +3,17 @@ import { createRoot, hydrateRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router";
 import { App } from "@/app";
 import { seedFund, setDataVersion } from "@/lib/data";
+import { initTheme } from "@/lib/use-theme";
 import type { FundArtifact } from "../shared/artifacts";
 import "@/styles/index.css";
 
 const root = document.getElementById("root");
 if (!root) throw new Error("Missing #root element");
+
+// The inline head script already set data-theme and data-palette, before the first paint. This
+// takes the same stored choice, normalises those attributes and updates the theme-color meta the
+// script deliberately left alone (src/lib/theme.ts).
+initTheme();
 
 // The build stamps the data version into the page and inlines the fund's own data, so a deep
 // link paints without waiting for a request (PLAN.md §6.2).

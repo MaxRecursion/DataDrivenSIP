@@ -36,7 +36,12 @@ function loadApex(): Promise<ApexClass> {
   return loading;
 }
 
-/** The brand tokens, read from the stylesheet rather than repeating the hex here. */
+/**
+ * The brand tokens, read from the stylesheet rather than repeating the hex here — which is also
+ * what makes a theme switch free for the charts: the same read against a different `data-theme`
+ * returns the other palette. `scheme` is the resolved mode, for the one Apex option (its tooltip
+ * theme) that takes a light-or-dark word instead of a colour.
+ */
 export type Palette = {
   teal: string;
   marigold: string;
@@ -45,12 +50,14 @@ export type Palette = {
   mute: string;
   ink: string;
   raised: string;
+  scheme: "light" | "dark";
 };
 
 function palette(): Palette {
   const style = getComputedStyle(document.documentElement);
   const read = (name: string, fallback: string) => style.getPropertyValue(name).trim() || fallback;
   return {
+    scheme: document.documentElement.dataset.theme === "dark" ? "dark" : "light",
     teal: read("--teal", "#0e7c7b"),
     marigold: read("--marigold", "#f2a71b"),
     loss: read("--loss", "#d93025"),
@@ -89,11 +96,17 @@ type ApexChartProps = {
   build: (palette: Palette, scale: number) => ApexOptions;
   /** Rebuild when this changes; the caller's fund and answer, flattened to a string. */
   version: string;
+  /**
+   * The theme, flattened the same way (`useThemeKey`). An Apex chart is drawn once from colours
+   * read out of the stylesheet, so switching theme has to redraw it — nothing else here would
+   * notice that the tokens now resolve to different colours.
+   */
+  themeKey: string;
   /** Reserved up front, so opening a section doesn't shift what's under it (CLS 0). */
   height: number;
 };
 
-export function ApexChart({ build, version, height: baseHeight }: ApexChartProps) {
+export function ApexChart({ build, version, themeKey, height: baseHeight }: ApexChartProps) {
   const host = useRef<HTMLDivElement>(null);
   const scale = useRootScale();
   const height = Math.round(baseHeight * scale);
@@ -116,7 +129,7 @@ export function ApexChart({ build, version, height: baseHeight }: ApexChartProps
       cancelled = true;
       chart?.destroy();
     };
-  }, [version, height, scale]);
+  }, [version, themeKey, height, scale]);
 
   return <div ref={host} aria-hidden="true" style={{ height }} />;
 }

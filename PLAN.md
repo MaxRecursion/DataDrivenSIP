@@ -1,5 +1,29 @@
 # SIP Date Planner — design and implementation plan
 
+> ## Amendment, 2026-09-27 — light and dark, with a palette selector
+>
+> The user asked for a theme service. §7's "No dark mode in v1" no longer holds, and nothing else
+> in this plan changes: no artifact, no engine convention, no threshold and no URL state.
+>
+> The eight themes — four palettes × light and dark — are static blocks of custom properties in
+> `src/styles/index.css`, selected by `data-theme` and `data-palette` on `<html>`. An inline
+> script in `index.html` writes those two attributes before the first paint, which is what keeps a
+> dark reader from being shown a white page first; `src/lib/theme.ts` holds the palette table and
+> the pure decisions, `src/lib/use-theme.ts` the store, and `src/components/theme-select.tsx` the
+> control in the header. Switching is two attribute writes and no transition, so D10's
+> transform-and-opacity rule is untouched.
+>
+> D15's approved colours are unchanged: Marigold light is the palette the project shipped with,
+> to the digit. The other seven are held to a rule `src/lib/theme.test.ts` enforces on every pair
+> — AA where Marigold light reaches AA, and Marigold light's own figure where it doesn't — so
+> nothing new is worse than what was reviewed. Two tokens were added rather than repurposed:
+> `--up` and `--down` are the calendar's fills, because a dark theme needs a deep fill under
+> near-white numerals while `--teal` and `--loss` have to stay bright enough to read as text.
+>
+> The choice lives in local storage, never in the URL (§6.1 stands: a fund URL is the fund code
+> alone), and the inlined stylesheet grew by 589 bytes gzipped per prerendered page.
+
+
 > ## Amendment, 2026-09-22 — funds may be ranked, in one place
 >
 > The user lifted "no fund ranking, ever" for the search box: clicking the empty field shows the
@@ -1216,7 +1240,9 @@ Educational tool. Not investment advice. ...
 
 Tailwind v4 `@theme` holds your six colours plus `--mute-text` and a `--line` border (D15).
 shadcn's semantic tokens map onto them: `--primary` is ink, `--ring` is teal,
-`--muted-foreground` is `--mute-text`. No dark mode in v1.
+`--muted-foreground` is `--mute-text`. ~~No dark mode in v1.~~ Superseded by the 2026-09-27
+amendment: the same token names are now redefined per theme, plus `--up` and `--down` for the
+calendar's fills. Nothing reads a colour from JavaScript; the charts read the tokens.
 
 ### Type
 

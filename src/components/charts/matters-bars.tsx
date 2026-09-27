@@ -13,6 +13,7 @@ import type { FundArtifact } from "../../../shared/artifacts";
 import type { Answer } from "../../lib/answer";
 import { mattersFigures } from "../../lib/disclosure";
 import { formatRupees, formatRupeesAxis, ordinal } from "../../lib/format";
+import { useThemeKey } from "../../lib/use-theme";
 import { ApexChart, type Palette } from "./apex";
 
 const HEIGHT = 150;
@@ -20,6 +21,7 @@ const HEIGHT = 150;
 type Props = { fund: FundArtifact; answer: Answer };
 
 export default function MattersBars({ fund, answer }: Props) {
+  const themeKey = useThemeKey();
   const { edgeRupees, perInstalment } = mattersFigures(fund, answer);
   const day = ordinal(answer.date);
   // Short enough not to truncate at 360 px; the sentences below say it in full.
@@ -63,7 +65,12 @@ export default function MattersBars({ fund, answer }: Props) {
 
   return (
     <div data-chart="matters" className="mb-4">
-      <ApexChart height={HEIGHT} version={`${fund.code}:${edgeRupees}:${perInstalment}`} build={build} />
+      <ApexChart
+        height={HEIGHT}
+        version={`${fund.code}:${edgeRupees}:${perInstalment}`}
+        themeKey={themeKey}
+        build={build}
+      />
       <p className="sr-only">
         {edgeRupees >= 0
           ? `Picking the ${day} over a typical day gained ${formatRupees(edgeRupees)}.`

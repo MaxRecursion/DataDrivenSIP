@@ -1,6 +1,12 @@
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
 
+# The published data, kept out of the index without being kept out of the crawl. A `Disallow` in
+# robots.txt would stop Google fetching these, and a URL it cannot fetch is one it can still list
+# without content; letting it fetch and be told no is what actually keeps JSON out of the results.
+/data/*
+  X-Robots-Tag: noindex
+
 /fonts/*
   Cache-Control: public, max-age=31536000, immutable
 

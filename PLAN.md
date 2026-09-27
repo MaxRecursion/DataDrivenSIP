@@ -1,5 +1,32 @@
 # SIP Date Planner — design and implementation plan
 
+> ## Amendment, 2026-09-27 — the pages are made findable
+>
+> The user asked for the site to be SEO friendly. What was there: a canonical, an og title and an
+> og description. What was missing mattered more — there was no `robots.txt`, no sitemap, no
+> structured data, and **every one of the 1001 fund pages was an orphan**, because the only route
+> to one inside the app is a search box that needs JavaScript. A crawler could reach `/` and stop.
+>
+> Added, all of it at build time: `robots.txt`, a 1003-URL `sitemap.xml` whose `lastmod` is each
+> fund's own last NAV rather than the build clock, a prerendered `/funds` directory linked from
+> every page's footer, `WebSite` / `WebPage` / `BreadcrumbList` / `CollectionPage` / `FAQPage`
+> structured data, Twitter cards, `og:site_name` and `og:locale`, an explicit `robots` meta, and
+> substantial home-page copy with an FAQ. Titles and descriptions now state each fund's own
+> answer, which is what makes 1001 near-identical pages worth indexing separately.
+>
+> Two things this is not. It is not a change to the engine, the artifacts, the thresholds or the
+> URL state — §6.1 stands, and `/funds` carries no query string. And it is not a promise about a
+> head term: "mutual fund", "investment" and "SIP" are held by sites with years of links behind
+> them, and markup does not move them. The queries these pages can win are the ones they uniquely
+> answer, a fund at a time.
+>
+> One data note surfaced by the work, not fixed by it: AMFI publishes three names under two
+> scheme codes each (Sundaram Small Cap, Kotak Aggressive Hybrid, Axis Children's). The six pages
+> disambiguate themselves with the scheme code. Normalising the near-duplicate category names
+> ("Equity Scheme -" and "Equity Schemes -", both published) would be a pipeline decision and has
+> not been taken.
+
+
 > ## Amendment, 2026-09-27 — light and dark, with a palette selector
 >
 > The user asked for a theme service. §7's "No dark mode in v1" no longer holds, and nothing else

@@ -2,9 +2,9 @@ import { StrictMode } from "react";
 import { createRoot, hydrateRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router";
 import { App } from "@/app";
-import { seedFund, setDataVersion } from "@/lib/data";
+import { seedFund, seedIndex, setDataVersion } from "@/lib/data";
 import { initTheme } from "@/lib/use-theme";
-import type { FundArtifact } from "../shared/artifacts";
+import type { FundArtifact, IndexRow } from "../shared/artifacts";
 import "@/styles/index.css";
 
 const root = document.getElementById("root");
@@ -25,6 +25,17 @@ if (inline) {
     seedFund(JSON.parse(inline) as FundArtifact);
   } catch {
     // A corrupt inline payload just means one extra request.
+  }
+}
+
+// The directory page carries the whole index, so its thousand links hydrate onto the markup they
+// were prerendered from rather than being replaced after a fetch.
+const inlineIndex = document.getElementById("index-data")?.textContent;
+if (inlineIndex) {
+  try {
+    seedIndex(JSON.parse(inlineIndex) as IndexRow[]);
+  } catch {
+    // Same trade: one extra request, not a broken page.
   }
 }
 

@@ -28,6 +28,9 @@ The day it names is the one with the greatest full-history XIRR, and the calenda
 other day by how it compares to the day you are reading on. Nothing about the answer is
 configurable: a fund URL is just the fund.
 
+Every fund also has its own page, listed in a [directory](/funds) linked from every footer and
+in a sitemap the build writes, so the 1001 pages are reachable without running the search box.
+
 The one thing you can change is how it looks. Light, dark or whatever your system asks for, in
 one of four palettes, chosen in the header and kept in local storage — never in the URL, and
 never an input to the answer. Every palette is static CSS selected by two attributes on `<html>`,

@@ -1,3 +1,4 @@
+import { Link } from "react-router";
 import { formatNavDate } from "@/lib/format";
 import { useTheme } from "@/lib/use-theme";
 
@@ -24,6 +25,15 @@ export function Footer({ navAsOf, source = "mfapi.in" }: FooterProps) {
     // One line on a large desktop, where every pixel of height goes to the fund page's columns.
     <footer className="border-t border-line py-6 text-sm leading-relaxed text-mute-text 2xl:flex 2xl:flex-wrap 2xl:items-center 2xl:gap-x-6 2xl:py-2 2xl:text-xs">
       {navAsOf ? <p>NAVs up to {formatNavDate(navAsOf)}.</p> : null}
+      {/*
+       * The only link every page has to the directory, and the reason the fund pages are not
+       * orphans: from here a crawler reaches the list of every fund, and from there each fund.
+       */}
+      <p className="mt-2 2xl:mt-0">
+        <Link to="/funds" className="underline decoration-line underline-offset-2">
+          All funds
+        </Link>
+      </p>
       <p className="mt-2 max-w-[65ch] 2xl:mt-0 2xl:max-w-none">
         Educational tool. Not investment advice. Past performance does not indicate future
         results. Data from AMFI published NAVs via {source}.

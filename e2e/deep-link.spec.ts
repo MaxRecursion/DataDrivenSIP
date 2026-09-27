@@ -35,8 +35,13 @@ test.describe("the HTML a crawler sees", () => {
     expect(html).toContain(FUND.house);
     expect(html).toContain(`data-prerendered="/f/${FUND.code}"`);
 
-    expect(html).toContain(`<title>${FUND.name} — SIP Date Planner</title>`);
-    expect(html).toContain(`<meta property="og:title" content="${FUND.name} — SIP Date Planner" />`);
+    // The title leads with the fund and carries its own answer (src/lib/seo.ts). Asserted as the
+    // shape rather than the literal: the exact wording is seo.test.ts's business, and pinning it
+    // twice means every rewording breaks a test that was never about wording.
+    const title = /<title>([^<]*)<\/title>/.exec(html)?.[1] ?? "";
+    expect(title.startsWith(FUND.name)).toBe(true);
+    expect(title).toMatch(/SIP on the \d+(st|nd|rd|th)/);
+    expect(html).toContain(`<meta property="og:title" content="${title}" />`);
     expect(html).toContain(`content="https://sip-date-planner.kulkarniakshay1989.workers.dev/f/${FUND.code}"`);
     expect(html).toContain(`<script type="application/json" id="fund-data">`);
 

@@ -11,6 +11,7 @@ import type { FundArtifact } from "../../../shared/artifacts";
 import type { Answer } from "../../lib/answer";
 import { ledSeries } from "../../lib/charts";
 import { ordinal } from "../../lib/format";
+import { useThemeKey } from "../../lib/use-theme";
 import { useWide } from "../../lib/use-wide";
 import { ApexChart, type Palette } from "./apex";
 
@@ -23,6 +24,7 @@ type Props = { fund: FundArtifact; answer: Answer };
 
 export default function StretchesLed({ fund, answer }: Props) {
   const height = useWide() ? WIDE_HEIGHT : HEIGHT;
+  const themeKey = useThemeKey();
   const series = ledSeries(fund, answer.date);
   if (series === null) return null;
 
@@ -47,7 +49,8 @@ export default function StretchesLed({ fund, answer }: Props) {
     legend: { show: false },
     tooltip: {
       enabled: true,
-      theme: "light",
+      // Apex paints its own tooltip, so this is the one place a chart is told the mode by name.
+      theme: palette.scheme,
       x: { formatter: (value: number) => `The ${ordinal(Number(value))}` },
     },
   });
@@ -55,7 +58,12 @@ export default function StretchesLed({ fund, answer }: Props) {
   const most = Math.max(...series.led);
   return (
     <figure data-chart="stretches-led" className="m-0 mb-4">
-      <ApexChart height={height} version={`${fund.code}:${answer.date}:${series.led.join(",")}`} build={build} />
+      <ApexChart
+        height={height}
+        version={`${fund.code}:${answer.date}:${series.led.join(",")}`}
+        themeKey={themeKey}
+        build={build}
+      />
       <figcaption className="text-xs text-mute-text">
         Rolling 3-year stretches each date led, the {ordinal(answer.date)} marked
       </figcaption>

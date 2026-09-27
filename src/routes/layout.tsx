@@ -18,6 +18,7 @@ import { createContext, useContext, useState } from "react";
 import { Outlet, useLocation } from "react-router";
 import { Footer } from "../components/footer";
 import { FundSearch } from "../components/fund-search";
+import { ThemeSelect } from "../components/theme-select";
 import { peekFund } from "../lib/data";
 import { navAsOfFromDocument } from "../lib/head";
 
@@ -63,9 +64,17 @@ export function Layout() {
             Which date should I run my SIP on?
           </h1>
         ) : null}
-        {/* A search box stretched across a 4K screen is a very long empty bar. */}
-        <div className={`${onHome ? "mt-6" : "pt-2"} 2xl:max-w-xl`}>
-          <FundSearch autoFocus={onHome} />
+        {/*
+         * A search box stretched across a 4K screen is a very long empty bar, so it is capped and
+         * the theme control takes the space beside it — which is also height it doesn't add, and
+         * the fund page's one screen has none to spare (e2e/wide.spec.ts). On a phone the control
+         * wraps to its own line.
+         */}
+        <div className={`${onHome ? "mt-6" : "pt-2"} flex flex-wrap items-center gap-x-4 gap-y-3`}>
+          <div className="min-w-56 flex-1 2xl:max-w-xl">
+            <FundSearch autoFocus={onHome} />
+          </div>
+          <ThemeSelect className="shrink-0" />
         </div>
       </header>
 

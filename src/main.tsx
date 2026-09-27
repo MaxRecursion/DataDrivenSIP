@@ -2,12 +2,18 @@ import { StrictMode } from "react";
 import { createRoot, hydrateRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router";
 import { App } from "@/app";
-import { seedFund, setDataVersion } from "@/lib/data";
-import type { FundArtifact } from "../shared/artifacts";
+import { seedFund, seedIndex, setDataVersion } from "@/lib/data";
+import { initTheme } from "@/lib/use-theme";
+import type { FundArtifact, IndexRow } from "../shared/artifacts";
 import "@/styles/index.css";
 
 const root = document.getElementById("root");
 if (!root) throw new Error("Missing #root element");
+
+// The inline head script already set data-theme and data-palette, before the first paint. This
+// takes the same stored choice, normalises those attributes and updates the theme-color meta the
+// script deliberately left alone (src/lib/theme.ts).
+initTheme();
 
 // The build stamps the data version into the page and inlines the fund's own data, so a deep
 // link paints without waiting for a request (PLAN.md §6.2).
@@ -19,6 +25,17 @@ if (inline) {
     seedFund(JSON.parse(inline) as FundArtifact);
   } catch {
     // A corrupt inline payload just means one extra request.
+  }
+}
+
+// The directory page carries the whole index, so its thousand links hydrate onto the markup they
+// were prerendered from rather than being replaced after a fetch.
+const inlineIndex = document.getElementById("index-data")?.textContent;
+if (inlineIndex) {
+  try {
+    seedIndex(JSON.parse(inlineIndex) as IndexRow[]);
+  } catch {
+    // Same trade: one extra request, not a broken page.
   }
 }
 

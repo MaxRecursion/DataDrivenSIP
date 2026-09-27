@@ -14,6 +14,7 @@ import type { FundArtifact } from "../../../shared/artifacts";
 import type { Answer } from "../../lib/answer";
 import { sharePercent, stabilityPercent } from "../../lib/charts";
 import { ordinal } from "../../lib/format";
+import { useThemeKey } from "../../lib/use-theme";
 import { useWide } from "../../lib/use-wide";
 import { ApexChart, type Palette } from "./apex";
 
@@ -75,6 +76,7 @@ type Props = { fund: FundArtifact; answer: Answer };
 
 export default function ConfidenceGauge({ fund, answer }: Props) {
   const height = useWide() ? WIDE_HEIGHT : HEIGHT;
+  const themeKey = useThemeKey();
   const stability = stabilityPercent(fund.stability);
   const share = sharePercent(answer.result.topQ);
   if (stability === null && share === null) return null;
@@ -89,6 +91,7 @@ export default function ConfidenceGauge({ fund, answer }: Props) {
           <ApexChart
             height={height}
             version={`stability:${version}`}
+            themeKey={themeKey}
             build={(palette, scale) =>
               gauge(palette, scale, [stability, stabilityPercent(THRESHOLD)!], ["This fund", "Needs"], (value) =>
                 (value / 50 - 1).toFixed(2),
@@ -105,6 +108,7 @@ export default function ConfidenceGauge({ fund, answer }: Props) {
           <ApexChart
             height={height}
             version={`share:${version}`}
+            themeKey={themeKey}
             build={(palette, scale) =>
               gauge(palette, scale, [share, CHANCE], [`The ${day}`, "Chance"], (value) => `${Math.round(value)}%`)
             }

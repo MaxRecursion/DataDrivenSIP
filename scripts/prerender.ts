@@ -1,14 +1,44 @@
 /**
- * Writes a static page per fund, plus the home page (PLAN.md D12, §6.2).
+ * Writes a static page per fund, plus the home page, the directory, robots.txt and the sitemap
+ * (PLAN.md D12, §6.2, and the 2026-09-27 SEO amendment).
  *
  * Link-preview crawlers don't run JavaScript, so og tags have to be in the HTML. The same
  * pass inlines the fund's own data and the data version, which is what lets a deep link paint
  * without a request. This is build-time generation: no server runs at request time.
+ *
+ * The head tags, the structured data, the sitemap and robots.txt are all built by
+ * `src/lib/seo.ts`, which is pure and tested, rather than assembled from string literals here —
+ * a title format that drifts between what the build writes and what the running app sets is a
+ * bug no one sees until a share preview contradicts the tab.
  */
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import type { FundArtifact, Meta } from "../shared/artifacts";
+import type { FundArtifact, IndexRow, Meta } from "../shared/artifacts";
+import { pickAnswer } from "../src/lib/answer";
+import {
+  FUNDS_TITLE,
+  HOME_DESCRIPTION,
+  HOME_TITLE,
+  breadcrumbJsonLd,
+  directoryJsonLd,
+  escapeAttribute,
+  escapeJson,
+  faqJsonLd,
+  fundDescription,
+  fundJsonLd,
+  fundTitle,
+  fundsDescription,
+  headTags,
+  sharedNames,
+  DEFAULT_ORIGIN,
+  robotsTxt,
+  sitemapXml,
+  websiteJsonLd,
+  type SitemapEntry,
+} from "../src/lib/seo";
+import { buildDirectory, directoryListing } from "../src/lib/directory";
+import { HOME_FAQ } from "../src/lib/faq";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const dist = join(root, "dist");
@@ -16,12 +46,8 @@ const dataDir = join(dist, "data");
 
 type Renderer = (
   path: string,
-  options: { dataVersion?: string; navAsOf?: string; fund?: FundArtifact },
+  options: { dataVersion?: string; navAsOf?: string; fund?: FundArtifact; index?: IndexRow[] },
 ) => string;
-
-const escapeAttribute = (value: string) => value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
-/** `</script>` inside JSON would end the tag early. */
-const escapeJson = (value: string) => value.replace(/</g, "\\u003c");
 
 
 /**
@@ -58,23 +84,36 @@ function page(
     description: string;
     canonical: string;
     meta: Meta;
+    jsonLd?: string[];
     fund?: FundArtifact;
+    index?: IndexRow[];
   },
 ): string {
   const head = [
     `<meta name="data-version" content="${escapeAttribute(parts.meta.dataVersion)}" />`,
     `<meta name="nav-as-of" content="${escapeAttribute(parts.meta.navAsOf)}" />`,
-    `<meta name="description" content="${escapeAttribute(parts.description)}" />`,
-    `<meta property="og:type" content="website" />`,
-    `<meta property="og:title" content="${escapeAttribute(parts.title)}" />`,
-    `<meta property="og:description" content="${escapeAttribute(parts.description)}" />`,
-    `<meta property="og:url" content="${escapeAttribute(parts.canonical)}" />`,
-    `<link rel="canonical" href="${escapeAttribute(parts.canonical)}" />`,
+    headTags({
+      title: parts.title,
+      description: parts.description,
+      canonical: parts.canonical,
+      ...(parts.jsonLd ? { jsonLd: parts.jsonLd } : {}),
+    }),
   ].join("\n    ");
 
-  const inline = parts.fund
-    ? `\n    <script type="application/json" id="fund-data">${escapeJson(JSON.stringify(parts.fund))}</script>`
-    : "";
+  // The page's own data, inlined so it paints without a request: a fund's artifact on a fund
+  // page, and the whole index on the directory, which is a thousand links it cannot render
+  // without.
+  const inline = [
+    parts.fund
+      ? `<script type="application/json" id="fund-data">${escapeJson(JSON.stringify(parts.fund))}</script>`
+      : "",
+    parts.index
+      ? `<script type="application/json" id="index-data">${escapeJson(JSON.stringify(parts.index))}</script>`
+      : "",
+  ]
+    .filter(Boolean)
+    .map((tag) => `\n    ${tag}`)
+    .join("");
 
   let html = template;
   // The path, not just a flag: Workers answers an unknown path with this same file, and only
@@ -118,17 +157,49 @@ async function main(): Promise<void> {
   };
 
   // The canonical origin only matters for og:url; a preview deployment still renders.
-  const origin = process.env.SITE_ORIGIN ?? "https://sip-date-planner.kulkarniakshay1989.workers.dev";
+  const origin = process.env.SITE_ORIGIN ?? DEFAULT_ORIGIN;
+  const index = JSON.parse(await readFile(join(dataDir, "index.json"), "utf8")) as IndexRow[];
+
+  // Every URL that should be crawled, collected as the pages are written. `lastmod` is the NAV
+  // date the figures came from rather than the build clock: a nightly build that changed nothing
+  // must not ask for 1003 pages to be recrawled.
+  const sitemap: SitemapEntry[] = [
+    { path: "/", lastmod: meta.navAsOf, changefreq: "daily", priority: "1.0" },
+    { path: "/funds", lastmod: meta.navAsOf, changefreq: "weekly", priority: "0.8" },
+  ];
 
   await writeFile(
     join(dist, "index.html"),
     page(template, {
       path: "/",
       markup: render("/", { dataVersion: meta.dataVersion, navAsOf: meta.navAsOf }),
-      title: "SIP Date Planner",
-      description: "Pick a SIP date for your mutual fund, with an honest read on how much the date matters.",
+      title: HOME_TITLE,
+      description: HOME_DESCRIPTION,
       canonical: `${origin}/`,
       meta,
+      jsonLd: [websiteJsonLd(origin), faqJsonLd(HOME_FAQ)],
+    }),
+  );
+
+  // The directory, and the only page that gets the whole index inlined — it is a thousand links,
+  // and a crawler has to read them in the HTML rather than after a fetch it will never make.
+  await writeFile(
+    join(dist, "funds.html"),
+    page(template, {
+      path: "/funds",
+      markup: render("/funds", { dataVersion: meta.dataVersion, navAsOf: meta.navAsOf, index }),
+      title: FUNDS_TITLE,
+      description: fundsDescription(index.length),
+      canonical: `${origin}/funds`,
+      meta,
+      index,
+      jsonLd: [
+        directoryJsonLd(origin, directoryListing(buildDirectory(index))),
+        breadcrumbJsonLd(origin, [
+          { name: "Home", path: "/" },
+          { name: "All funds", path: "/funds" },
+        ]),
+      ],
     }),
   );
 
@@ -136,24 +207,49 @@ async function main(): Promise<void> {
   const files = await readdir(fundsDir);
   await mkdir(join(dist, "f"), { recursive: true });
 
+  // AMFI publishes a handful of schemes under a name it shares with another scheme. Those pages
+  // name their scheme code so two URLs don't go out under one title (see sharedNames).
+  const collisions = sharedNames(index);
+
   let written = 0;
   for (const file of files) {
     const fund = JSON.parse(await readFile(join(fundsDir, file), "utf8")) as FundArtifact;
+    // The same pick the page itself makes, so the title and the description state this fund's
+    // real answer rather than a sentence 1001 pages share.
+    const answer = pickAnswer(fund);
+    const ambiguous = collisions.has(fund.name);
+    const title = fundTitle(fund, answer, ambiguous);
+    const description = fundDescription(fund, answer, ambiguous);
     const html = page(template, {
       path: `/f/${fund.code}`,
       markup: render(`/f/${fund.code}`, { dataVersion: meta.dataVersion, navAsOf: meta.navAsOf, fund }),
-      title: `${fund.name} — SIP Date Planner`,
-      description: `Which date of the month to run a SIP in ${fund.name}, and how much the date has actually mattered.`,
+      title,
+      description,
       canonical: `${origin}/f/${fund.code}`,
       meta,
       fund,
+      jsonLd: [
+        fundJsonLd(origin, fund, { title, description }),
+        breadcrumbJsonLd(origin, [
+          { name: "Home", path: "/" },
+          { name: "All funds", path: "/funds" },
+          { name: fund.name, path: `/f/${fund.code}` },
+        ]),
+      ],
     });
     // Flat files: Workers serves f/119775.html at /f/119775 with no redirect.
     await writeFile(join(dist, "f", `${fund.code}.html`), html);
+    sitemap.push({ path: `/f/${fund.code}`, lastmod: fund.navTo, changefreq: "weekly", priority: "0.7" });
     written++;
   }
 
-  console.log(`prerendered ${written} fund pages and the home page for ${meta.dataVersion}`);
+  await writeFile(join(dist, "sitemap.xml"), sitemapXml(origin, sitemap));
+  await writeFile(join(dist, "robots.txt"), robotsTxt(origin));
+
+  console.log(
+    `prerendered ${written} fund pages, the directory and the home page for ${meta.dataVersion}; ` +
+      `sitemap lists ${sitemap.length} URLs at ${origin}`,
+  );
 }
 
 main().catch((error: unknown) => {

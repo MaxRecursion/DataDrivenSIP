@@ -24,6 +24,12 @@ import type { Answer } from "./answer";
 import { formatNavDate, formatPp, ordinal } from "./format";
 
 export const SITE_NAME = "SIP Date Planner";
+/** The one social-preview image every page shares, 1200x630 in `public/`. */
+export const OG_IMAGE_PATH = "/og-image.png";
+export const OG_IMAGE_ALT = "SIP Date Planner: which date of the month to run your mutual fund SIP";
+export const ROBOTS_INDEX = "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1";
+export const ROBOTS_NOINDEX = "noindex, follow";
+
 export const DEFAULT_ORIGIN = "https://sip-date-planner.kulkarniakshay1989.workers.dev";
 
 /** The one sentence the site is about, for the home page and as a fallback. */
@@ -172,9 +178,10 @@ export type HeadTags = {
  */
 export function headTags(tags: HeadTags): string {
   const attribute = escapeAttribute;
+  const image = `${new URL(tags.canonical).origin}${OG_IMAGE_PATH}`;
   const lines = [
     `<meta name="description" content="${attribute(tags.description)}" />`,
-    `<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />`,
+    `<meta name="robots" content="${ROBOTS_INDEX}" />`,
     `<link rel="canonical" href="${attribute(tags.canonical)}" />`,
     `<meta property="og:type" content="website" />`,
     `<meta property="og:site_name" content="${attribute(SITE_NAME)}" />`,
@@ -182,7 +189,12 @@ export function headTags(tags: HeadTags): string {
     `<meta property="og:title" content="${attribute(tags.title)}" />`,
     `<meta property="og:description" content="${attribute(tags.description)}" />`,
     `<meta property="og:url" content="${attribute(tags.canonical)}" />`,
-    `<meta name="twitter:card" content="summary" />`,
+    `<meta property="og:image" content="${attribute(image)}" />`,
+    `<meta property="og:image:width" content="1200" />`,
+    `<meta property="og:image:height" content="630" />`,
+    `<meta property="og:image:alt" content="${attribute(OG_IMAGE_ALT)}" />`,
+    `<meta name="twitter:card" content="summary_large_image" />`,
+    `<meta name="twitter:image" content="${attribute(image)}" />`,
     `<meta name="twitter:title" content="${attribute(tags.title)}" />`,
     `<meta name="twitter:description" content="${attribute(tags.description)}" />`,
   ];

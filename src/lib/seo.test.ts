@@ -178,7 +178,13 @@ describe("head tags", () => {
     expect(tags).toContain('property="og:url"');
     expect(tags).toContain('property="og:site_name"');
     expect(tags).toContain('property="og:locale" content="en_IN"');
-    expect(tags).toContain('name="twitter:card"');
+    expect(tags).toContain('name="twitter:card" content="summary_large_image"');
+  });
+
+  it("points the preview image at the page's own origin, as an absolute URL", () => {
+    expect(tags).toContain(`property="og:image" content="${ORIGIN}/og-image.png"`);
+    expect(tags).toContain(`name="twitter:image" content="${ORIGIN}/og-image.png"`);
+    expect(tags).toContain('property="og:image:alt"');
   });
 
   it("embeds JSON-LD so a fund name can't end the script tag", () => {

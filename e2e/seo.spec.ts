@@ -192,3 +192,20 @@ test("moving between pages inside the app moves the canonical with it", async ({
   const canonical = await page.evaluate(() => document.querySelector('link[rel="canonical"]')?.getAttribute("href"));
   expect(canonical?.endsWith("/funds")).toBe(true);
 });
+
+test("the social image and icons are real files, and every page names the image", async ({ request }) => {
+  for (const path of ["/og-image.png", "/apple-touch-icon.png", "/favicon.svg"]) {
+    const response = await request.get(path);
+    expect(response.status(), path).toBe(200);
+    expect(response.headers()["content-type"], path).toMatch(/image\//);
+  }
+  const html = await (await request.get("/f/119775")).text();
+  expect(html).toMatch(/property="og:image" content="https?:\/\/[^"]+\/og-image\.png"/);
+  expect(html).toContain('name="twitter:card" content="summary_large_image"');
+});
+
+test("a path with no page tells crawlers not to index it", async ({ page }) => {
+  await page.goto("/f/999999999");
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
+  await expect(page.locator('link[rel="canonical"]')).toHaveCount(0);
+});

@@ -40,7 +40,7 @@ import { useReveal } from "../lib/use-reveal";
 import { useWide } from "../lib/use-wide";
 import { answerCopy } from "../lib/copy";
 import { loadFund, peekFund, peekIndex } from "../lib/data";
-import { setHead } from "../lib/head";
+import { setHead, setNotFoundHead } from "../lib/head";
 import { fundDescription, fundTitle, sharedNames } from "../lib/seo";
 import { fundPath } from "../lib/url";
 import { usePublishNavDate } from "./layout";
@@ -90,6 +90,10 @@ export function FundPage() {
       current = false;
     };
   }, [code]);
+
+  useEffect(() => {
+    if (state.status === "not-covered") setNotFoundHead();
+  }, [state.status]);
 
   useEffect(() => {
     if (state.status !== "ready") return;

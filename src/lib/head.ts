@@ -8,6 +8,7 @@
  * functions in `seo.ts`, or hydration quietly replaces a page's own title with something else.
  * It did exactly that until 2026-09-27, putting one shared sentence back on all 1001 fund pages.
  */
+import { ROBOTS_INDEX, ROBOTS_NOINDEX, SITE_NAME } from "./seo";
 
 function setMeta(keyName: "name" | "property", key: string, value: string): void {
   let tag = document.head.querySelector(`meta[${keyName}="${key}"]`);
@@ -47,6 +48,8 @@ export function setHead(head: { title: string; description: string; path: string
   setMeta("property", "og:url", url);
   setMeta("name", "twitter:title", head.title);
   setMeta("name", "twitter:description", head.description);
+  // Coming back from a not-found page must undo its noindex.
+  setMeta("name", "robots", ROBOTS_INDEX);
 
   let canonical = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
   if (!canonical) {
@@ -73,4 +76,16 @@ export function navAsOfFromDocument(): string | undefined {
   if (typeof document === "undefined") return undefined;
   navAsOf = document.querySelector('meta[name="nav-as-of"]')?.getAttribute("content") ?? undefined;
   return navAsOf;
+}
+
+/**
+ * A path the site has no page for. The host answers every unknown path with the shell and a 200,
+ * so the status can't say "missing"; a noindex, and a canonical that doesn't claim the home page's
+ * content for this URL, is how the page says it instead.
+ */
+export function setNotFoundHead(): void {
+  if (typeof document === "undefined") return;
+  document.title = `Page not found — ${SITE_NAME}`;
+  setMeta("name", "robots", ROBOTS_NOINDEX);
+  document.head.querySelector('link[rel="canonical"]')?.remove();
 }

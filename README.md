@@ -1,4 +1,4 @@
-# SIP Date Planner
+# Tithi (SIP Date Planner)
 
 What is the best day of the month to run your SIP for a given fund, and does the day
 actually matter?

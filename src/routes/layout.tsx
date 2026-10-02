@@ -16,6 +16,7 @@
  */
 import { createContext, useContext, useState } from "react";
 import { Outlet, useLocation } from "react-router";
+import { Brand } from "../components/brand";
 import { Footer } from "../components/footer";
 import { FundSearch } from "../components/fund-search";
 import { ThemeSelect } from "../components/theme-select";
@@ -60,17 +61,22 @@ export function Layout() {
     <div className="mx-auto flex min-h-dvh max-w-3xl flex-col px-5 2xl:max-w-none 2xl:px-10">
       <header className="pt-10 2xl:pt-3">
         {onHome ? (
-          <h1 className="font-display text-4xl leading-tight font-bold text-balance">
-            Which date should I run my SIP on?
-          </h1>
+          <>
+            <Brand large />
+            <h1 className="mt-8 font-display text-4xl leading-tight font-bold text-balance">
+              Which date should I run my SIP on?
+            </h1>
+          </>
         ) : null}
         {/*
          * A search box stretched across a 4K screen is a very long empty bar, so it is capped and
          * the theme control takes the space beside it — which is also height it doesn't add, and
-         * the fund page's one screen has none to spare (e2e/wide.spec.ts). On a phone the control
-         * wraps to its own line.
+         * the fund page's one screen has none to spare (e2e/wide.spec.ts). The name and mark sit in
+         * the same row for the same reason. On a phone the search and the control wrap to their own
+         * lines.
          */}
         <div className={`${onHome ? "mt-6" : "pt-2"} flex flex-wrap items-center gap-x-4 gap-y-3`}>
+          {onHome ? null : <Brand />}
           <div className="min-w-56 flex-1 2xl:max-w-xl">
             <FundSearch autoFocus={onHome} />
           </div>

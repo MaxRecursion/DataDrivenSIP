@@ -102,6 +102,19 @@ const realCopy = (code: number) => {
   return answerCopy(fund, pickAnswer(fund));
 };
 
+/**
+ * A real fund's own dates and corpus, graded the way the case needs. The verdict is the pipeline's
+ * arithmetic on spread and stability, and copy.ts only reads it. A real fund that clears a
+ * threshold by 0.017 pp today is under it after a night's NAVs, which is how the 2026-10-02
+ * nightly run failed on 142110: only one published fund was meaningful with agreeing metrics at a
+ * settled length, so there was no safer fund to pin instead. The thresholds themselves stay under
+ * "the mirrored thresholds" below, against each fund's own fields.
+ */
+const graded = (code: number, grade: Partial<FundArtifact>) => {
+  const fund: FundArtifact = { ...published(code), ...grade };
+  return { fund, copy: answerCopy(fund, pickAnswer(fund)) };
+};
+
 // ---------------------------------------------------------------------------------------------
 // Headline
 
@@ -414,23 +427,20 @@ describe("copy for real published funds", () => {
     expect(copy.rupeeLine).toContain(formatYearsOfMonths(fund.instalments));
   });
 
-  it("states the edge for a real meaningful fund with metrics that agree (142110)", () => {
-    const fund = published(142110);
-    const copy = realCopy(142110);
-    expect(fund.verdict).toBe("meaningful");
-    expect(fund.metricsAgree).toBe(true);
+  it("states the edge for a meaningful fund with metrics that agree (142110's history)", () => {
+    const { fund, copy } = graded(142110, { verdict: "meaningful", metricsAgree: true });
     expect(fund.instalments).toBeGreaterThanOrEqual(SETTLED_INSTALMENTS);
+    const answer = pickAnswer(fund);
+    expect(answer.edgePp).toBeGreaterThan(MIN_EDGE_PP);
 
     expect(copy.headline).toContain(`The ${nth(highestXirrDate(fund))} had the highest full-history XIRR`);
-    expect(copy.headline).toContain("above the middle of the month");
+    expect(copy.headline).toContain(`${formatPp(answer.edgePp)} above the middle of the month`);
     // Nothing to hedge: a settled history and metrics that agree leave no caveat at all.
     expect(copy.caveats).toEqual([]);
   });
 
   it("hedges the meaningful verdict of a fund under eight years, which is the whole point of D21 (145137)", () => {
-    const fund = published(145137);
-    const copy = realCopy(145137);
-    expect(fund.verdict).toBe("meaningful");
+    const { fund, copy } = graded(145137, { verdict: "meaningful" });
     expect(fund.instalments).toBeLessThan(SETTLED_INSTALMENTS);
 
     expect(copy.headline).toContain(`The ${nth(highestXirrDate(fund))} had the highest full-history XIRR`);

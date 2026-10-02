@@ -23,10 +23,12 @@ import type { FundArtifact, IndexRow } from "../../shared/artifacts";
 import type { Answer } from "./answer";
 import { formatNavDate, formatPp, ordinal } from "./format";
 
-export const SITE_NAME = "SIP Date Planner";
+export const SITE_NAME = "Tithi";
+/** What the site was called before, and still what people type: kept as the WebSite's other name. */
+export const SITE_ALTERNATE_NAME = "SIP Date Planner";
 /** The one social-preview image every page shares, 1200x630 in `public/`. */
 export const OG_IMAGE_PATH = "/og-image.png";
-export const OG_IMAGE_ALT = "SIP Date Planner: which date of the month to run your mutual fund SIP";
+export const OG_IMAGE_ALT = "Tithi: which date of the month to run your mutual fund SIP";
 export const ROBOTS_INDEX = "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1";
 export const ROBOTS_NOINDEX = "noindex, follow";
 
@@ -227,6 +229,7 @@ export function websiteJsonLd(origin: string): string {
     "@context": "https://schema.org",
     "@type": "WebSite",
     name: SITE_NAME,
+    alternateName: SITE_ALTERNATE_NAME,
     url: `${origin}/`,
     description: SITE_DESCRIPTION,
     inLanguage: "en-IN",

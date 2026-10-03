@@ -1,8 +1,8 @@
 {
-  "builtAt": "2026-10-01T06:15:21.189Z",
-  "fundCount": 1001,
-  "navAsOf": "2026-09-30",
+  "builtAt": "2026-10-03T05:31:36.069Z",
+  "fundCount": 1003,
+  "navAsOf": "2026-10-01",
   "pipelineVersion": "1.0.0",
-  "dataVersion": "2026-09-30.af596f06",
+  "dataVersion": "2026-10-01.74c85409",
   "source": "mfapi.in"
 }

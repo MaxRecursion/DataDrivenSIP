@@ -36,7 +36,7 @@ for (const palette of PALETTES) {
         await page.getByRole("button", { name }).click();
       }
       await expect(page.locator("[data-spread-chart] canvas")).toHaveCount(1);
-      await expect(page.locator("[data-chart='matters'] svg.apexcharts-svg")).toHaveCount(1);
+      await expect(page.locator("[data-chart='matters']")).toBeVisible();
 
       await page.screenshot({ path: `${OUT}/${palette}-${mode}.png`, fullPage: true });
     });

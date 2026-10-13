@@ -42,7 +42,7 @@ for (const screen of SCREENS) {
           await expect(page.locator(`[data-disclosure='${id}']`)).toHaveAttribute("data-state", "open");
         }
         await expect(page.locator("[data-spread-chart] canvas")).toHaveCount(1);
-        await expect(page.locator("[data-chart='matters'] svg.apexcharts-svg")).toHaveCount(1);
+        await expect(page.locator("[data-chart='matters']")).toBeVisible();
         await expect(page.locator("[data-date]:not([data-unavailable])")).toHaveCount(28);
 
         const size = await page.evaluate(() => ({

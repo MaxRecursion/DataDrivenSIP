@@ -30,7 +30,7 @@ import { TodayLine } from "../components/today-line";
  * is the 24 kB that actually justified a chunk, stays lazy inside — and its boundary is only
  * created when a reader opens the section, long after hydration.
  */
-import { ConfidenceSection, CurveSection, MattersSection } from "../components/disclosures";
+import { ConfidenceNotes, ConfidenceSection, CurveSection, MattersSection } from "../components/disclosures";
 import { pickAnswer } from "../lib/answer";
 import { compareDayCopy, namedDayShiftCopy, paperworkCopy, stickyCopy } from "../lib/compare";
 import { disclosureCopy } from "../lib/disclosure";
@@ -315,6 +315,7 @@ export function FundPage() {
           <ConfidenceSection {...sections} />
         </div>
         <div className="order-6 2xl:order-none">
+          <ConfidenceNotes copy={sections.copy} />
           <MattersSection {...sections} />
         </div>
       </div>

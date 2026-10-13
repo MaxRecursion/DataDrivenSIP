@@ -34,6 +34,14 @@ export function Footer({ navAsOf, source = "mfapi.in" }: FooterProps) {
           All funds
         </Link>
       </p>
+      <p className="mt-2 2xl:mt-0">
+        <Link
+          to="/support"
+          className="inline-block rounded-full border border-line bg-raised px-4 py-2 font-medium text-ink 2xl:px-3 2xl:py-1"
+        >
+          Buy me a coffee
+        </Link>
+      </p>
       <p className="mt-2 max-w-[65ch] 2xl:mt-0 2xl:max-w-none">
         Educational tool. Not investment advice. Past performance does not indicate future
         results. Data from AMFI published NAVs via {source}.

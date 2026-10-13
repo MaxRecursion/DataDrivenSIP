@@ -1,133 +1,82 @@
 /**
- * "How confident is this?", as two gauges a reader can take in without reading the paragraphs
- * under them. Each shows this fund's figure beside the bar it would need to clear:
+ * "How confident is this?", as two meters a reader can take in without reading the paragraphs
+ * under them. Each shows this fund's figure as a bar, with a tick where it would need to land:
  *
  *   - Ordering repeated: stability on its −1 to 1 scale, against the 0.60 the verdict needs.
  *   - Top-quarter finishes: how often the named day finished in the top quarter of dates across
  *     rolling 3-year stretches, against the 25% chance alone would give it.
  *
- * Both are the fund's own published figures — nothing is compared across funds. A gauge whose
- * input couldn't be measured isn't drawn at all, rather than drawn at a misleading zero.
+ * Plain markup sized in rem, so it grows with the large-screen root scale and nothing can
+ * overlap the way text drawn inside a chart's canvas did. Both are the fund's own published
+ * figures — nothing is compared across funds. A meter whose input couldn't be measured isn't
+ * drawn at all, rather than drawn at a misleading zero.
  */
-import type { ApexOptions } from "apexcharts";
 import type { FundArtifact } from "../../../shared/artifacts";
 import type { Answer } from "../../lib/answer";
 import { sharePercent, stabilityPercent } from "../../lib/charts";
 import { ordinal } from "../../lib/format";
-import { useThemeKey } from "../../lib/use-theme";
-import { useWide } from "../../lib/use-wide";
-import { ApexChart, type Palette } from "./apex";
 
-/** Shorter on the wide dashboard, where the half-circle's empty lower half is height it can't spare. */
-const HEIGHT = 170;
-const WIDE_HEIGHT = 140;
 const THRESHOLD = 0.6;
 const CHANCE = 25;
 
-/** A half-circle radial gauge: this fund's ring outside, the bar it needs to clear inside. */
-function gauge(
-  palette: Palette,
-  scale: number,
-  series: [number, number],
-  labels: [string, string],
-  formatValue: (value: number) => string,
-): ApexOptions {
-  return {
-    chart: { type: "radialBar" },
-    series,
-    labels,
-    colors: [palette.teal, palette.line],
-    plotOptions: {
-      radialBar: {
-        startAngle: -90,
-        endAngle: 90,
-        hollow: { size: "52%" },
-        track: { background: palette.raised, strokeWidth: "100%", margin: 4 },
-        dataLabels: {
-          /*
-           * A multi-series radialBar only shows a ring's value while it's hovered, which on a
-           * phone is never. `total` pins this fund's own figure in the centre permanently; the
-           * inner ring's figure is in the caption instead.
-           */
-          name: { show: true, offsetY: 16 * scale, fontSize: "0.6875rem", color: palette.mute },
-          value: {
-            show: true,
-            offsetY: -20 * scale,
-            fontSize: "1.375rem",
-            fontFamily: "Cabinet Grotesk, system-ui, sans-serif",
-            fontWeight: 700,
-            color: palette.ink,
-          },
-          total: {
-            show: true,
-            label: labels[0],
-            color: palette.mute,
-            formatter: () => formatValue(series[0]),
-          },
-        },
-      },
-    },
-    stroke: { lineCap: "round" },
-    tooltip: { enabled: false },
-  };
+const clamp = (value: number) => Math.min(100, Math.max(0, value));
+
+type MeterProps = {
+  label: string;
+  value: string;
+  fill: number;
+  mark: number;
+  markLabel: string;
+};
+
+function Meter({ label, value, fill, mark, markLabel }: MeterProps) {
+  return (
+    <div>
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="text-sm text-ink">{label}</span>
+        <span className="shrink-0 font-display text-xl font-bold text-ink">{value}</span>
+      </div>
+      <div className="relative mt-2 h-2.5 rounded-full bg-raised ring-1 ring-line">
+        <div className="h-full rounded-full bg-teal" style={{ width: `${clamp(fill)}%` }} />
+        <div
+          className="absolute -top-1 h-[1.125rem] w-0.5 rounded-full bg-ink"
+          style={{ left: `${clamp(mark)}%` }}
+        />
+      </div>
+      <p className="mt-1.5 text-xs text-mute-text">{markLabel}</p>
+    </div>
+  );
 }
 
 type Props = { fund: FundArtifact; answer: Answer };
 
 export default function ConfidenceGauge({ fund, answer }: Props) {
-  const height = useWide() ? WIDE_HEIGHT : HEIGHT;
-  const themeKey = useThemeKey();
   const stability = stabilityPercent(fund.stability);
   const share = sharePercent(answer.result.topQ);
   if (stability === null && share === null) return null;
 
-  const version = `${fund.code}:${fund.stability}:${answer.date}:${answer.result.topQ}`;
   const day = ordinal(answer.date);
 
   return (
-    <div data-chart="confidence" className="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
-      {stability === null ? null : (
-        <figure className="m-0">
-          <ApexChart
-            height={height}
-            version={`stability:${version}`}
-            themeKey={themeKey}
-            build={(palette, scale) =>
-              gauge(palette, scale, [stability, stabilityPercent(THRESHOLD)!], ["This fund", "Needs"], (value) =>
-                (value / 50 - 1).toFixed(2),
-              )
-            }
-          />
-          <figcaption className="-mt-12 text-center text-xs text-mute-text 2xl:-mt-9">
-            Ordering repeated between halves. Inner ring: the 0.60 needed
-          </figcaption>
-        </figure>
+    <div data-chart="confidence" className="mb-4 grid grid-cols-1 gap-4 2xl:mb-3 2xl:gap-3">
+      {stability === null || fund.stability === null ? null : (
+        <Meter
+          label="Ordering repeated"
+          value={fund.stability.toFixed(2)}
+          fill={stability}
+          mark={stabilityPercent(THRESHOLD)!}
+          markLabel={`The tick is the ${THRESHOLD.toFixed(2)} it needs`}
+        />
       )}
       {share === null ? null : (
-        <figure className="m-0">
-          <ApexChart
-            height={height}
-            version={`share:${version}`}
-            themeKey={themeKey}
-            build={(palette, scale) =>
-              gauge(palette, scale, [share, CHANCE], [`The ${day}`, "Chance"], (value) => `${Math.round(value)}%`)
-            }
-          />
-          <figcaption className="-mt-12 text-center text-xs text-mute-text 2xl:-mt-9">
-            Top-quarter finishes. Inner ring: {CHANCE}% by chance
-          </figcaption>
-        </figure>
+        <Meter
+          label={`The ${day} in the top quarter`}
+          value={`${Math.round(share)}%`}
+          fill={share}
+          mark={CHANCE}
+          markLabel={`The tick is the ${CHANCE}% chance alone would give`}
+        />
       )}
-
-      {/* The text equivalent of both gauges; the paragraphs below say the same in full. */}
-      <p className="sr-only">
-        {fund.stability === null
-          ? ""
-          : `Ordering repeated: this fund scores ${fund.stability.toFixed(2)} against the 0.60 needed. `}
-        {share === null
-          ? ""
-          : `Top-quarter finishes: the ${day} ${Math.round(share)}% of stretches, against ${CHANCE}% by chance.`}
-      </p>
     </div>
   );
 }

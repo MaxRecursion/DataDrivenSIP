@@ -340,11 +340,74 @@ export function directoryJsonLd(
  * combination that actually keeps JSON out of the results.
  */
 export function robotsTxt(origin: string): string {
+  // The answer and search crawlers named one by one. `*` already allows them; naming them records
+  // that this is a decision rather than an omission, and survives a platform default that
+  // blocks AI bots unless a site says otherwise. Training-only crawlers are left to `*`.
+  const lines = ["User-agent: *", "Allow: /", ""];
+  for (const agent of AI_SEARCH_AGENTS) lines.push(`User-agent: ${agent}`, "Allow: /", "");
+  lines.push(`Sitemap: ${origin}/sitemap.xml`, "");
+  return lines.join("\n");
+}
+
+/** Crawlers that fetch pages to answer a question or build an AI search index. */
+export const AI_SEARCH_AGENTS: readonly string[] = [
+  "OAI-SearchBot",
+  "ChatGPT-User",
+  "GPTBot",
+  "Claude-SearchBot",
+  "Claude-User",
+  "ClaudeBot",
+  "PerplexityBot",
+  "Perplexity-User",
+  "Google-Extended",
+  "Applebot-Extended",
+  "Bingbot",
+];
+
+/**
+ * `/llms.txt`: a plain-Markdown map of the site for language-model agents, which would otherwise
+ * have to infer from a React shell what the site is, where the 1000 pages are, and where the
+ * machine-readable figures live. Everything here states what the site already publishes; nothing
+ * ranks funds or implies a recommendation.
+ */
+export function llmsTxt(
+  origin: string,
+  info: { fundCount: number; navAsOf: string; dataVersion: string },
+): string {
+  const { fundCount, navAsOf, dataVersion } = info;
   return [
-    "User-agent: *",
-    "Allow: /",
+    `# ${SITE_NAME} (${SITE_ALTERNATE_NAME})`,
     "",
-    `Sitemap: ${origin}/sitemap.xml`,
+    `> ${SITE_DESCRIPTION}`,
+    "",
+    `Tithi answers one question: on which day of the month (1 to 28) would a monthly SIP in a given ` +
+      `Indian mutual fund have earned the highest full-history XIRR. Each fund has its own page ` +
+      `naming that date, how far apart the best and worst dates were, and an honest verdict. ` +
+      `For most funds the verdict is "noise": the date barely matters. That is a correct result, ` +
+      `not an error. It is not investment advice and does not rank funds.`,
+    "",
+    `Data covers ${fundCount} funds, with NAV history up to ${navAsOf} (source: mfapi.in, from AMFI).`,
+    "",
+    "## Pages",
+    "",
+    `- [Home](${origin}/): what the site does and the questions people ask about SIP dates`,
+    `- [All funds](${origin}/funds): every fund, by category and name, each linking to its page`,
+    `- [Sitemap](${origin}/sitemap.xml): all ${fundCount + 2} URLs with last-modified dates`,
+    `- Fund page: ${origin}/f/{scheme code}, for example [Kotak Mid Cap](${origin}/f/119775)`,
+    "",
+    "## Machine-readable data",
+    "",
+    `- [Fund index](${origin}/data/index.json): code, name and category of every fund`,
+    `- [Build metadata](${origin}/data/meta.json): current data version and NAV date`,
+    `- Per-fund figures: ${origin}/data/${dataVersion}/funds/{scheme code}.json`,
+    "  (the version segment changes nightly; read meta.json for the current one)",
+    "",
+    "## Reading the figures",
+    "",
+    "- The answer is the SIP date, from 1 to 28, with the greatest full-history XIRR; ties go to the earliest date.",
+    "- `spreadPp` is the XIRR gap in percentage points between the best and worst date.",
+    "- `verdict` is one of a fixed set; \"noise\" means the date does not reliably matter for that fund.",
+    "- Past XIRR does not predict future returns. Mutual fund investments are subject to market risks.",
     "",
   ].join("\n");
 }

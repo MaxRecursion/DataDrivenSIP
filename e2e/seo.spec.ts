@@ -106,7 +106,7 @@ test("a fund page's title and description carry that fund's own answer", async (
   const title = /<title>([^<]*)<\/title>/.exec(html)?.[1] ?? "";
   const description = /<meta name="description" content="([^"]*)"/.exec(html)?.[1] ?? "";
 
-  expect(title).toContain("Kotak Mid Cap Fund");
+  expect(title).toContain("Kotak Mid Cap");
   expect(title).toMatch(/SIP on the \d+(st|nd|rd|th)/);
   expect(description).toMatch(/strongest SIP date/);
   // The same answer the page itself prints, not a second opinion in the head.

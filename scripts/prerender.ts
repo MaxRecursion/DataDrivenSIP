@@ -18,7 +18,7 @@ import type { FundArtifact, IndexRow, Meta } from "../shared/artifacts";
 import { pickAnswer } from "../src/lib/answer";
 import {
   FUNDS_TITLE,
-  HOME_DESCRIPTION,
+  homeDescription,
   HOME_TITLE,
   breadcrumbJsonLd,
   directoryJsonLd,
@@ -175,10 +175,10 @@ async function main(): Promise<void> {
       path: "/",
       markup: render("/", { dataVersion: meta.dataVersion, navAsOf: meta.navAsOf }),
       title: HOME_TITLE,
-      description: HOME_DESCRIPTION,
+      description: homeDescription(index.length),
       canonical: `${origin}/`,
       meta,
-      jsonLd: [websiteJsonLd(origin), faqJsonLd(HOME_FAQ)],
+      jsonLd: [websiteJsonLd(origin, index.length), faqJsonLd(HOME_FAQ)],
     }),
   );
 

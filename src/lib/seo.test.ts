@@ -17,7 +17,7 @@ import { HOME_FAQ } from "./faq";
 import {
   DEFAULT_ORIGIN,
   FUNDS_TITLE,
-  HOME_DESCRIPTION,
+  homeDescription,
   HOME_TITLE,
   SITE_NAME,
   breadcrumbJsonLd,
@@ -205,7 +205,7 @@ describe("structured data", () => {
   const parse = (block: string): Record<string, unknown> => JSON.parse(block) as Record<string, unknown>;
 
   it("declares the site without claiming a search endpoint it doesn't have", () => {
-    const site = parse(websiteJsonLd(ORIGIN));
+    const site = parse(websiteJsonLd(ORIGIN, 1008));
     expect(site["@type"]).toBe("WebSite");
     expect(site.url).toBe(`${ORIGIN}/`);
     // The obvious thing to add, and wrong here: there is no URL that takes a query string.
@@ -312,10 +312,11 @@ describe("the sitemap", () => {
 describe("the site's own copy", () => {
   it("has a title and description in the length a result will show", () => {
     expect(HOME_TITLE.length).toBeLessThanOrEqual(70);
-    expect(HOME_DESCRIPTION.length).toBeGreaterThan(80);
-    expect(HOME_DESCRIPTION.length).toBeLessThan(320);
+    expect(homeDescription(1008).length).toBeGreaterThan(80);
+    expect(homeDescription(1008).length).toBeLessThan(320);
     expect(FUNDS_TITLE).toContain(SITE_NAME);
     expect(fundsDescription(1001)).toContain("1001");
+    expect(homeDescription(1008)).toContain("1008 Indian funds");
   });
 
   it("ships a default origin that is absolute, so a canonical is never relative", () => {

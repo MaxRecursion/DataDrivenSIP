@@ -20,11 +20,14 @@ import { Link } from "react-router";
 import { SPREAD_THRESHOLD_PP } from "../lib/copy";
 import { HOME_FAQ } from "../lib/faq";
 import { setHead } from "../lib/head";
-import { HOME_DESCRIPTION, HOME_TITLE } from "../lib/seo";
+import { peekIndex } from "../lib/data";
+import { HOME_TITLE, homeDescription } from "../lib/seo";
 
 export function Home() {
   useEffect(() => {
-    setHead({ title: HOME_TITLE, description: HOME_DESCRIPTION, path: "/" });
+    // The index isn't fetched for the home page (spec §9), so the count is used only when the
+    // search box has already loaded it; otherwise the description simply omits the number.
+    setHead({ title: HOME_TITLE, description: homeDescription(peekIndex()?.length), path: "/" });
   }, []);
 
   return (

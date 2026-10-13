@@ -1,4 +1,4 @@
-# SIP Date Planner
+# Tithi (SIP Date Planner)
 
 A static web app that answers "what is the best day of the month to do a SIP for fund X?"
 with one concrete date, and grades its own confidence honestly.

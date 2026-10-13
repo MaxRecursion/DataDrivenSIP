@@ -35,9 +35,12 @@ export const ROBOTS_NOINDEX = "noindex, follow";
 export const DEFAULT_ORIGIN = "https://sip-date-planner.kulkarniakshay1989.workers.dev";
 
 /** The one sentence the site is about, for the home page and as a fallback. */
-export const SITE_DESCRIPTION =
-  "Which date of the month to run your mutual fund SIP, from the full published NAV history " +
-  "of 1001 Indian funds — with an honest read on how little the date usually matters.";
+export function siteDescription(count?: number): string {
+  return (
+    "Which date of the month to run your mutual fund SIP, from the full published NAV history " +
+    `of ${count && count > 0 ? `${count} ` : ""}Indian funds — with an honest read on how little the date usually matters.`
+  );
+}
 
 // -----------------------------------------------------------------------------------------------
 // Escaping
@@ -149,7 +152,7 @@ export function fundDescription(
 }
 
 export const HOME_TITLE = `${SITE_NAME} — which date to run your mutual fund SIP`;
-export const HOME_DESCRIPTION = SITE_DESCRIPTION;
+export const homeDescription = siteDescription;
 
 export const FUNDS_TITLE = `All funds — ${SITE_NAME}`;
 export function fundsDescription(count: number): string {
@@ -224,14 +227,14 @@ export function headTags(tags: HeadTags): string {
  * of the URL. Claiming one would be describing a page that doesn't exist, which is the kind of
  * thing that costs a site its rich results rather than earning it any.
  */
-export function websiteJsonLd(origin: string): string {
+export function websiteJsonLd(origin: string, count: number): string {
   return JSON.stringify({
     "@context": "https://schema.org",
     "@type": "WebSite",
     name: SITE_NAME,
     alternateName: SITE_ALTERNATE_NAME,
     url: `${origin}/`,
-    description: SITE_DESCRIPTION,
+    description: siteDescription(count),
     inLanguage: "en-IN",
   });
 }
@@ -378,7 +381,7 @@ export function llmsTxt(
   return [
     `# ${SITE_NAME} (${SITE_ALTERNATE_NAME})`,
     "",
-    `> ${SITE_DESCRIPTION}`,
+    `> ${siteDescription(fundCount)}`,
     "",
     `Tithi answers one question: on which day of the month (1 to 28) would a monthly SIP in a given ` +
       `Indian mutual fund have earned the highest full-history XIRR. Each fund has its own page ` +

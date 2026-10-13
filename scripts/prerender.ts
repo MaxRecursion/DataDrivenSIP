@@ -32,6 +32,7 @@ import {
   headTags,
   sharedNames,
   DEFAULT_ORIGIN,
+  llmsTxt,
   robotsTxt,
   sitemapXml,
   websiteJsonLd,
@@ -245,6 +246,10 @@ async function main(): Promise<void> {
 
   await writeFile(join(dist, "sitemap.xml"), sitemapXml(origin, sitemap));
   await writeFile(join(dist, "robots.txt"), robotsTxt(origin));
+  await writeFile(
+    join(dist, "llms.txt"),
+    llmsTxt(origin, { fundCount: written, navAsOf: meta.navAsOf, dataVersion: meta.dataVersion }),
+  );
 
   console.log(
     `prerendered ${written} fund pages, the directory and the home page for ${meta.dataVersion}; ` +

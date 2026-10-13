@@ -31,6 +31,7 @@ import {
   fundTitle,
   fundsDescription,
   headTags,
+  llmsTxt,
   robotsTxt,
   sharedNames,
   sitemapXml,
@@ -250,8 +251,28 @@ describe("structured data", () => {
   });
 });
 
+describe("llms.txt", () => {
+  const text = llmsTxt(ORIGIN, { fundCount: 1001, navAsOf: "2026-10-09", dataVersion: "2026-10-09.abc" });
+
+  it("opens with the site name, a summary and absolute links", () => {
+    expect(text.startsWith("# Tithi")).toBe(true);
+    expect(text).toContain(`(${ORIGIN}/funds)`);
+    expect(text).toContain(`${ORIGIN}/data/2026-10-09.abc/funds/{scheme code}.json`);
+  });
+
+  it("never ranks or recommends", () => {
+    expect(text).not.toMatch(/best fund|top performing|recommended fund/i);
+  });
+});
+
 describe("robots.txt", () => {
   const text = robotsTxt(ORIGIN);
+
+  it("names the AI search crawlers and allows them", () => {
+    for (const agent of ["OAI-SearchBot", "ChatGPT-User", "Claude-SearchBot", "PerplexityBot", "Google-Extended"]) {
+      expect(text).toContain(`User-agent: ${agent}\nAllow: /`);
+    }
+  });
 
   it("allows the crawl and points at the sitemap absolutely", () => {
     expect(text).toContain("User-agent: *");

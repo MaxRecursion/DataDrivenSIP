@@ -75,13 +75,14 @@ describe("escaping", () => {
 });
 
 describe("fund titles and descriptions", () => {
-  it("names the fund first and its own answer second", () => {
+  it("leads with the answer and names the fund after it", () => {
     const fund = fundAt(119775);
     const answer = pickAnswer(fund);
     const title = fundTitle(fund, answer);
-    expect(title.startsWith(fund.name)).toBe(true);
-    expect(title).toContain("SIP on the");
-    expect(fundDescription(fund, answer)).toContain(fund.name);
+    expect(title.startsWith("SIP on the ")).toBe(true);
+    expect(title).toContain("Kotak Mid Cap Fund");
+    expect(title).not.toContain("Direct Plan");
+    expect(fundDescription(fund, answer)).toContain("Kotak Mid Cap Fund");
   });
 
   it("drops the site name rather than pushing the answer past the truncation point", () => {
@@ -91,8 +92,8 @@ describe("fund titles and descriptions", () => {
     for (const code of CODES) {
       const fund = fundAt(code);
       const title = fundTitle(fund, pickAnswer(fund));
-      expect(title.startsWith(fund.name), title).toBe(true);
-      if (title.includes(SITE_NAME)) expect(title.length, title).toBeLessThanOrEqual(60);
+      expect(title.startsWith("SIP on the "), title).toBe(true);
+      expect(title.length, title).toBeLessThanOrEqual(60);
     }
 
     // Every published name is long, so the branch that keeps the suffix needs a short one to be
@@ -149,7 +150,7 @@ describe("fund titles and descriptions", () => {
       const fund = fundAt(code);
       const description = fundDescription(fund, pickAnswer(fund));
       expect(description.length).toBeGreaterThan(80);
-      expect(description.length).toBeLessThan(320);
+      expect(description.length).toBeLessThanOrEqual(160);
     }
   });
 });

@@ -58,14 +58,11 @@ describe("every published fund page", () => {
     }
   });
 
-  it("leads its title with the fund's name, and never runs past what a result can show", () => {
+  it("leads its title with the answer, and never runs past what a result can show", () => {
     for (const fund of funds) {
       const title = titleOf(fund);
-      expect(title.startsWith(fund.name), title).toBe(true);
-      // Long Indian scheme names make a short title impossible; what must not happen is a title
-      // so long that the answer itself is cut off. The fund name plus ": SIP on the 28th" is the
-      // floor, and nothing may add to it beyond the optional site-name suffix.
-      expect(title.length, title).toBeLessThanOrEqual(fund.name.length + 40);
+      expect(title.startsWith("SIP on the "), title).toBe(true);
+      expect(title.length, title).toBeLessThanOrEqual(60);
     }
   });
 
@@ -76,8 +73,8 @@ describe("every published fund page", () => {
     expect(trimmed.length, "no trimmed funds to check — has D21 stopped cutting series?").toBeGreaterThan(0);
     for (const fund of trimmed) {
       const description = descriptionOf(fund);
-      expect(description, `${fund.code}`).not.toContain("published NAV history");
-      expect(description, `${fund.code}`).toContain("where its usable series begins");
+      expect(description, `${fund.code}`).not.toContain("instalments of NAV history");
+      expect(description, `${fund.code}`).toContain("NAV history from");
     }
   });
 
@@ -94,7 +91,7 @@ describe("every published fund page", () => {
   it("describes the fund in a length a search result will print", () => {
     for (const fund of funds) {
       const description = descriptionOf(fund);
-      expect(description.length, `${fund.code}: ${description}`).toBeLessThan(400);
+      expect(description.length, `${fund.code}: ${description}`).toBeLessThanOrEqual(160);
       expect(description.length, `${fund.code}`).toBeGreaterThan(80);
     }
   });

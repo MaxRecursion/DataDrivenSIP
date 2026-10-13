@@ -28,22 +28,31 @@ export const SITE_NAME = "Tithi";
 export const SITE_ALTERNATE_NAME = "SIP Date Planner";
 /** The one social-preview image every page shares, 1200x630 in `public/`. */
 export const OG_IMAGE_PATH = "/og-image.png";
-export const OG_IMAGE_ALT = "Tithi: which date of the month to run your mutual fund SIP";
-export const ROBOTS_INDEX = "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1";
+export const OG_IMAGE_ALT =
+  "Tithi: which date of the month to run your mutual fund SIP";
+export const ROBOTS_INDEX =
+  "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1";
 export const ROBOTS_NOINDEX = "noindex, follow";
 
-export const DEFAULT_ORIGIN = "https://sip-date-planner.kulkarniakshay1989.workers.dev";
+export const DEFAULT_ORIGIN =
+  "https://sip-date-planner.kulkarniakshay1989.workers.dev";
 
 /** The one sentence the site is about, for the home page and as a fallback. */
-export const SITE_DESCRIPTION =
-  "Which date of the month to run your mutual fund SIP, from the full published NAV history " +
-  "of 1001 Indian funds — with an honest read on how little the date usually matters.";
+export function siteDescription(count?: number): string {
+  return (
+    "Which date of the month to run your mutual fund SIP, from the full published NAV history " +
+    `of ${count && count > 0 ? `${count} ` : ""}Indian funds — with an honest read on how little the date usually matters.`
+  );
+}
 
 // -----------------------------------------------------------------------------------------------
 // Escaping
 
 export function escapeAttribute(value: string): string {
-  return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;");
 }
 
 /** `</script>` inside JSON would end the tag early; so would a lone `<`. */
@@ -89,7 +98,10 @@ export function sharedNames(rows: readonly IndexRow[]): ReadonlySet<string> {
 }
 
 /** How a fund is named in a title or a description: its own name, or that plus its scheme code. */
-export function displayName(fund: Pick<FundArtifact, "name" | "code">, disambiguate = false): string {
+export function displayName(
+  fund: Pick<FundArtifact, "name" | "code">,
+  disambiguate = false,
+): string {
   return disambiguate ? `${fund.name} (scheme ${fund.code})` : fund.name;
 }
 
@@ -124,7 +136,10 @@ export function fundTitle(
  * content signal, not a keyword win.
  */
 export function fundDescription(
-  fund: Pick<FundArtifact, "name" | "code" | "spreadPp" | "instalments" | "verdict" | "trimmedFrom">,
+  fund: Pick<
+    FundArtifact,
+    "name" | "code" | "spreadPp" | "instalments" | "verdict" | "trimmedFrom"
+  >,
   answer: Answer,
   disambiguate = false,
 ): string {
@@ -149,7 +164,7 @@ export function fundDescription(
 }
 
 export const HOME_TITLE = `${SITE_NAME} — which date to run your mutual fund SIP`;
-export const HOME_DESCRIPTION = SITE_DESCRIPTION;
+export const homeDescription = siteDescription;
 
 export const FUNDS_TITLE = `All funds — ${SITE_NAME}`;
 export function fundsDescription(count: number): string {
@@ -202,7 +217,9 @@ export function headTags(tags: HeadTags): string {
   ];
 
   for (const block of tags.jsonLd ?? []) {
-    lines.push(`<script type="application/ld+json">${escapeJson(block)}</script>`);
+    lines.push(
+      `<script type="application/ld+json">${escapeJson(block)}</script>`,
+    );
   }
 
   return lines.join("\n    ");
@@ -224,20 +241,23 @@ export function headTags(tags: HeadTags): string {
  * of the URL. Claiming one would be describing a page that doesn't exist, which is the kind of
  * thing that costs a site its rich results rather than earning it any.
  */
-export function websiteJsonLd(origin: string): string {
+export function websiteJsonLd(origin: string, count: number): string {
   return JSON.stringify({
     "@context": "https://schema.org",
     "@type": "WebSite",
     name: SITE_NAME,
     alternateName: SITE_ALTERNATE_NAME,
     url: `${origin}/`,
-    description: SITE_DESCRIPTION,
+    description: siteDescription(count),
     inLanguage: "en-IN",
   });
 }
 
 /** Where this page sits, which is what puts a breadcrumb line under the result instead of a URL. */
-export function breadcrumbJsonLd(origin: string, trail: ReadonlyArray<{ name: string; path: string }>): string {
+export function breadcrumbJsonLd(
+  origin: string,
+  trail: ReadonlyArray<{ name: string; path: string }>,
+): string {
   return JSON.stringify({
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -255,7 +275,9 @@ export function breadcrumbJsonLd(origin: string, trail: ReadonlyArray<{ name: st
  * rich results to a handful of site types in 2023, so this is not a bet on a rich snippet — it is
  * a correct description of a page that really is a set of questions and answers.
  */
-export function faqJsonLd(entries: ReadonlyArray<{ question: string; answer: string }>): string {
+export function faqJsonLd(
+  entries: ReadonlyArray<{ question: string; answer: string }>,
+): string {
   return JSON.stringify({
     "@context": "https://schema.org",
     "@type": "FAQPage",
@@ -368,12 +390,18 @@ export type SitemapEntry = {
  * 50,000 URLs and 50 MB uncompressed is the protocol's limit and 1003 is nowhere near it, so one
  * file is enough and no index file is needed.
  */
-export function sitemapXml(origin: string, entries: readonly SitemapEntry[]): string {
+export function sitemapXml(
+  origin: string,
+  entries: readonly SitemapEntry[],
+): string {
   const urls = entries.map((entry) => {
     const parts = [`    <loc>${escapeXml(`${origin}${entry.path}`)}</loc>`];
-    if (entry.lastmod) parts.push(`    <lastmod>${escapeXml(entry.lastmod)}</lastmod>`);
-    if (entry.changefreq) parts.push(`    <changefreq>${entry.changefreq}</changefreq>`);
-    if (entry.priority) parts.push(`    <priority>${entry.priority}</priority>`);
+    if (entry.lastmod)
+      parts.push(`    <lastmod>${escapeXml(entry.lastmod)}</lastmod>`);
+    if (entry.changefreq)
+      parts.push(`    <changefreq>${entry.changefreq}</changefreq>`);
+    if (entry.priority)
+      parts.push(`    <priority>${entry.priority}</priority>`);
     return `  <url>\n${parts.join("\n")}\n  </url>`;
   });
 

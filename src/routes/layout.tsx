@@ -77,7 +77,13 @@ export function Layout() {
          */}
         <div className={`${onHome ? "mt-6" : "pt-2"} flex flex-wrap items-center gap-x-4 gap-y-3`}>
           {onHome ? null : <Brand />}
-          <div className="min-w-56 flex-1 2xl:max-w-xl">
+          {/*
+           * Full width on its own row below the mark on a phone. Beside the mark it was a column
+           * about 200px wide, and its results list — which opens in the flow, under the field —
+           * inherited that width: a fund house wrapped to one word a line and the verdict ran
+           * off the edge. From sm there is room for both on one row.
+           */}
+          <div className="w-full flex-none sm:w-auto sm:min-w-56 sm:flex-1 2xl:max-w-xl">
             <FundSearch autoFocus={onHome} />
           </div>
           <ThemeSelect className="shrink-0" />

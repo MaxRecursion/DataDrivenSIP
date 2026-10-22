@@ -15,7 +15,7 @@ import { ConfidenceGlyph, CurveGlyph } from "./glance-icons";
 
 export function GlanceStrip({ fund }: { fund: FundArtifact }) {
   return (
-    <p aria-hidden="true" className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-mute-text">
+    <p aria-hidden="true" className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-mute-text 2xl:mt-2">
       <span className="flex items-center gap-2">
         <CurveGlyph xirrs={fund.dates.map((row) => row.xirr)} />
         {formatPp(fund.spreadPp)} range

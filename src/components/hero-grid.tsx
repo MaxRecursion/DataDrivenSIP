@@ -268,7 +268,7 @@ export function HeroGrid({
        * region stays decorative. Nothing inside it is focusable, which is what lets it be
        * aria-hidden without hiding a control from a keyboard reader.
        */}
-      <div aria-hidden="true" data-hero-grid="" className="mt-3.5 max-w-[32.5rem] [container-type:inline-size] 2xl:max-w-none">
+      <div aria-hidden="true" data-hero-grid="" className="mt-3.5 max-w-[32.5rem] [container-type:inline-size] 2xl:mt-2 2xl:max-w-none">
         <div className="grid w-full grid-cols-7 gap-[clamp(0.25rem,1.6cqi,0.5625rem)]">
           {weekdayLabels().map((label) => (
             <span key={label} className="pb-0.5 text-center text-[0.6875rem] text-mute-text">
@@ -306,7 +306,7 @@ export function HeroGrid({
         </div>
       </div>
 
-      <p className="mt-3.5 flex max-w-[32.5rem] flex-wrap items-center gap-x-3.5 gap-y-1.5 text-xs text-mute-text 2xl:max-w-none">
+      <p className="mt-3.5 flex max-w-[32.5rem] flex-wrap items-center gap-x-3.5 gap-y-1.5 text-xs text-mute-text 2xl:mt-2 2xl:max-w-none 2xl:gap-x-2.5 2xl:gap-y-1 2xl:text-[0.6875rem]">
         <span className="flex items-center gap-1.5">
           <Swatch className="bg-up" style={{ opacity: MAX_FILL }} />
           Higher than today
@@ -330,7 +330,7 @@ export function HeroGrid({
       </p>
 
       {spanPp === undefined ? null : (
-        <p className="mt-2 max-w-[32.5rem] text-xs leading-[1.5] text-mute-text 2xl:max-w-none">
+        <p className="mt-2 max-w-[32.5rem] text-xs leading-[1.5] text-mute-text 2xl:mt-1.5 2xl:max-w-none 2xl:text-[0.6875rem] 2xl:leading-[1.4]">
           Each SIP date shows its full-history XIRR. Dates shaded as “higher than today” beat
           today’s date; the other shade fell short. Weakest to strongest across all 28 is{" "}
           {formatPp(spanPp)}, and the deeper the fill, the further from today’s figure that date

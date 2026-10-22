@@ -11,7 +11,7 @@ import { expect, test } from "@playwright/test";
 
 const KOTAK = { code: 119775, name: "Kotak Mid Cap Fund - Direct Plan - Growth" };
 
-/** 40 months of history: the shortest fund the planner covers. */
+/** A short history: among the shortest funds the planner covers (41 months on 2026-10-02). */
 const SHORT = {
   code: 151713,
   name: "quant Dynamic Asset Allocation Fund - Direct Plan - Growth Option",
@@ -169,15 +169,25 @@ test("ignores salary and buffer in the URL rather than answering differently", a
   expect(errors).toEqual([]);
 });
 
-test("a fund with 40 months of history says so instead of naming a date effect", async ({ page }) => {
+test("a fund with a short history says so instead of naming a date effect", async ({ page, request }) => {
   const errors = watchForErrors(page);
+
+  // The month count is whatever the nightly data says it is: it was 40, then 41, and will keep
+  // moving, so it is read from the artifact rather than written down here.
+  const meta = (await (await request.get("/data/meta.json")).json()) as { dataVersion: string };
+  const fund = (await (await request.get(`/data/${meta.dataVersion}/funds/${SHORT.code}.json`)).json()) as {
+    instalments: number;
+    windows: number;
+  };
+  // MIN_WINDOWS in src/lib/copy.ts: under it, the history outranks the verdict.
+  expect(fund.windows, "SHORT must stay a fund with too little history to call").toBeLessThan(24);
 
   await page.goto(`/f/${SHORT.code}`);
   await expect(page.getByRole("heading", { level: 1, name: SHORT.name })).toBeVisible();
 
-  // The fund's verdict is "marginal" on a spread a 40-month history produces on its own, so the
+  // The fund's verdict is "marginal" on a spread a short history produces on its own, so the
   // length of the history has to outrank the verdict in the copy.
-  await expect(page.getByText(/40 months of history is too little to tell/)).toBeVisible();
+  await expect(page.getByText(`${fund.instalments} months of history is too little to tell`)).toBeVisible();
 
   // "No crash" is the other half: the answer still renders, fully formed.
   await settled(page);

@@ -1,43 +1,56 @@
 /**
- * The wordmark's mark: twenty-eight dots, one per SIP date, with the named day picked out.
+ * The name and the mark, which together are the page's header.
  *
- * Four rows of seven is not a decorative grid — it is exactly the 1-28 the engine considers,
- * which is why the shape can stand for the product at all. The dot at row three, column five
- * is drawn larger and in the accent instead of the quiet fill: the day the page is about.
+ * Tithi is the Indian word for a calendar date, which is the one question this site answers. The
+ * mark is the month the planner reasons about, drawn as twenty-eight dots (SIP dates run 1 to 28)
+ * with one of them lit: the date it names. It is drawn from the theme's own tokens, so it follows
+ * the palette and the light/dark switch without a second set of colours to keep in step; the
+ * static copies in `public/` (favicon, apple-touch-icon, social image) use Marigold light.
  *
- * Decorative, so it carries no accessible name of its own; the link around it is labelled.
- * Painted from the same CSS variables as the page, so it can never drift from the palette,
- * and nothing here moves.
+ * It sits in the same row as the search field rather than above it. The fund page is a one-screen
+ * dashboard on large desktops with no vertical height to spare (e2e/wide.spec.ts), so a header
+ * that added a line would be a layout regression on every fund.
  */
-const COLUMNS = [9, 14, 19, 24, 29, 34, 39];
-const ROWS = [15.75, 21.25, 26.75, 32.25];
-/** Row three, column five. The one dot that is the answer rather than a date. */
-const NAMED = { x: 29, y: 26.75 };
+import { Link } from "react-router";
+import { cn } from "../lib/utils";
 
-export function LogoMark({ size = 34, className }: { size?: number; className?: string | undefined }) {
+const COLUMNS = 7;
+const ROWS = 4;
+/** Which of the 28 is lit: the 19th, off-centre on purpose so the mark reads as a pick, not a pattern. */
+const LIT = 18;
+
+export function BrandMark({ className, size = 32 }: { className?: string; size?: number }) {
+  const dots = Array.from({ length: COLUMNS * ROWS }, (_, index) => ({
+    index,
+    x: 9 + (index % COLUMNS) * 5,
+    y: 15.75 + Math.floor(index / COLUMNS) * 5.5,
+  }));
   return (
-    <svg viewBox="0 0 48 48" width={size} height={size} aria-hidden="true" className={className}>
-      <rect width="48" height="48" rx="16" fill="var(--ink)" />
-      <g fill="var(--surface)" opacity="0.55">
-        {ROWS.flatMap((y) =>
-          COLUMNS.filter((x) => !(x === NAMED.x && y === NAMED.y)).map((x) => (
-            <circle key={`${x}-${y}`} cx={x} cy={y} r="1.5" />
-          )),
-        )}
-      </g>
-      <circle cx={NAMED.x} cy={NAMED.y} r="3.6" fill="var(--down)" />
+    <svg viewBox="0 0 48 48" width={size} height={size} aria-hidden="true" className={cn("shrink-0", className)}>
+      <rect width="48" height="48" rx="11" fill="var(--ink)" />
+      {dots.map(({ index, x, y }) =>
+        index === LIT ? (
+          <circle key={index} cx={x} cy={y} r="3.4" fill="var(--marigold)" />
+        ) : (
+          <circle key={index} cx={x} cy={y} r="1.35" fill="var(--surface)" opacity="0.55" />
+        ),
+      )}
     </svg>
   );
 }
 
-/** The mark and the name, as one row. The caller supplies the link and its label. */
-export function Wordmark({ size = 34, type = "1.625rem" }: { size?: number; type?: string }) {
+/** `large` is the home page's masthead: the one place the name leads rather than sits in a row. */
+export function Brand({ className, large = false }: { className?: string; large?: boolean }) {
   return (
-    <span className="flex items-center gap-2.5">
-      <LogoMark size={size} className="block flex-none" />
-      <span className="font-display leading-none" style={{ fontSize: type }}>
+    <Link
+      to="/"
+      aria-label="Tithi, home"
+      className={cn("flex shrink-0 items-center text-ink no-underline", large ? "gap-3.5" : "gap-2.5", className)}
+    >
+      <BrandMark size={large ? 52 : 32} />
+      <span className={cn("font-display leading-none tracking-tight", large ? "text-5xl" : "text-2xl")}>
         Tithi
       </span>
-    </span>
+    </Link>
   );
 }

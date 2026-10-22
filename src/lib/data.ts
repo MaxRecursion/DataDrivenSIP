@@ -12,6 +12,7 @@ export type FundResult = { ok: true; fund: FundArtifact } | { ok: false; reason:
 let version: string | null = null;
 let versionRequest: Promise<string | null> | null = null;
 let indexRequest: Promise<IndexRow[]> | null = null;
+let seededIndex: IndexRow[] | null = null;
 const funds = new Map<number, Promise<FundResult>>();
 const seeded = new Map<number, FundArtifact>();
 
@@ -87,13 +88,34 @@ export function prefetchFund(code: number, fetcher: typeof fetch = fetch): void 
   void loadFund(code, fetcher);
 }
 
+/**
+ * The directory page is prerendered from the whole index, so the build hands it over rather than
+ * letting the page fetch it — the markup a crawler reads has to be the finished list, and the
+ * browser's first render has to match it for hydration to hold.
+ */
+export function seedIndex(rows: IndexRow[]): void {
+  seededIndex = rows;
+  indexRequest = Promise.resolve(rows);
+}
+
+/**
+ * Synchronous, for the same reason `peekFund` is: both sides of hydration render from it. Also
+ * returns an index the search box has already fetched, which is how a fund page reached by a
+ * search knows whether its name is one AMFI shares with another scheme.
+ */
+export function peekIndex(): IndexRow[] | null {
+  return seededIndex;
+}
+
 /** Loaded on the first keystroke, never on page load (spec §9). */
 export function loadIndex(fetcher: typeof fetch = fetch): Promise<IndexRow[]> {
   indexRequest ??= (async () => {
     try {
       const response = await fetcher("/data/index.json");
       if (!isJson(response)) return [];
-      return (await response.json()) as IndexRow[];
+      const rows = (await response.json()) as IndexRow[];
+      seededIndex ??= rows;
+      return rows;
     } catch {
       return [];
     }
@@ -127,6 +149,7 @@ export function resetDataCache(): void {
   version = null;
   versionRequest = null;
   indexRequest = null;
+  seededIndex = null;
   trendingRequest = null;
   funds.clear();
   seeded.clear();

@@ -13,13 +13,13 @@
  * out would look like a bug; drawing them smaller and dashed says what is true.
  *
  * The shading is against today's date, which is the other clock read and is resolved in the same
- * effect. Sage means that date's full-history XIRR beat the date the reader is standing on,
- * terracotta means it fell short, and today itself is neutral. Each direction is scaled to its
- * own extreme, so the deepest sage is always the month's best date and the deepest terracotta
+ * effect. The “up” fill means that date's full-history XIRR beat the date the reader is standing on,
+ * the “down” fill means it fell short, and today itself is neutral. Each direction is scaled to its
+ * own extreme, so the deepest up fill is always the month's best date and the deepest down fill
  * its worst.
  *
  * That scaling is relative to this fund's own range, which is only honest because the caption
- * states the real span and every cell prints its own XIRR — a deep terracotta is 20.31% against
+ * states the real span and every cell prints its own XIRR — a deep down fill is 20.31% against
  * a baseline of 20.34%, not a loss, and the number is right there.
  *
  * Every fill is a pre-painted overlay whose opacity carries the value, so the reveal has
@@ -331,10 +331,10 @@ export function HeroGrid({
 
       {spanPp === undefined ? null : (
         <p className="mt-2 max-w-[32.5rem] text-xs leading-[1.5] text-mute-text 2xl:max-w-none">
-          Each SIP date shows its full-history XIRR. Sage dates were higher than today’s date;
-          terracotta dates were lower. Weakest to strongest across all 28 is {formatPp(spanPp)},
-          and the deeper the fill, the further from today’s figure that date sat. Tap a date
-          (1–28) to compare it with the named day; that does not change the answer.
+          Each SIP date shows its full-history XIRR. Dates shaded as “higher than today” beat
+          today’s date; the other shade fell short. Weakest to strongest across all 28 is{" "}
+          {formatPp(spanPp)}, and the deeper the fill, the further from today’s figure that date
+          sat. Tap a date (1–28) to compare it with the named day; that does not change the answer.
         </p>
       )}
 

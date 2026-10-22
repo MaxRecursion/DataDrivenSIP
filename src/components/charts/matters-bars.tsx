@@ -1,73 +1,49 @@
 /**
  * "What actually matters", in one picture: what picking the named day was worth against a
- * typical day of the month, beside what missing a single instalment has cost. Gains run right
- * in teal, costs run left in red, on one rupee axis — so the reader sees the scale difference
- * rather than being told about it.
+ * typical day of the month, beside what missing a single instalment has cost. Two bars on one
+ * rupee scale, so the reader sees the size difference rather than being told about it.
  *
  * Both figures come from `mattersFigures`, the same calculation the sentences below print, so
  * the bar and the words cannot disagree. A named day that ended with less than a typical day
- * draws as a cost, never as a gain.
+ * draws as a cost, never as a gain. Plain markup in rem, so it scales with the large-screen
+ * root size and its labels can't collide.
  */
-import type { ApexOptions } from "apexcharts";
 import type { FundArtifact } from "../../../shared/artifacts";
 import type { Answer } from "../../lib/answer";
 import { mattersFigures } from "../../lib/disclosure";
-import { formatRupees, formatRupeesAxis, ordinal } from "../../lib/format";
-import { useWide } from "../../lib/use-wide";
-import { ApexChart, type Palette } from "./apex";
-
-/** Shorter on the wide dashboard, where this card shares a column with "what to keep in mind". */
-const HEIGHT = 150;
-const WIDE_HEIGHT = 126;
+import { formatRupees, ordinal } from "../../lib/format";
 
 type Props = { fund: FundArtifact; answer: Answer };
 
 export default function MattersBars({ fund, answer }: Props) {
   const { edgeRupees, perInstalment } = mattersFigures(fund, answer);
   const day = ordinal(answer.date);
-  const height = useWide() ? WIDE_HEIGHT : HEIGHT;
-  // Short enough not to truncate at 360 px; the sentences below say it in full.
-  const labels = [`The ${day} vs a typical day`, "One missed instalment"];
-  const values = [edgeRupees, -perInstalment];
-
-  const build = (palette: Palette, scale: number): ApexOptions => ({
-    chart: { type: "bar" },
-    series: [{ name: "Rupees", data: values }],
-    colors: values.map((value) => (value >= 0 ? palette.up : palette.down)),
-    plotOptions: {
-      bar: { horizontal: true, distributed: true, barHeight: "56%", borderRadius: 4 },
-    },
-    dataLabels: {
-      enabled: true,
-      formatter: (value: number) => `${value < 0 ? "−" : "+"}${formatRupees(Math.abs(value))}`,
-      style: { fontSize: "0.6875rem", fontWeight: 600, colors: [palette.ink] },
-      offsetX: 0,
-    },
-    xaxis: {
-      categories: labels,
-      labels: {
-        style: { colors: palette.mute, fontSize: "0.625rem" },
-        formatter: (value: string) => formatRupeesAxis(Math.abs(Number(value))),
-      },
-      tickAmount: 4,
-      axisBorder: { show: false },
-      axisTicks: { show: false },
-    },
-    yaxis: { labels: { style: { colors: palette.ink, fontSize: "0.6875rem" }, maxWidth: 200 * scale } },
-    grid: {
-      borderColor: palette.line,
-      xaxis: { lines: { show: true } },
-      yaxis: { lines: { show: false } },
-      // Room for a bar's label when the bar itself is a sliver at the axis edge (the −₹99 case).
-      padding: { right: 28 * scale },
-    },
-    legend: { show: false },
-    tooltip: { enabled: false },
-  });
+  const rows = [
+    { label: `The ${day} vs a typical day`, value: edgeRupees },
+    { label: "One missed instalment", value: -perInstalment },
+  ];
+  const most = Math.max(...rows.map((row) => Math.abs(row.value)), 1);
 
   return (
-    <div data-chart="matters" className="mb-4">
-      <ApexChart height={height} version={`${fund.code}:${edgeRupees}:${perInstalment}`} build={build} />
+    <div data-chart="matters" className="mb-4 space-y-3 2xl:mb-3">
+      {rows.map((row) => (
+        <div key={row.label}>
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="text-sm text-ink">{row.label}</span>
+            <span className="shrink-0 font-display text-lg text-ink">
+              {`${row.value < 0 ? "−" : "+"}${formatRupees(Math.abs(row.value))}`}
+            </span>
+          </div>
+          <div className="mt-2 h-3 rounded-full bg-[color-mix(in_srgb,var(--ink)_10%,transparent)]">
+            {/* A sliver stays visible: a ₹6 edge still draws as a mark, not as nothing. */}
+            <div
+              className={`h-full rounded-full ${row.value >= 0 ? "bg-up" : "bg-down"}`}
+              style={{ width: `${Math.max((Math.abs(row.value) / most) * 100, 1.5)}%` }}
+            />
+          </div>
+        </div>
+      ))}
+      <p className="text-xs text-mute-text">Both bars are on the same rupee scale.</p>
       <p className="sr-only">
         {edgeRupees >= 0
           ? `Picking the ${day} over a typical day gained ${formatRupees(edgeRupees)}.`

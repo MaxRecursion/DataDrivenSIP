@@ -30,7 +30,7 @@ import { TodayLine } from "../components/today-line";
  * is the 24 kB that actually justified a chunk, stays lazy inside — and its boundary is only
  * created when a reader opens the section, long after hydration.
  */
-import { ConfidenceSection, CurveSection, MattersSection } from "../components/disclosures";
+import { ConfidenceNotes, ConfidenceSection, CurveSection, MattersSection } from "../components/disclosures";
 import { pickAnswer } from "../lib/answer";
 import { compareDayCopy, namedDayShiftCopy, paperworkCopy, stickyCopy } from "../lib/compare";
 import { disclosureCopy } from "../lib/disclosure";
@@ -40,8 +40,10 @@ import { readSipDay, rememberFund, takeNamedDayShift, writeSipDay } from "../lib
 import { useReveal } from "../lib/use-reveal";
 import { useWide } from "../lib/use-wide";
 import { answerCopy } from "../lib/copy";
-import { loadFund, peekFund } from "../lib/data";
-import { setHead } from "../lib/head";
+import { loadFund, peekFund, peekIndex } from "../lib/data";
+import { setHead, setNotFoundHead } from "../lib/head";
+import { fundDescription, fundTitle, sharedNames } from "../lib/seo";
+import { fundPath } from "../lib/url";
 import { usePublishNavDate } from "./layout";
 
 type State =
@@ -91,11 +93,29 @@ export function FundPage() {
   }, [code]);
 
   useEffect(() => {
+    if (state.status === "not-covered") setNotFoundHead();
+  }, [state.status]);
+
+  useEffect(() => {
     if (state.status !== "ready") return;
+    const fund = state.fund;
+    const answer = pickAnswer(fund);
+    // Whether this name is one AMFI publishes for another scheme too. The index answers it when
+    // it is loaded (the search box and the directory both load it). A direct load of a fund page
+    // has no index, but it does have the prerendered title, which already made that call.
+    //
+    // One gap, accepted: a shared-name fund reached from the empty search box's recents, before
+    // anything has loaded the index, reads the previous page's title and so leaves its code off
+    // the tab. It can never add a code wrongly, crawlers always take the direct-load path, and
+    // closing it would mean fetching the index on page load, which spec §9 rules out.
+    const rows = peekIndex();
+    const ambiguous = rows
+      ? sharedNames(rows).has(fund.name)
+      : document.title.includes(`(scheme ${fund.code})`);
     setHead({
-      title: `${state.fund.name} — SIP Date Planner`,
-      description: `Which date of the month to run a SIP in ${state.fund.name}, and how much the date has actually mattered.`,
-      url: `${window.location.origin}/f/${state.fund.code}`,
+      title: fundTitle(fund, answer, ambiguous),
+      description: fundDescription(fund, answer, ambiguous),
+      path: fundPath(fund.code),
     });
   }, [state]);
 
@@ -302,24 +322,13 @@ export function FundPage() {
       </div>
 
       <div className="flex flex-col gap-4 [grid-area:matters] 2xl:gap-4">
-        <MattersSection {...sections} />
         {/*
-         * On the wide dashboard the caveats leave the answer card — which is one narrow column
-         * there — for a card of their own at the foot of the last column. Below 2xl they stay
-         * in the answer card, where they belong to the sentence above them.
+         * On the wide dashboard the answer card's caveats and the confidence section's notes
+         * leave their cards for one block of their own above this column, so the third column
+         * isn't the one that decides whether the page fits. Below 2xl both stay where they were.
          */}
-        {state.fund.confidence !== "full" && copy.caveats.length > 0 ? (
-          <div className="hidden rounded-[2rem] border-[1.5px] border-dashed border-line p-5 2xl:block">
-            <h3 className="font-display text-[1.125rem]">What to keep in mind</h3>
-            <div className="mt-2.5 flex flex-col gap-2.5">
-              {copy.caveats.map((caveat) => (
-                <p key={caveat} className="text-[0.8125rem] leading-[1.5] text-mute-text">
-                  {caveat}
-                </p>
-              ))}
-            </div>
-          </div>
-        ) : null}
+        <ConfidenceNotes copy={sections.copy} caveats={copy.caveats} />
+        <MattersSection {...sections} />
       </div>
 
       <StickyAnswer text={stickyCopy(state.fund, answer)} />

@@ -19,19 +19,19 @@ import { Collapsible } from "radix-ui";
 import type { FundArtifact } from "../../shared/artifacts";
 import type { Answer } from "../lib/answer";
 import type { DisclosureCopy } from "../lib/disclosure";
+import ConfidenceGauge from "./charts/confidence-gauge";
+import MattersBars from "./charts/matters-bars";
 import { ConfidenceGlyph, CurveGlyph } from "./glance-icons";
 
 /** The heavy one. Loaded when the section holding it is opened, never before. */
 const SpreadChart = lazy(() => import("./spread-chart"));
 
 /**
- * The ApexCharts visuals — lazier still. Apex is ~250 KB gzipped, so these chunks are only
- * requested when the section holding them opens (Radix renders a closed section as nothing),
- * and a page nobody opens a section on never downloads it. Never import these statically.
+ * The ApexCharts column chart — lazier still. Apex is ~175 KB gzipped, so its chunk is only
+ * requested when the section holding it opens (Radix renders a closed section as nothing),
+ * and a page nobody opens a section on never downloads it. Never import it statically.
  */
-const ConfidenceGauge = lazy(() => import("./charts/confidence-gauge"));
 const StretchesLed = lazy(() => import("./charts/stretches-led"));
-const MattersBars = lazy(() => import("./charts/matters-bars"));
 
 type SectionProps = {
   id: string;
@@ -82,7 +82,7 @@ function Section({ id, title, preview, open, children }: SectionProps) {
       {/* §8.1's response-to-action motion: transform only, and instant under reduced motion. */}
       <Collapsible.Trigger
         disabled={held}
-        className="group flex w-full items-center gap-3 py-1 text-left font-display text-xl text-ink outline-none transition-transform duration-100 active:scale-[0.99] disabled:cursor-default disabled:active:scale-100 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+        className="group flex w-full items-center gap-3 py-1 text-left font-display text-xl text-ink outline-none transition-transform duration-100 active:scale-[0.99] disabled:cursor-default disabled:active:scale-100 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marigold"
       >
         <span className="flex flex-1 items-center gap-2.5">
           {title}
@@ -136,7 +136,7 @@ function Prose({ inset, label, children }: { inset: boolean; label: string; chil
       <Collapsible.Content>
         <div className="pb-1">{children}</div>
       </Collapsible.Content>
-      <Collapsible.Trigger className="mt-1 inline-flex min-h-9 items-center gap-1.5 rounded-full px-1.5 text-[0.8125rem] font-semibold text-down-ink outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+      <Collapsible.Trigger className="mt-1 inline-flex min-h-9 items-center gap-1.5 rounded-full px-1.5 text-[0.8125rem] font-semibold text-loss outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marigold">
         <span className="group-data-[state=open]/prose:hidden">{label}</span>
         <span className="hidden group-data-[state=open]/prose:inline">Show less</span>
         <svg
@@ -194,17 +194,43 @@ export function ConfidenceSection({ fund, answer, copy, open }: SectionPartProps
           two columns beneath them, so the whole section fits the height it has. */}
       <div className="2xl:grid 2xl:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] 2xl:items-end 2xl:gap-6">
         {/* Fallbacks are sized to the charts they stand in for, so nothing shifts when they land. */}
-        <Suspense fallback={<div style={{ height: 190 }} />}>
-          <ConfidenceGauge fund={fund} answer={answer} />
-        </Suspense>
+        <ConfidenceGauge fund={fund} answer={answer} />
         <Suspense fallback={<div style={{ height: 190 }} />}>
           <StretchesLed fund={fund} answer={answer} />
         </Suspense>
       </div>
       <Prose inset={open === true} label="What these mean">
-        <div className="2xl:columns-2 2xl:gap-6 [&>p]:break-inside-avoid">{paragraphs(copy.confidence)}</div>
+        <div className="2xl:columns-2 2xl:gap-6 [&>p]:break-inside-avoid">
+          {paragraphs(copy.confidence.slice(0, CONFIDENCE_CORE))}
+        </div>
       </Prose>
+      {/* The caveats move to their own block in the next column on a wide screen (ConfidenceNotes). */}
+      <div className="2xl:hidden">{paragraphs(copy.confidence.slice(CONFIDENCE_CORE))}</div>
     </Section>
+  );
+}
+
+/** What the meters and the three opening paragraphs explain; the rest are this fund's caveats. */
+const CONFIDENCE_CORE = 4;
+
+/**
+ * What to keep in mind: the answer card's caveats and the confidence section's notes — where the
+ * measures disagree, a leader that isn't the named day, a reduced-confidence grade. On the wide
+ * dashboard they share one dashed card above "What actually matters", so the third column isn't
+ * the one that decides whether the page fits; below that width they stay where they were (the
+ * caveats in the answer card, the notes inside the confidence section), so this renders nothing.
+ */
+export function ConfidenceNotes({ copy, caveats }: { copy: DisclosureCopy; caveats: readonly string[] }) {
+  const lines = [...caveats, ...copy.confidence.slice(CONFIDENCE_CORE)];
+  if (lines.length === 0) return null;
+  return (
+    <section
+      data-confidence-notes
+      className="hidden rounded-[2rem] border-[1.5px] border-dashed border-line px-5 py-3 2xl:block"
+    >
+      <h2 className="font-display text-[1.125rem]">What to keep in mind</h2>
+      <div className="mt-2">{paragraphs(lines)}</div>
+    </section>
   );
 }
 
@@ -217,9 +243,7 @@ export function MattersSection({ fund, answer, copy, open }: SectionPartProps) {
        */}
       <div className="2xl:grid 2xl:grid-cols-1 2xl:items-start 2xl:gap-0">
         <div>
-          <Suspense fallback={<div style={{ height: 150 }} />}>
-            <MattersBars fund={fund} answer={answer} />
-          </Suspense>
+          <MattersBars fund={fund} answer={answer} />
           {paragraphs(copy.matters.slice(0, 1))}
         </div>
         <div className="mt-3 2xl:mt-2">

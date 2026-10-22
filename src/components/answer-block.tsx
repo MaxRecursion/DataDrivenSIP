@@ -40,9 +40,9 @@ export const ANSWER_HEADING_ID = "answer-heading";
  * light enough to sit on the card, dark enough for the label to pass AA on it.
  */
 const TAG: Record<Verdict, string> = {
-  noise: "bg-neutral-100 text-neutral-800",
-  marginal: "bg-down-100 text-down-800",
-  meaningful: "bg-up-100 text-up-800",
+  noise: "bg-surface text-ink",
+  marginal: "bg-[color-mix(in_srgb,var(--down)_24%,var(--raised))] text-ink",
+  meaningful: "bg-[color-mix(in_srgb,var(--up)_28%,var(--raised))] text-ink",
 };
 
 /**
@@ -56,7 +56,7 @@ const TAG: Record<Verdict, string> = {
  */
 const HEADING_CLASS =
   "font-display text-[clamp(3.25rem,16cqi,7rem)] leading-none tracking-[-0.02em] text-ink" +
-  " focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-focus";
+  " focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-marigold";
 
 type AnswerBlockProps = {
   copy: AnswerCopy;
@@ -129,7 +129,7 @@ export function AnswerBlock({
           {reasons.map((reason) => (
             <li
               key={reason.n}
-              className="flex items-start gap-3 rounded-[1.5rem] bg-neutral-100 p-3.5 md:p-4 2xl:px-3 2xl:py-2"
+              className="flex items-start gap-3 rounded-[1.5rem] bg-surface p-3.5 md:p-4 2xl:px-3 2xl:py-2"
             >
               <span
                 aria-hidden="true"

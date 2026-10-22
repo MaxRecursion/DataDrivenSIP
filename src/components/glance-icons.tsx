@@ -30,7 +30,7 @@ export function CurveGlyph({ xirrs }: { xirrs: readonly number[] }) {
 
   return (
     <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} width={`${WIDTH / 16}rem`} height={`${HEIGHT / 16}rem`} aria-hidden="true" className="shrink-0">
-      <path d={path} fill="none" stroke="var(--up)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d={path} fill="none" stroke="var(--teal)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -45,7 +45,7 @@ export function ConfidenceGlyph({ confidence }: { confidence: Confidence }) {
         cy="8"
         r="6"
         fill="none"
-        stroke="var(--up)"
+        stroke="var(--teal)"
         strokeWidth="2"
         strokeDasharray={full ? undefined : "2.4 2.2"}
       />

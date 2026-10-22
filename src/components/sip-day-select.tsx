@@ -19,7 +19,7 @@ export function SipDaySelect({
       <label htmlFor="sip-day">I SIP on the</label>
       <select
         id="sip-day"
-        className="min-h-10 rounded-full border border-line bg-neutral-100 px-3.5 py-1.5 text-ink focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-focus"
+        className="min-h-10 rounded-full border border-line bg-surface px-3.5 py-1.5 text-ink focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-marigold"
         value={value ?? ""}
         onChange={(event) => {
           const day = Number(event.target.value);

@@ -48,7 +48,7 @@ export function Brand({ className, large = false }: { className?: string; large?
       className={cn("flex shrink-0 items-center text-ink no-underline", large ? "gap-3.5" : "gap-2.5", className)}
     >
       <BrandMark size={large ? 52 : 32} />
-      <span className={cn("font-display leading-none font-bold tracking-tight", large ? "text-5xl" : "text-2xl")}>
+      <span className={cn("font-display leading-none tracking-tight", large ? "text-5xl" : "text-2xl")}>
         Tithi
       </span>
     </Link>

@@ -47,7 +47,12 @@ const fundWith = (over: Partial<FundArtifact> = {}): FundArtifact => ({
   ...over,
 });
 
-const answerOn = (date: number, edgePp: number): Answer => ({ date, result: dateAt(date), edgePp });
+const answerOn = (date: number, edgePp: number): Answer => ({
+  date,
+  result: dateAt(date),
+  edgePp,
+  medianXirr: dateAt(date).xirr - edgePp,
+});
 
 const copyFor = (fund: Partial<FundArtifact>, answer: Answer) => answerCopy(fundWith(fund), answer);
 

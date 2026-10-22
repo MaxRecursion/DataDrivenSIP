@@ -35,11 +35,13 @@ test.describe("the HTML a crawler sees", () => {
     expect(html).toContain(FUND.house);
     expect(html).toContain(`data-prerendered="/f/${FUND.code}"`);
 
-    // The title leads with the fund and carries its own answer (src/lib/seo.ts). Asserted as the
-    // shape rather than the literal: the exact wording is seo.test.ts's business, and pinning it
-    // twice means every rewording breaks a test that was never about wording.
+    // The title names the fund and carries its own answer (src/lib/seo.ts), which leads it:
+    // "SIP on the 26th: Kotak Mid Cap Fund — Tithi". It used to lead with the fund, and this
+    // asserted that after the title was reshaped, so it has failed on main since. Asserted as
+    // the shape rather than the literal: the exact wording is seo.test.ts's business, and
+    // pinning it twice means every rewording breaks a test that was never about wording.
     const title = /<title>([^<]*)<\/title>/.exec(html)?.[1] ?? "";
-    expect(title.startsWith(FUND.name)).toBe(true);
+    expect(title).toContain("Kotak Mid Cap Fund");
     expect(title).toMatch(/SIP on the \d+(st|nd|rd|th)/);
     expect(html).toContain(`<meta property="og:title" content="${title}" />`);
     expect(html).toContain(`content="https://sip-date-planner.kulkarniakshay1989.workers.dev/f/${FUND.code}"`);

@@ -36,13 +36,25 @@ export function Home() {
         For most funds the date barely moves the outcome. This shows you what the history says,
         and how much of it is noise.
       </p>
-      <ol className="mt-6 list-decimal space-y-2 pl-5 text-mute-text">
-        <li>Search a fund you already hold.</li>
-        <li>Read the chip: noise means the day barely matters.</li>
-        <li>If you SIP on another date, tap it to see the gap.</li>
+      <ol className="mt-7 flex list-none flex-col gap-3">
+        {[
+          "Search a fund you already hold.",
+          "Read the chip: noise means the day barely matters.",
+          "If you SIP on another date, tap it to see the gap.",
+        ].map((step, index) => (
+          <li key={step} className="flex items-center gap-3.5">
+            <span
+              aria-hidden="true"
+              className="grid size-10 flex-none place-items-center rounded-full bg-raised font-display text-[1.0625rem]"
+            >
+              {index + 1}
+            </span>
+            <span>{step}</span>
+          </li>
+        ))}
       </ol>
 
-      <h2 className="mt-12 font-display text-2xl font-bold text-ink">What this answers</h2>
+      <h2 className="mt-14 font-display text-[1.75rem] text-ink">What this answers</h2>
       <p className="mt-3 text-mute-text">
         One question, for one fund at a time: which day of the month to run your SIP on. For
         every fund covered here, a monthly SIP is simulated on each date from the 1st to the
@@ -53,11 +65,11 @@ export function Home() {
       <p className="mt-3 text-mute-text">
         The calendar then shades all 28 dates against the one you are reading on, so you can see
         the shape of the difference rather than take a single number on trust. Every cell prints
-        its own figure, because a deep red cell is usually 20.31% against 20.34% — a real
+        its own figure, because a deeply shaded cell is usually 20.31% against 20.34% — a real
         difference, and a tiny one.
       </p>
 
-      <h2 className="mt-10 font-display text-2xl font-bold text-ink">Why it usually barely matters</h2>
+      <h2 className="mt-11 font-display text-[1.75rem] text-ink">Why it usually barely matters</h2>
       <p className="mt-3 text-mute-text">
         Across the funds here, the gap between the strongest and weakest date of the month is
         typically around a tenth of a percentage point of XIRR. On a corpus built over a decade
@@ -72,10 +84,10 @@ export function Home() {
         reader should actually do: fund the SIP on a day the money is there.
       </p>
 
-      <h2 className="mt-10 font-display text-2xl font-bold text-ink">Questions</h2>
-      <dl className="mt-4">
+      <h2 className="mt-11 font-display text-[1.75rem] text-ink">Questions</h2>
+      <dl className="mt-4 flex flex-col gap-3">
         {HOME_FAQ.map((entry) => (
-          <div key={entry.question} className="mt-6 first:mt-0">
+          <div key={entry.question} className="rounded-[1.75rem] bg-raised px-[1.375rem] py-5">
             <dt className="font-bold text-ink">{entry.question}</dt>
             <dd className="mt-2 text-mute-text">{entry.answer}</dd>
           </div>

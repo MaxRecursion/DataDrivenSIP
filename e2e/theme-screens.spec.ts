@@ -11,7 +11,7 @@ import { expect, test } from "@playwright/test";
  */
 
 const OUT = "test-results/themes";
-const PALETTES = ["marigold", "indigo", "sandstone", "graphite"] as const;
+const PALETTES = ["organic", "marigold", "indigo", "sandstone", "graphite"] as const;
 const MODES = ["light", "dark"] as const;
 const KEY = "sip-date-planner.theme.v1";
 

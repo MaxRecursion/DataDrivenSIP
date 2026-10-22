@@ -16,7 +16,7 @@ import { useWide } from "../../lib/use-wide";
 import { ApexChart, type Palette } from "./apex";
 
 const HEIGHT = 190;
-const WIDE_HEIGHT = 150;
+const WIDE_HEIGHT = 112;
 /** Labels only where a reader can find their place, as the full-curve chart does. */
 const LABELLED = new Set([1, 7, 14, 21, 28]);
 

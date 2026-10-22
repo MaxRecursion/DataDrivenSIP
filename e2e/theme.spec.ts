@@ -70,7 +70,7 @@ test.describe("choosing a theme", () => {
   test("follows the system when asked to", async ({ page }) => {
     await page.emulateMedia({ colorScheme: "dark" });
     await page.goto("/f/119775");
-    expect(await attributes(page)).toMatchObject({ theme: "dark", palette: "marigold" });
+    expect(await attributes(page)).toMatchObject({ theme: "dark", palette: "organic" });
 
     await page.getByRole("button", { name: "Light", exact: true }).click();
     expect(await attributes(page)).toMatchObject({ theme: "light" });
@@ -103,8 +103,8 @@ test.describe("choosing a palette", () => {
   test("offers every palette exactly once, each one named", async ({ page }) => {
     await page.goto("/");
     const swatches = page.locator("[data-palette-option]");
-    await expect(swatches).toHaveCount(4);
-    for (const name of ["Marigold", "Indigo", "Sandstone", "Graphite"]) {
+    await expect(swatches).toHaveCount(5);
+    for (const name of ["Organic", "Marigold", "Indigo", "Sandstone", "Graphite"]) {
       await expect(page.getByRole("button", { name })).toHaveCount(1);
     }
   });

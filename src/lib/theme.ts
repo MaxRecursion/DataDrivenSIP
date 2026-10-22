@@ -34,7 +34,7 @@ export const THEME_KEY = "sip-date-planner.theme.v1";
 export type Mode = "light" | "dark" | "system";
 /** What `system` resolves to, and the only two things the stylesheet knows about. */
 export type Resolved = "light" | "dark";
-export type PaletteId = "marigold" | "indigo" | "sandstone" | "graphite";
+export type PaletteId = "organic" | "marigold" | "indigo" | "sandstone" | "graphite";
 
 export const MODES: readonly Mode[] = ["light", "dark", "system"];
 
@@ -83,14 +83,53 @@ export const TOKEN_PROPERTIES: ReadonlyArray<readonly [keyof Tokens, string]> = 
 ];
 
 /**
- * The four palettes.
+ * The five palettes.
  *
- * Marigold's light column is the original palette, unchanged to the digit (D15): the default
- * theme of the default palette is the page as it shipped, so this feature adds a choice rather
- * than replacing what was reviewed. Every other column was picked against the contrast pairs
- * `theme.test.ts` enforces, not by eye.
+ * Organic is first and is the default, from the 2026-10-22 redesign (the Tithi prototype, with
+ * the user's explicit approval). Marigold's light column is still the original palette,
+ * unchanged to the digit (D15), and is still one choice away — the redesign made Organic the
+ * page you arrive on without deleting what had been reviewed. Every column was picked against
+ * the contrast pairs `theme.test.ts` enforces, not by eye.
+ *
+ * In Organic the token names keep their roles rather than their hues: `marigold` is the accent
+ * (terracotta here), `teal` the gain colour (a dark sage, so it reads as text), `loss` the loss
+ * colour, and `up` and `down` the calendar's sage and terracotta fills.
  */
 export const PALETTES: readonly Palette[] = [
+  {
+    id: "organic",
+    label: "Organic",
+    note: "Cream paper, terracotta and sage.",
+    light: {
+      ink: "#201e1d",
+      surface: "#f5ead8",
+      raised: "#ebddc5",
+      marigold: "#c67139",
+      teal: "#56633f",
+      loss: "#8c491a",
+      mute: "#82796a",
+      muteText: "#645c50",
+      line: "#d3caba",
+      // Sage and terracotta are almost the same lightness, so as plain brand colours the two
+      // fills would read as one. These are a step apart (sage deeper, terracotta lighter) until
+      // "the two calendar fills against each other" in theme.test.ts is satisfied.
+      up: "#6e7f52",
+      down: "#d4793f",
+    },
+    dark: {
+      ink: "#f4ece0",
+      surface: "#201e1d",
+      raised: "#2e2b25",
+      marigold: "#e08e4f",
+      teal: "#aebf92",
+      loss: "#f6a06b",
+      mute: "#a19786",
+      muteText: "#c0b6a5",
+      line: "#474238",
+      up: "#56653e",
+      down: "#7a3f1a",
+    },
+  },
   {
     id: "marigold",
     label: "Marigold",
@@ -219,7 +258,7 @@ export const PALETTES: readonly Palette[] = [
 
 export const PALETTE_IDS: readonly PaletteId[] = PALETTES.map((palette) => palette.id);
 
-export const DEFAULT_PALETTE: PaletteId = "marigold";
+export const DEFAULT_PALETTE: PaletteId = "organic";
 /** `system` by default: the page arrives in whatever the reader's OS already asked for. */
 export const DEFAULT_MODE: Mode = "system";
 

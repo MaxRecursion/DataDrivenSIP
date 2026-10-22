@@ -10,23 +10,28 @@
  *
  * Dates 29–31 are drawn and inert. SIP dates stop at 28 because February has no 29th in three
  * years out of four, so a SIP set for the 30th is not a monthly instruction at all. Leaving them
- * out would look like a bug; drawing them greyed says what is true.
+ * out would look like a bug; drawing them smaller and dashed says what is true.
  *
  * The shading is against today's date, which is the other clock read and is resolved in the same
- * effect. Green means that date's full-history XIRR beat the date the reader is standing on, red
- * means it fell short, and today itself is neutral. Each direction is scaled to its own extreme,
- * so the deepest green is always the month's best date and the deepest red its worst.
+ * effect. The “up” fill means that date's full-history XIRR beat the date the reader is standing on,
+ * the “down” fill means it fell short, and today itself is neutral. Each direction is scaled to its
+ * own extreme, so the deepest up fill is always the month's best date and the deepest down fill
+ * its worst.
  *
  * That scaling is relative to this fund's own range, which is only honest because the caption
- * states the real span and every cell prints its own XIRR — a deep red is 20.31% against a
- * baseline of 20.34%, not a loss, and the number is right there.
+ * states the real span and every cell prints its own XIRR — a deep down fill is 20.31% against
+ * a baseline of 20.34%, not a loss, and the number is right there.
  *
  * Every fill is a pre-painted overlay whose opacity carries the value, so the reveal has
  * something it is allowed to animate and no cell's colour is ever computed or swapped.
+ *
+ * The cells size themselves off the grid's own width (`cqi`), not the viewport, so the same
+ * markup reads in a phone's full width and in one column of the wide dashboard without a
+ * breakpoint for either.
  */
-import { useMemo, useState, type CSSProperties } from "react";
+import { useMemo, type CSSProperties } from "react";
 import { buildMonth, weekdayLabels, type CalendarMonth } from "../lib/calendar";
-import { formatPp, formatRupees, formatXirr } from "../lib/format";
+import { formatPp, formatRupees, formatXirr, ordinal } from "../lib/format";
 import { heatForMonth, type Heat } from "../lib/heat";
 import { SCHEDULE, diagonalIndexAt } from "../lib/sequence";
 import { ANSWER_SPRING, SPEC_SPRING } from "../lib/spring";
@@ -39,14 +44,9 @@ import { Animated } from "./animated";
 const WEEK_ROWS = 6;
 
 /**
- * The strongest a cell paints. Ink holds a little over 4:1 against the default palette's fills at
- * this depth, and every other palette and mode is held to at least that by `theme.test.ts`; past
- * it the text would have to flip, and the other direction does not reach 4.5:1 until the fill is
- * almost solid. Capping below that band means one text colour works on every cell, in every theme.
- *
- * The fills are `--up` and `--down` rather than `--teal` and `--loss`: in a light theme they are
- * the same two colours, but a dark theme needs a deep fill under near-white numerals, while the
- * text colours it shares a name with have to be bright enough to read on a card.
+ * The strongest a cell paints. Ink holds 4.5:1 over the card up to about here on both ramps;
+ * past it the text would have to flip to the page cream, and that does not reach 4.5:1 until
+ * the fill is almost solid. Capping below that band means one text colour works on every cell.
  */
 const MAX_FILL = 0.85;
 
@@ -67,15 +67,15 @@ type HeroGridProps = {
   className?: string;
 };
 
-/** A pre-painted fill. `on` picks its opacity and never whether it is rendered. */
+/** A pre-painted ring or fill. `on` picks its opacity and never whether it is rendered. */
 function Layer({ on, className }: { on: boolean; className: string }) {
   return (
-    <div className={cn("absolute inset-0 rounded-lg", className, on ? "opacity-100" : "opacity-0")} />
+    <div className={cn("absolute inset-0 rounded-full", className, on ? "opacity-100" : "opacity-0")} />
   );
 }
 
 function Swatch({ className, style }: { className: string; style?: CSSProperties | undefined }) {
-  return <span className={cn("size-3 shrink-0 rounded-sm", className)} style={style} />;
+  return <span className={cn("size-3 shrink-0 rounded-full", className)} style={style} />;
 }
 
 type CellProps = {
@@ -121,7 +121,8 @@ function Cell({
     delayMs: SCHEDULE.cells!.start + SCHEDULE.cells!.stagger * diagonalIndexAt(row, column),
   };
 
-  // 29–31: a real day of the month that can never be a SIP date.
+  // 29–31: a real day of the month that can never be a SIP date. Drawn at 80%, so it reads as
+  // a lesser thing before the dashed edge or the greyed numeral is resolved.
   if (!sip) {
     return (
       <div
@@ -133,10 +134,12 @@ function Cell({
         {/* Arrives on its own diagonal like every other cell. Left out of the sequence it was
             the only thing on screen at 0 ms, which read as the grid failing to load. */}
         <Animated
-          className="absolute inset-0 flex items-center justify-center rounded-lg border border-line bg-raised"
+          className="absolute inset-0 flex scale-80 items-center justify-center rounded-full border-[1.5px] border-dashed border-line"
           {...arrival}
         >
-          <span className="font-display text-sm leading-none font-bold text-mute sm:text-lg">{day}</span>
+          <span className="font-display text-[clamp(0.75rem,3.5cqi,1.1875rem)] leading-none text-mute-text">
+            {day}
+          </span>
         </Animated>
       </div>
     );
@@ -162,23 +165,19 @@ function Cell({
       data-direction={heat?.direction}
       title={title}
       onClick={onSelect ? () => onSelect(day) : undefined}
-      className={cn("relative aspect-square rounded-lg bg-raised", onSelect && "cursor-pointer")}
+      className={cn("relative aspect-square", onSelect && "cursor-pointer")}
     >
       <Animated className="absolute inset-0" {...arrival}>
-        {/* D15: raised on surface is 1.14:1, so an unshaded cell needs a hairline. */}
-        <Layer on className="border border-line" />
+        {/* D15 carried over: the card under an unshaded cell is close in value, so it needs a
+            hairline of its own to hold the circle. */}
+        <Layer on className="border border-line bg-raised" />
 
         {/*
-         * The colour sweeps in after the cells have landed, on the schedule step that used to
-         * carry the salary window's wave before that concept was removed. One layer, its hue
-         * picked by direction and its opacity
-         * carrying the distance, so opacity is all that ever animates.
+         * The colour sweeps in after the cells have landed. One layer, its hue picked by
+         * direction and its opacity carrying the distance, so opacity is all that ever animates.
          */}
         <Animated
-          className={cn(
-            "absolute inset-0 rounded-lg",
-            heat?.direction === "down" ? "bg-down" : "bg-up",
-          )}
+          className={cn("absolute inset-0 rounded-full", heat?.direction === "down" ? "bg-down" : "bg-up")}
           play={playing ? generation : null}
           from={{ opacity: 0 }}
           to={{ opacity: fill }}
@@ -187,31 +186,33 @@ function Cell({
           style={{ opacity: fill }}
         />
 
-        {/* The answer lands last, on its own spring. A thick ink ring rather than a fill, so
-            whatever the cell is shaded stays readable underneath it. */}
-        <Animated
-          className="absolute inset-0 rounded-lg border-[3px] border-ink"
-          play={playing && isAnswer ? generation : null}
-          from={{ opacity: 0, transform: "scale(0.8)" }}
-          spring={ANSWER_SPRING}
-          delayMs={SCHEDULE.answer!.start}
-          style={{ opacity: isAnswer ? 1 : 0 }}
-        />
-
         {/* Today is marked without colour, because neutral here is the absence of a fill and
             would otherwise be indistinguishable from a date whose figure happens to match. */}
         <Layer on={isBaseline && !isAnswer} className="border-2 border-dashed border-mute" />
-        <Layer on={isSelected && !isAnswer} className="border-2 border-teal" />
+        <Layer on={isSelected && !isAnswer} className="border-2 border-ink" />
 
-        <span className="absolute inset-x-0 top-1.5 text-center font-display text-sm leading-none font-bold text-ink sm:top-2 sm:text-lg 2xl:top-[12%] 2xl:text-[clamp(1.125rem,1.1vw,1.75rem)]">
-          {day}
-        </span>
-        {value === undefined ? null : (
-          <span className="tabular absolute inset-x-0 bottom-1 text-center text-[0.5625rem] leading-none font-medium text-ink sm:bottom-1.5 sm:text-xs 2xl:bottom-[12%] 2xl:text-[clamp(0.75rem,0.6vw,1rem)]">
-            {formatXirr(value)}
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5">
+          <span className="font-display text-[clamp(0.75rem,3.5cqi,1.1875rem)] leading-none text-ink">
+            {day}
           </span>
-        )}
+          {value === undefined ? null : (
+            <span className="tabular text-[clamp(0.5rem,2.15cqi,0.75rem)] leading-none font-semibold text-ink">
+              {formatXirr(value)}
+            </span>
+          )}
+        </div>
       </Animated>
+
+      {/* The answer lands last, on its own spring, and sits outside the cell rather than inside
+          it — a ring drawn on the edge would read as one more border among four. */}
+      <Animated
+        className="pointer-events-none absolute -inset-1 rounded-full border-[3px] border-ink"
+        play={playing && isAnswer ? generation : null}
+        from={{ opacity: 0, transform: "scale(0.8)" }}
+        spring={ANSWER_SPRING}
+        delayMs={SCHEDULE.answer!.start}
+        style={{ opacity: isAnswer ? 1 : 0 }}
+      />
     </div>
   );
 }
@@ -226,30 +227,11 @@ export function HeroGrid({
   reveal = null,
   className,
 }: HeroGridProps) {
-  const { months, baseline, ready } = useToday();
-  const [offset, setOffset] = useState(0);
-  const [navigated, setNavigated] = useState(false);
+  const { day: todayDay, months, baseline, ready } = useToday();
 
   const generation = reveal?.generation ?? null;
-
-  /**
-   * A new fund re-arms the reveal and puts the calendar back on the current month; until then,
-   * navigating months switches the entrance off.
-   *
-   * `Animated` re-runs whenever its delay changes, and changing month changes which date sits in
-   * a given slot and so what that slot's stagger is. Without this, every press of the month
-   * arrows replayed the whole entrance — `useReveal` never clears itself back to null, so it
-   * replayed for the life of the page, not merely during the first 700 ms.
-   */
-  const [armedFor, setArmedFor] = useState(generation);
-  if (generation !== armedFor) {
-    setArmedFor(generation);
-    setNavigated(false);
-    setOffset(0);
-  }
-
-  const cellsArrive = reveal?.mode === "first" && !navigated;
-  const playing = reveal !== null && !navigated;
+  const cellsArrive = reveal?.mode === "first";
+  const playing = reveal !== null;
 
   // Recomputed only when the figures or the baseline move, which is once per fund per day.
   const heat = useMemo(
@@ -257,56 +239,39 @@ export function HeroGrid({
     [values, baseline],
   );
 
-  const shown: CalendarMonth | null = months[offset] ? buildMonth(months[offset]) : null;
+  /*
+   * This month and no other. The calendar used to step forward three months, which the Organic
+   * redraw dropped: every date's figure is a full-history XIRR, identical in every month, so
+   * paging only re-dealt the same 28 numbers into different weekday columns.
+   */
+  const shown: CalendarMonth | null = months[0] ? buildMonth(months[0]) : null;
   const weeks = shown?.weeks ?? [];
   // Always six rows, filled or not, so the height never moves (CLS 0).
   const padded = [...weeks, ...Array.from({ length: Math.max(0, WEEK_ROWS - weeks.length) }, () => [])];
-  // Only this month contains today; the months ahead are entirely in the future.
-  const baselineHere = offset === 0 ? baseline : null;
+
+  const shadeNote =
+    todayDay === null
+      ? null
+      : todayDay > 28
+        ? `Shaded against the 28th; today, the ${ordinal(todayDay)}, is not a SIP date`
+        : `Shaded against today, the ${ordinal(todayDay)}`;
 
   return (
     <div className={className}>
-      {/*
-       * The controls sit outside the hidden region. The cell grid duplicates, in colour, what the
-       * answer block says in prose, so it stays decorative — but a focusable button inside
-       * `aria-hidden` is invalid ARIA, and `‹` alone is not a name.
-       */}
-      <div className="mb-2 flex w-full max-w-[496px] items-center justify-between gap-2 2xl:max-w-none">
-        <button
-          type="button"
-          onClick={() => {
-            setNavigated(true);
-            setOffset((current) => Math.max(0, current - 1));
-          }}
-          disabled={offset === 0}
-          aria-label="Previous month"
-          className="rounded-lg px-2 py-1 text-sm text-mute-text transition-transform duration-100 active:scale-95 disabled:opacity-40 motion-reduce:transition-none focus-visible:ring-2 focus-visible:ring-teal"
-        >
-          <span aria-hidden="true">‹</span>
-        </button>
-        {/* Polite, so a keyboard user hears which month the presses landed on — but not on
-            mount, where the label's first appearance would announce a month nobody asked for. */}
-        <span aria-live={navigated ? "polite" : "off"} className="font-display text-sm font-bold text-ink">
-          {shown?.label ?? " "}
-        </span>
-        <button
-          type="button"
-          onClick={() => {
-            setNavigated(true);
-            setOffset((current) => Math.min(months.length - 1, current + 1));
-          }}
-          disabled={offset >= months.length - 1}
-          aria-label="Next month"
-          className="rounded-lg px-2 py-1 text-sm text-mute-text transition-transform duration-100 active:scale-95 disabled:opacity-40 motion-reduce:transition-none focus-visible:ring-2 focus-visible:ring-teal"
-        >
-          <span aria-hidden="true">›</span>
-        </button>
+      <div className="max-w-[32.5rem] 2xl:max-w-none">
+        <h3 className="font-display text-[1.375rem]">{shown?.label ?? " "}</h3>
+        <p className="mt-0.5 text-[0.8125rem] text-mute-text">{shadeNote ?? " "}</p>
       </div>
 
-      <div aria-hidden="true" data-hero-grid="">
-        <div className="grid w-full max-w-[496px] grid-cols-7 gap-1 sm:gap-2 2xl:max-w-none">
+      {/*
+       * The cell grid duplicates, in colour, what the answer card says in prose, so the whole
+       * region stays decorative. Nothing inside it is focusable, which is what lets it be
+       * aria-hidden without hiding a control from a keyboard reader.
+       */}
+      <div aria-hidden="true" data-hero-grid="" className="mt-3.5 max-w-[32.5rem] [container-type:inline-size] 2xl:max-w-none">
+        <div className="grid w-full grid-cols-7 gap-[clamp(0.25rem,1.6cqi,0.5625rem)]">
           {weekdayLabels().map((label) => (
-            <span key={label} className="pb-1 text-center text-[0.625rem] text-mute-text">
+            <span key={label} className="pb-0.5 text-center text-[0.6875rem] text-mute-text">
               {label}
             </span>
           ))}
@@ -324,7 +289,7 @@ export function HeroGrid({
                   column={column}
                   sip={slot.sip}
                   isAnswer={answer === slot.day}
-                  isBaseline={baselineHere === slot.day}
+                  isBaseline={baseline === slot.day}
                   isSelected={selected === slot.day}
                   value={values?.get(slot.day)}
                   corpus={corpora?.get(slot.day)}
@@ -341,7 +306,7 @@ export function HeroGrid({
         </div>
       </div>
 
-      <p className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-mute-text">
+      <p className="mt-3.5 flex max-w-[32.5rem] flex-wrap items-center gap-x-3.5 gap-y-1.5 text-xs text-mute-text 2xl:max-w-none">
         <span className="flex items-center gap-1.5">
           <Swatch className="bg-up" style={{ opacity: MAX_FILL }} />
           Higher than today
@@ -359,17 +324,17 @@ export function HeroGrid({
           Best day
         </span>
         <span className="flex items-center gap-1.5">
-          <Swatch className="border border-line bg-raised" />
+          <Swatch className="border-[1.5px] border-dashed border-line" />
           Not a SIP date
         </span>
       </p>
 
       {spanPp === undefined ? null : (
-        <p className="mt-1 max-w-[65ch] text-xs text-mute-text">
-          Each SIP date shows its full-history XIRR. Green dates were higher than today’s date;
-          red dates were lower. Weakest to strongest across all 28 is {formatPp(spanPp)}, and the
-          deeper the fill, the further from today’s figure that date sat. Tap a date (1–28) to
-          compare it with the named day; that does not change the answer.
+        <p className="mt-2 max-w-[32.5rem] text-xs leading-[1.5] text-mute-text 2xl:max-w-none">
+          Each SIP date shows its full-history XIRR. Dates shaded as “higher than today” beat
+          today’s date; the other shade fell short. Weakest to strongest across all 28 is{" "}
+          {formatPp(spanPp)}, and the deeper the fill, the further from today’s figure that date
+          sat. Tap a date (1–28) to compare it with the named day; that does not change the answer.
         </p>
       )}
 

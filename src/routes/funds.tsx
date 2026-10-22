@@ -56,7 +56,7 @@ export function FundsPage() {
 
   return (
     <section className="max-w-[65ch] 2xl:max-w-none">
-      <h1 className="font-display text-3xl leading-tight font-bold text-balance">
+      <h1 className="font-display text-3xl leading-tight text-balance">
         Every mutual fund covered
       </h1>
       <p className="mt-3 text-mute-text">
@@ -102,7 +102,7 @@ export function FundsPage() {
 
           {groups.map((group) => (
             <section key={group.slug} id={group.slug} className="mt-10 scroll-mt-4">
-              <h2 className="font-display text-xl font-bold text-ink">{group.category}</h2>
+              <h2 className="font-display text-xl text-ink">{group.category}</h2>
               <ul className="mt-3 grid grid-cols-1 gap-x-8 gap-y-1 sm:grid-cols-2 2xl:grid-cols-4">
                 {group.funds.map((fund) => (
                   <li key={fund.code} className="text-sm leading-relaxed">

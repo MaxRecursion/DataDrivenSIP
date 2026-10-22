@@ -23,7 +23,7 @@ export function Footer({ navAsOf, source = "mfapi.in" }: FooterProps) {
 
   return (
     // One line on a large desktop, where every pixel of height goes to the fund page's columns.
-    <footer className="border-t border-line py-6 text-sm leading-relaxed text-mute-text 2xl:flex 2xl:flex-wrap 2xl:items-center 2xl:gap-x-6 2xl:py-2 2xl:text-xs">
+    <footer className="border-t border-line py-6 text-sm leading-relaxed text-mute-text 2xl:flex 2xl:flex-wrap 2xl:items-center 2xl:gap-x-6 2xl:py-1.5 2xl:text-xs">
       {navAsOf ? <p>NAVs up to {formatNavDate(navAsOf)}.</p> : null}
       {/*
        * The only link every page has to the directory, and the reason the fund pages are not

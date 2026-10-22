@@ -59,13 +59,14 @@ for (const width of WIDTHS) {
 }
 
 test.describe("the rupee glyph, magnified", () => {
-  // Satoshi has no ₹; it is borrowed from the Cabinet file by unicode-range (src/styles/index.css).
-  // At 3× a mismatched glyph, a wrong weight or a shifted baseline is obvious.
+  // ₹ is not in either family's Latin slice; it comes from the latin-ext file, selected by
+  // unicode-range (src/styles/index.css). At 3× a glyph served by a system fallback instead —
+  // a wrong weight, a shifted baseline, a different width — is obvious.
   test.use({ viewport: { width: 390, height: 900 }, deviceScaleFactor: 3 });
 
   test("renders in the rupee line", async ({ page }) => {
     await page.goto("/f/119775");
-    const rupeeLine = page.getByText(/notional ₹10,000/);
+    const rupeeLine = page.getByText(/on a notional ₹10,000 a month/);
     await expect(rupeeLine).toBeVisible();
     await rupeeLine.screenshot({ path: `${OUT}/rupee-glyph-3x.png` });
   });

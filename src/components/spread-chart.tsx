@@ -24,7 +24,7 @@ import { useRootScale, useWide } from "../lib/use-wide";
 /** Reserved so opening the section doesn't shift what is under it (D13: CLS 0). */
 /** At 16px root; scaled with it on a large screen (useRootScale). */
 const BASE_HEIGHT = 208;
-const WIDE_HEIGHT = 140;
+const WIDE_HEIGHT = 106;
 
 type SpreadChartProps = {
   fund: FundArtifact;
@@ -51,7 +51,7 @@ export default function SpreadChart({ fund, answer }: SpreadChartProps) {
   const scale = useRootScale();
   const wide = useWide();
   const HEIGHT = Math.round((wide ? WIDE_HEIGHT : BASE_HEIGHT) * scale);
-  const axisFont = `${Math.round(11 * scale)}px Satoshi, system-ui, sans-serif`;
+  const axisFont = `${Math.round(11 * scale)}px Figtree, system-ui, sans-serif`;
   const host = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

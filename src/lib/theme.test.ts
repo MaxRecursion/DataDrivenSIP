@@ -4,6 +4,7 @@
  *
  * The contrast rule here is worth stating plainly, because it isn't a flat "AA everywhere". The
  * palette the project shipped with — Marigold, light — was reviewed and approved as it is (D15),
+ * and stays the reference even though Organic became the default on 2026-10-22,
  * and two of its pairs sit just under 4.5:1: `--loss` as text, and ink over the deepest calendar
  * fill. Tightening those would change the colours the user signed off, which needs their say-so,
  * not a test's. So each pair is held to AA where Marigold light reaches AA, and to Marigold
@@ -59,8 +60,8 @@ describe("modes", () => {
     expect(resolveMode("system", false)).toBe("light");
   });
 
-  it("defaults to following the system, in the palette that shipped", () => {
-    expect(DEFAULT_CHOICE).toEqual({ mode: "system", palette: "marigold" });
+  it("defaults to following the system, in the Organic palette", () => {
+    expect(DEFAULT_CHOICE).toEqual({ mode: "system", palette: "organic" });
     expect(MODES).toEqual(["light", "dark", "system"]);
   });
 
@@ -139,8 +140,8 @@ describe("applying a choice", () => {
 });
 
 describe("the palette table", () => {
-  it("has four palettes, the first of which is the default", () => {
-    expect(PALETTES).toHaveLength(4);
+  it("has five palettes, the first of which is the default", () => {
+    expect(PALETTES).toHaveLength(5);
     expect(PALETTES[0]?.id).toBe(DEFAULT_PALETTE);
   });
 
@@ -184,9 +185,10 @@ describe("the palette table", () => {
     for (const palette of PALETTES) {
       expect(luminance(palette.dark.surface), palette.id).toBeLessThan(luminance(palette.light.surface));
       expect(luminance(palette.dark.ink), palette.id).toBeGreaterThan(luminance(palette.light.ink));
-      // A dark theme's card sits above its page, a light theme's the same way round.
+      // A dark theme's card sits above its page. A light theme's card need not: Organic's is a
+      // step darker than its cream page, so "a card against the page" in the contrast table below
+      // is what guarantees it can still be told apart, in every palette.
       expect(luminance(palette.dark.raised), palette.id).toBeGreaterThan(luminance(palette.dark.surface));
-      expect(luminance(palette.light.raised), palette.id).toBeGreaterThan(luminance(palette.light.surface));
     }
   });
 
@@ -282,7 +284,8 @@ const PAIRS: ReadonlyArray<readonly [string, (tokens: Tokens) => number, number]
 ];
 
 describe("contrast", () => {
-  const baseline = PALETTES[0]!.light;
+  // The palette that shipped, whichever one is the default now: its figures are the floor (D15).
+  const baseline = paletteById("marigold").light;
 
   for (const palette of PALETTES) {
     for (const mode of ["light", "dark"] as const) {

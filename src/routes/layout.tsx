@@ -63,7 +63,7 @@ export function Layout() {
         {onHome ? (
           <>
             <Brand large />
-            <h1 className="mt-8 font-display text-4xl leading-tight font-bold text-balance">
+            <h1 className="mt-8 font-display text-4xl leading-tight text-balance">
               Which date should I run my SIP on?
             </h1>
           </>

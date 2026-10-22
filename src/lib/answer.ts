@@ -17,6 +17,14 @@ export type Answer = {
   result: DateResult;
   /** This date's XIRR minus the median XIRR of all 28 SIP dates, in percentage points. */
   edgePp: number;
+  /**
+   * The median XIRR of all 28 dates: the middle of the month that `edgePp` is measured from.
+   *
+   * Published alongside the edge rather than left for a caller to re-derive, because the two
+   * are printed in one sentence — "0.12 pp above the middle of the month (20.34%)" — and a
+   * median computed a second way could disagree with the edge in the same breath.
+   */
+  medianXirr: number;
 };
 
 /** XIRR is published at 3 dp, so whole thousandths of a percentage point are exact integers. */
@@ -58,9 +66,11 @@ export function pickAnswer(fund: FundArtifact): Answer {
     return leader;
   });
 
+  const doubled = doubledMedian(rows);
   return {
     date: chosen.d,
     result: chosen,
-    edgePp: (thousandths(chosen.xirr) * 2 - doubledMedian(rows)) / 2000,
+    edgePp: (thousandths(chosen.xirr) * 2 - doubled) / 2000,
+    medianXirr: doubled / 2000,
   };
 }

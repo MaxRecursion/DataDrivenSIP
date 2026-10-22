@@ -34,12 +34,12 @@ function Meter({ label, value, fill, mark, markLabel }: MeterProps) {
     <div>
       <div className="flex items-baseline justify-between gap-3">
         <span className="text-sm text-ink">{label}</span>
-        <span className="shrink-0 font-display text-xl font-bold text-ink">{value}</span>
+        <span className="shrink-0 font-display text-xl text-ink">{value}</span>
       </div>
-      <div className="relative mt-2 h-2.5 rounded-full bg-raised ring-1 ring-line">
-        <div className="h-full rounded-full bg-teal" style={{ width: `${clamp(fill)}%` }} />
+      <div className="relative mt-2 h-3 rounded-full bg-[color-mix(in_srgb,var(--ink)_10%,transparent)]">
+        <div className="h-full rounded-full bg-up" style={{ width: `${clamp(fill)}%` }} />
         <div
-          className="absolute -top-1 h-[1.125rem] w-0.5 rounded-full bg-ink"
+          className="absolute -top-1 h-5 w-1 -translate-x-1/2 rounded-full bg-ink"
           style={{ left: `${clamp(mark)}%` }}
         />
       </div>

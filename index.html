@@ -9,10 +9,10 @@
       NO_FLASH_SCRIPT in src/lib/theme.ts, and theme.test.ts fails if the two differ.
     -->
     <script>
-      (function(){try{var r=document.documentElement,c=JSON.parse(localStorage.getItem("sip-date-planner.theme.v1")||"{}"),p=c.palette,m=c.mode;r.dataset.palette=["marigold","indigo","sandstone","graphite"].indexOf(p)>-1?p:"marigold";r.dataset.theme=m==="light"||m==="dark"?m:matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}catch(e){}})();
+      (function(){try{var r=document.documentElement,c=JSON.parse(localStorage.getItem("sip-date-planner.theme.v1")||"{}"),p=c.palette,m=c.mode;r.dataset.palette=["organic","marigold","indigo","sandstone","graphite"].indexOf(p)>-1?p:"organic";r.dataset.theme=m==="light"||m==="dark"?m:matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}catch(e){}})();
     </script>
     <!-- The light palette's surface. The theme service rewrites it once the choice is known. -->
-    <meta name="theme-color" content="#EEF0F4" />
+    <meta name="theme-color" content="#F5EAD8" />
     <meta
       name="description"
       content="Pick a SIP date for your mutual fund, with an honest read on how much the date matters."
@@ -22,7 +22,7 @@
     <title>Tithi — which date to run your mutual fund SIP</title>
     <link
       rel="preload"
-      href="/fonts/v1/cabinet-grotesk-700.woff2"
+      href="/fonts/v2/caprasimo-400-latin.woff2"
       as="font"
       type="font/woff2"
       crossorigin

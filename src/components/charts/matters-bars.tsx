@@ -30,14 +30,14 @@ export default function MattersBars({ fund, answer }: Props) {
         <div key={row.label}>
           <div className="flex items-baseline justify-between gap-3">
             <span className="text-sm text-ink">{row.label}</span>
-            <span className="shrink-0 font-display text-lg font-bold text-ink">
+            <span className="shrink-0 font-display text-lg text-ink">
               {`${row.value < 0 ? "−" : "+"}${formatRupees(Math.abs(row.value))}`}
             </span>
           </div>
-          <div className="mt-1.5 h-2.5 rounded-full bg-raised ring-1 ring-line">
+          <div className="mt-2 h-3 rounded-full bg-[color-mix(in_srgb,var(--ink)_10%,transparent)]">
             {/* A sliver stays visible: a ₹6 edge still draws as a mark, not as nothing. */}
             <div
-              className={`h-full rounded-full ${row.value >= 0 ? "bg-teal" : "bg-loss"}`}
+              className={`h-full rounded-full ${row.value >= 0 ? "bg-up" : "bg-down"}`}
               style={{ width: `${Math.max((Math.abs(row.value) / most) * 100, 1.5)}%` }}
             />
           </div>

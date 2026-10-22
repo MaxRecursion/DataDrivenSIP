@@ -21,7 +21,7 @@ export function SupportPage() {
 
   return (
     <section className="max-w-[65ch]">
-      <h1 className="font-display text-3xl leading-tight font-bold text-balance">
+      <h1 className="font-display text-3xl leading-tight text-balance">
         Thank you for wanting to chip in
       </h1>
       <p className="mt-3 text-mute-text">

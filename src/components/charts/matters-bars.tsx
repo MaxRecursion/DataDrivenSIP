@@ -13,15 +13,19 @@ import type { FundArtifact } from "../../../shared/artifacts";
 import type { Answer } from "../../lib/answer";
 import { mattersFigures } from "../../lib/disclosure";
 import { formatRupees, formatRupeesAxis, ordinal } from "../../lib/format";
+import { useWide } from "../../lib/use-wide";
 import { ApexChart, type Palette } from "./apex";
 
+/** Shorter on the wide dashboard, where this card shares a column with "what to keep in mind". */
 const HEIGHT = 150;
+const WIDE_HEIGHT = 126;
 
 type Props = { fund: FundArtifact; answer: Answer };
 
 export default function MattersBars({ fund, answer }: Props) {
   const { edgeRupees, perInstalment } = mattersFigures(fund, answer);
   const day = ordinal(answer.date);
+  const height = useWide() ? WIDE_HEIGHT : HEIGHT;
   // Short enough not to truncate at 360 px; the sentences below say it in full.
   const labels = [`The ${day} vs a typical day`, "One missed instalment"];
   const values = [edgeRupees, -perInstalment];
@@ -29,7 +33,7 @@ export default function MattersBars({ fund, answer }: Props) {
   const build = (palette: Palette, scale: number): ApexOptions => ({
     chart: { type: "bar" },
     series: [{ name: "Rupees", data: values }],
-    colors: values.map((value) => (value >= 0 ? palette.teal : palette.loss)),
+    colors: values.map((value) => (value >= 0 ? palette.up : palette.down)),
     plotOptions: {
       bar: { horizontal: true, distributed: true, barHeight: "56%", borderRadius: 4 },
     },
@@ -63,7 +67,7 @@ export default function MattersBars({ fund, answer }: Props) {
 
   return (
     <div data-chart="matters" className="mb-4">
-      <ApexChart height={HEIGHT} version={`${fund.code}:${edgeRupees}:${perInstalment}`} build={build} />
+      <ApexChart height={height} version={`${fund.code}:${edgeRupees}:${perInstalment}`} build={build} />
       <p className="sr-only">
         {edgeRupees >= 0
           ? `Picking the ${day} over a typical day gained ${formatRupees(edgeRupees)}.`

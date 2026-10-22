@@ -50,6 +50,7 @@ const named = (d: number, over: Partial<DateResult> = {}): Answer => ({
   date: d,
   result: dateAt(d, { xirr: 20.3, corpus: 1_050_000, ...over }),
   edgePp: 0.03,
+  medianXirr: 20.27,
 });
 
 describe("verdictLabel", () => {

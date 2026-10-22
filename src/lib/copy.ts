@@ -25,6 +25,20 @@ import {
   ordinal,
 } from "./format";
 
+/** The already-formatted pieces of the rupee sentence, shared with the reason tiles. */
+export type RupeeParts = {
+  /** "the 7th and the 22nd" — the highest- and lowest-value dates, in that order. */
+  pair: string;
+  /** The notional monthly instalment, formatted: "₹10,000". */
+  monthly: string;
+  /** The gap as a share of the closing corpus: "12.3%". */
+  share: string;
+  /** What the highest-value date grew to: "₹24.5 lakh". */
+  grewTo: string;
+  /** The span the instalments cover: "13.7 years". */
+  years: string;
+};
+
 export type AnswerCopy = {
   headline: string;
   caveats: string[];
@@ -36,6 +50,12 @@ export type AnswerCopy = {
   rupeeBefore: string;
   rupeeGap: number;
   rupeeAfter: string;
+  /**
+   * The same figures again, as parts rather than a sentence, for the "why this date" tile
+   * (reasons.ts). Exported rather than re-derived there: the pair of dates, the share and the
+   * closing corpus each have one source, so the tile and the sentence cannot drift apart.
+   */
+  rupeeParts: RupeeParts;
   /** Null when every date has the same XIRR, so there is no pair of extremes to name. */
   xirrExtremes: string | null;
   /** One line from "What actually matters", shown above the fold. */
@@ -194,7 +214,7 @@ function caveatsFor(fund: FundArtifact): string[] {
 function rupeeLineFor(
   fund: FundArtifact,
   answer: Answer,
-): { before: string; gap: number; after: string; line: string } {
+): { before: string; gap: number; after: string; line: string; parts: RupeeParts } {
   const { highest, lowest } = corpusExtremes(fund, answer);
   // The gap between the two rows this sentence names, not fund.spreadRupees: the artifact rounds
   // every corpus independently, so for 237 of 994 funds the published spread is not the
@@ -206,9 +226,16 @@ function rupeeLineFor(
   // not from the NAV history. The two differ for 457 funds — one showed ₹5.2 lakh invested
   // "over 4.8 years", which at ₹10,000 a month is ₹5.76 lakh. Kotak hides it: its 164 months
   // and its 13.7-year NAV span agree, which is why the worked example never disambiguated them.
+  const parts: RupeeParts = {
+    pair: `the ${ordinal(highest.d)} and the ${ordinal(lowest.d)}`,
+    monthly: formatRupees(NOTIONAL_MONTHLY),
+    share: formatPercentOfValue(shareOfValue),
+    grewTo: formatLakh(highest.corpus),
+    years: formatYearsOfMonths(fund.instalments),
+  };
   const before = `For a notional ${formatRupees(NOTIONAL_MONTHLY)} monthly SIP, the highest- and lowest-value dates (the ${ordinal(highest.d)} and ${ordinal(lowest.d)}) ended `;
-  const after = ` apart on ${formatLakh(invested)} invested, ${formatPercentOfValue(shareOfValue)} of the ${formatLakh(highest.corpus)} it grew to, over ${formatYearsOfMonths(fund.instalments)}.`;
-  return { before, gap, after, line: `${before}${formatRupees(gap)}${after}` };
+  const after = ` apart on ${formatLakh(invested)} invested, ${parts.share} of the ${parts.grewTo} it grew to, over ${parts.years}.`;
+  return { before, gap, after, line: `${before}${formatRupees(gap)}${after}`, parts };
 }
 
 /** What a screen reader gets in place of the grid, which is aria-hidden. */
@@ -226,6 +253,7 @@ export function answerCopy(fund: FundArtifact, answer: Answer): AnswerCopy {
     rupeeBefore: rupees.before,
     rupeeGap: rupees.gap,
     rupeeAfter: rupees.after,
+    rupeeParts: rupees.parts,
     xirrExtremes: xirrExtremesLine(fund, answer),
     mattersGlance: mattersGlance(figures.perInstalment, figures.edgeRupees),
     srSummary: srSummaryFor(answer),

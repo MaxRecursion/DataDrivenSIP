@@ -9,6 +9,14 @@ rolling-window rank are gone — removed deliberately, not lost. `PLAN.md` preda
 change and carries an amendment at its head saying which of its sections no longer hold;
 read both before starting any phase.
 
+**The look changed on 2026-10-22.** The app was restyled into Organic — the design system of
+the `Tithi Prototype.dc.html` mockup — with the user's explicit approval for the palette and
+the fonts, which this file had until then fixed. Ink-and-marigold on grey became cream and
+terracotta; Cabinet Grotesk and Satoshi became Caprasimo and Figtree. The fund page was
+relaid out at the same time around a single answer card, and the product is wordmarked
+"Tithi" in the header. What did not change: the engine, the thresholds, the one-screen
+dashboard rule, the performance budgets, and every rule under "Non-negotiable" below.
+
 Two halves that never mix:
 
 - `/pipeline` — Node 22 + TypeScript, runs nightly, does all analysis, writes
@@ -64,36 +72,51 @@ Two halves that never mix:
   recording. `meanPct`, `topQ` and `w` are still published and still discussed in "How confident
   is this?", but nothing may put them back into the selection without changing the headline too.
 - The shading is a comparison to today, not a ranking of the month. Today's date in Asia/Kolkata,
-  clamped to the 28th, is the baseline and paints neutral; dates above it are green and below it
-  red. Each direction scales to its own extreme, so the deepest red is the month's worst date
-  even when the reds span a hundredth of a point and the greens span a third of one.
+  clamped to the 28th, is the baseline and paints neutral; dates above it are sage and below it
+  terracotta. Each direction scales to its own extreme, so the deepest terracotta is the month's
+  worst date even when they span a hundredth of a point and the sages span a third of one.
 - There is no salary window, no buffer and no `?salary=`/`?buffer=`. Old links still resolve —
   the query string is ignored rather than redirected — and nothing in the URL changes the answer.
 - **The calendar is clock-dependent, so it renders after mount, never in the prerendered
   HTML**, with its height reserved so nothing shifts. Dates 29–31 appear inert and carry no
-  data: SIP dates are 1–28, which is the whole reason the engine stops there.
+  data: SIP dates are 1–28, which is the whole reason the engine stops there. It shows this
+  month and no other. The three-months-ahead arrows were dropped on 2026-10-22 at the user's
+  request: every figure in a cell is a full-history XIRR, identical in every month, so paging
+  only re-dealt the same 28 numbers into different weekday columns.
 - Rounding is a claim. `formatPp`'s floor exists so a real difference is never printed as
   "0.00", and a ticker must not sit on a zero inside a sentence — "ended ₹0 apart" was on
   screen for half a second before anyone noticed.
 - **On large desktops (2xl, ≥1536px) the fund page is a one-screen dashboard.** Four columns
-  (name and calendar; answer and curve; confidence and matters across the last two), every
-  section held open, and the root font size scaled by `min(100vw / 120, 100vh / 60)` so the
-  columns fill the screen rather than sitting in a corner. `e2e/wide.spec.ts` measures
-  `scrollHeight ≤ innerHeight` at 1920×960, 2560×1320 and 3840×2080 on the longest-copy funds;
-  all 999 were swept at 1920×960 when it shipped. It is still one fund per page. It uses the
-  same DOM at every width (`contents` wrappers plus `order-*`), so the prerendered page never
-  jumps, and anything sized in pixels must scale with `useRootScale()`. A new section or longer
-  copy has to be re-measured there.
+  (name over the answer card; the calendar; the curve and confidence cards stacked; what
+  matters), every section held open, and the root font size scaled by
+  `min(100vw / 120, 100vh / 60)` so the columns fill the screen rather than sitting in a
+  corner. `e2e/wide.spec.ts` measures `scrollHeight ≤ innerHeight` at 1920×960, 2560×1320 and
+  3840×2080 on the longest-copy funds; all 999 were swept at 1920×960 when it shipped. It is
+  still one fund per page. It uses the same DOM at every width — named grid areas in
+  `.fund-grid` rather than the old `contents` wrappers plus `order-*` — so the prerendered page
+  never jumps, and anything sized in pixels must scale with `useRootScale()`. A new section or
+  longer copy has to be re-measured there.
+- **The dashboard fits by folding the prose, not the charts.** Each disclosure card shows its
+  chart with every section held open, and its paragraphs sit behind a second, inner toggle that
+  exists only at 2xl (`Prose` in `disclosures.tsx`). Five paragraphs of confidence copy under
+  the gauges is what put 1920×960 past one screen. Below 2xl the card is already a disclosure,
+  so the prose is simply there — a second toggle inside the first would make a reader open two
+  things to read one.
 - **The prerendered stylesheet is inlined, never linked.** `scripts/prerender.ts` reads the
   built CSS and writes it into every page's `<head>` as a `<style>` tag. A linked stylesheet
   measured as 99% of LCP under real throttling — a render-blocking file, however small, costs a
   full round trip before anything paints. Don't reintroduce `<link rel="stylesheet">` for the
   main bundle without re-measuring (PLAN.md D13).
-- **Cabinet Grotesk and Satoshi are `font-display: optional`, not `swap`.** Confirmed both still
+- **Caprasimo and Figtree are `font-display: optional`, not `swap`.** Confirmed both still
   report `status: "loaded"` after a normal cold navigation, so the branded fonts still render in
   practice; `optional` only degrades toward the fallback on a connection too slow for the pixel
   timing to matter anyway. This is what gets CLS to exactly 0 — `swap` left a measurable, if
   tiny, shift from the metric-matched fallback not being a pixel-perfect match (PLAN.md D13).
+  They are self-hosted from `/fonts/v2/`, two subsets each, for the same reason the Fontshare
+  pair was: a Google Fonts `@import` is a render-blocking request to a third origin. ₹ (U+20B9)
+  is in each family's latin-ext slice, so both slices load and nothing borrows a rupee glyph
+  from the other family any more. The fallback overrides were measured against Arial in a real
+  browser, not taken from a table; an e2e test asserts all three faces resolve.
 - Lighthouse CI runs with `throttlingMethod: "devtools"`, not the default `simulate`. Lantern's
   simulation attributed most of this page's LCP to script-parsing time it estimated from bundle
   size, without knowing the content is prerendered and paints before the deferred module script
@@ -132,10 +155,15 @@ them on 2026-09-15, so `PLAN.md` is the source of truth.
     exists. The build must write that file into `dist/`, because the pipeline replaces
     `public/data`.
   - Overlapping `_headers` rules comma-join their `Cache-Control` values.
-- Fontshare's licence (ITF FFL 2.0):
+- Fontshare's licence (ITF FFL 2.0) — applied to Cabinet Grotesk and Satoshi, which the
+  2026-10-22 restyle replaced. Kept because it is the reason the fetch-at-build mechanism
+  exists, and it applies again the moment a Fontshare face comes back:
   - forbids subsetting or converting the fonts without ITF's written consent
   - forbids redistributing them through a public repository, and this repo is public
   - Cabinet Grotesk has no tabular figures; Satoshi has no ₹ glyph
+  - Caprasimo and Figtree are SIL OFL 1.1, which permits all of the above; they are still
+    fetched at build and gitignored, because one mechanism for fonts beats two. Caprasimo has
+    one weight only — never pair it with `font-bold`, which only synthesises a smear.
 - mfapi returns HTTP 200 with empty data for unknown scheme codes.
 
 ## Stack is fixed
@@ -180,5 +208,5 @@ is different. Don't reintroduce an animation library without re-measuring the to
 ## Copy rules
 
 Sentence case. No ALL-CAPS eyebrows, no single-word colour accents in headlines, no `→` in
-buttons, no middle-dot meta strings, body lines under 80 characters. Fonts are Cabinet
-Grotesk (numerals, headline) and Satoshi (UI) — never Inter or Geist.
+buttons, no middle-dot meta strings, body lines under 80 characters. Fonts are Caprasimo
+(numerals, headings) and Figtree (UI) — never Inter or Geist.

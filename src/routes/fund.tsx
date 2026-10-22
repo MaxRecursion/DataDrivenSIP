@@ -35,6 +35,7 @@ import { pickAnswer } from "../lib/answer";
 import { compareDayCopy, namedDayShiftCopy, paperworkCopy, stickyCopy } from "../lib/compare";
 import { disclosureCopy } from "../lib/disclosure";
 import { heatSpanPp } from "../lib/heat";
+import { reasonTiles } from "../lib/reasons";
 import { readSipDay, rememberFund, takeNamedDayShift, writeSipDay } from "../lib/memory";
 import { useReveal } from "../lib/use-reveal";
 import { useWide } from "../lib/use-wide";
@@ -169,18 +170,18 @@ export function FundPage() {
     // The window comes from the URL, not the fund, so the grid is already correct and already
     // the right size: when the data lands, the figures and the ring appear (PLAN.md §6.6).
     return (
-      <section aria-busy="true">
+      <section aria-busy="true" className="flex max-w-[47.5rem] flex-col gap-5">
         {/*
          * Reserved rather than absent. The ready state puts the fund's name, house and category
-         * above the grid, so leaving the space out drops the grid and everything beneath it by
-         * about 110px the instant the JSON arrives — which is the one path that reaches this
-         * branch, a fund chosen from search rather than a seeded deep link (D13: CLS 0).
+         * above the answer, so leaving the space out drops everything beneath it the instant the
+         * JSON arrives — which is the one path that reaches this branch, a fund chosen from
+         * search rather than a seeded deep link (D13: CLS 0).
          */}
-        <div className="min-h-[7.1rem]" />
-        <HeroGrid answer={null} className="mt-6" />
+        <div className="h-[5.25rem] rounded-3xl bg-raised opacity-60" />
+        <div className="h-[23.75rem] rounded-[2.25rem] bg-raised opacity-60" />
         {/*
-         * The grid is aria-hidden and the answer block isn't mounted yet, so without this the
-         * page is silent for the whole fetch — aria-busy with nothing to describe.
+         * The skeleton is decoration, so without this the page is silent for the whole fetch —
+         * aria-busy with nothing to describe.
          */}
         <p className="sr-only">Loading this fund’s answer.</p>
       </section>
@@ -191,7 +192,7 @@ export function FundPage() {
   if (state.status === "not-covered") {
     return (
       <section className="max-w-[65ch]">
-        <h1 className="font-display text-2xl font-bold">This fund isn’t covered</h1>
+        <h1 className="font-display text-[1.875rem]">This fund isn’t covered</h1>
         <p className="mt-3 text-mute-text">
           The planner covers Direct plans with a growth option that have at least 37 months of
           published NAVs. Try searching for the fund by name.
@@ -203,7 +204,7 @@ export function FundPage() {
   if (state.status === "unavailable") {
     return (
       <section className="max-w-[65ch]">
-        <h1 className="font-display text-2xl font-bold">Couldn’t load this fund</h1>
+        <h1 className="font-display text-[1.875rem]">Couldn’t load this fund</h1>
         <p className="mt-3 text-mute-text">The data didn’t come back. Check your connection and try again.</p>
       </section>
     );
@@ -228,76 +229,99 @@ export function FundPage() {
   const compareText = compareRow ? compareDayCopy(answer.result, compareRow) : undefined;
   const paperwork = paperworkCopy(compareDay, answer.date, state.fund.verdict);
   const shiftText = shiftFrom === null ? null : namedDayShiftCopy(shiftFrom, answer.date);
+  const reasons = reasonTiles(state.fund, answer, copy);
 
   /*
-   * One DOM for every width. Below 2xl the column wrappers are `display: contents`, so their
-   * children become items of the flex column and `order-*` keeps the phone's reading order:
-   * name, calendar, answer, curve, confidence, matters. From 2xl the first two wrappers are
-   * real grid columns (name and calendar; answer and curve) and confidence and matters stay
-   * `contents`, so they occupy columns 3 and 4 instead of stacking in a span.
+   * One DOM for every width; `.fund-grid` in index.css holds both arrangements as named areas.
+   * The copy control moves between two homes rather than being rendered twice: in a reading
+   * column it closes the answer card, and on the wide dashboard, where that card is one narrow
+   * column, it joins the calendar's own card instead.
    */
   const sections = { fund: state.fund, answer, copy: disclosure, open: wide };
+  const copyControl = <CopyAnswer fund={state.fund} answer={answer} />;
   return (
-    <section className="flex flex-col pb-16 2xl:grid 2xl:grid-cols-4 2xl:items-start 2xl:gap-x-10 2xl:pb-0">
-      <div className="contents 2xl:block">
-        <div className="order-1 2xl:order-none">
-          <h1 className="font-display text-2xl leading-snug font-bold text-balance">{state.fund.name}</h1>
-          <p className="mt-1 text-mute-text">{state.fund.house}</p>
-          <p className="text-sm text-mute-text">{state.fund.category}</p>
-        </div>
-        <div className="order-2 2xl:order-none">
-          <HeroGrid
-            answer={answer.date}
-            values={values}
-            corpora={corpora}
-            spanPp={spanPp}
-            selected={compareDay}
-            onSelectDay={pickCompareDay}
-            reveal={reveal}
-            className="mt-6 2xl:mt-4"
-          />
-          <GlanceStrip fund={state.fund} />
-        </div>
+    <section className="fund-grid pb-16 2xl:pb-0">
+      <div className="[grid-area:name]">
+        <h1 className="font-display text-2xl leading-[1.15] text-balance 2xl:text-[1.375rem]">
+          {state.fund.name}
+        </h1>
+        <p className="mt-1.5 text-[0.9375rem] text-mute-text">{state.fund.house}</p>
+        <p className="text-[0.8125rem] text-mute-text">{state.fund.category}</p>
       </div>
 
-      <div className="contents 2xl:block">
-        <div className="order-3 2xl:order-none [&>section]:2xl:mt-0">
-          <AnswerBlock
-            copy={copy}
-            answerDate={answer.date}
-            verdict={state.fund.verdict}
-            compareText={compareText}
-            reveal={reveal}
-          />
-          {shiftText ? (
-            <p data-named-shift className="mt-3 text-sm leading-relaxed text-mute-text 2xl:hidden">
-              {shiftText}
+      <div className="[grid-area:hero]">
+        <AnswerBlock
+          copy={copy}
+          answerDate={answer.date}
+          verdict={state.fund.verdict}
+          reasons={reasons}
+          reveal={reveal}
+          copyControl={wide ? undefined : copyControl}
+        />
+        {shiftText ? (
+          <p data-named-shift className="mt-3 text-sm leading-relaxed text-mute-text 2xl:hidden">
+            {shiftText}
+          </p>
+        ) : null}
+      </div>
+
+      <div className="[grid-area:cal]">
+        <HeroGrid
+          answer={answer.date}
+          values={values}
+          corpora={corpora}
+          spanPp={spanPp}
+          selected={compareDay}
+          onSelectDay={pickCompareDay}
+          reveal={reveal}
+        />
+        <GlanceStrip fund={state.fund} />
+
+        {/* The reader's own date, and everything that follows from it, in one card. */}
+        <div className="mt-4 flex max-w-[32.5rem] flex-col gap-2.5 rounded-[1.75rem] bg-raised px-[1.125rem] py-4 2xl:max-w-none">
+          <SipDaySelect value={compareDay} onChange={pickCompareDay} />
+          <TodayLine named={answer.result} dates={state.fund.dates} />
+          {wide ? copyControl : null}
+          {compareText ? (
+            <p data-compare-copy className="text-[0.9375rem] leading-[1.5]">
+              {compareText}
             </p>
           ) : null}
           {paperwork ? (
-            <p data-paperwork className="mt-3 text-sm leading-relaxed text-mute-text 2xl:hidden">
+            <p data-paperwork className="text-[0.8125rem] leading-[1.5] text-mute-text">
               {paperwork}
             </p>
           ) : null}
-          <div className="2xl:mt-2 2xl:flex 2xl:flex-wrap 2xl:items-baseline 2xl:gap-x-6">
-            <TodayLine named={answer.result} dates={state.fund.dates} />
-            <SipDaySelect value={compareDay} onChange={pickCompareDay} />
-            <CopyAnswer fund={state.fund} answer={answer} />
-          </div>
-        </div>
-        <div className="order-4 mt-10 2xl:order-none 2xl:mt-2">
-          <CurveSection {...sections} />
         </div>
       </div>
 
-      <div className="contents">
-        <div className="order-5 2xl:order-none">
-          <ConfidenceSection {...sections} />
-        </div>
-        <div className="order-6 2xl:order-none">
-          <MattersSection {...sections} />
-        </div>
+      {/* One column on the dashboard, two stacked rows everywhere else — see .fund-grid. */}
+      <div className="flex flex-col gap-5 [grid-area:aside] md:gap-7 2xl:gap-4">
+        <CurveSection {...sections} />
+        <ConfidenceSection {...sections} />
       </div>
+
+      <div className="flex flex-col gap-4 [grid-area:matters] 2xl:gap-4">
+        <MattersSection {...sections} />
+        {/*
+         * On the wide dashboard the caveats leave the answer card — which is one narrow column
+         * there — for a card of their own at the foot of the last column. Below 2xl they stay
+         * in the answer card, where they belong to the sentence above them.
+         */}
+        {state.fund.confidence !== "full" && copy.caveats.length > 0 ? (
+          <div className="hidden rounded-[2rem] border-[1.5px] border-dashed border-line p-5 2xl:block">
+            <h3 className="font-display text-[1.125rem]">What to keep in mind</h3>
+            <div className="mt-2.5 flex flex-col gap-2.5">
+              {copy.caveats.map((caveat) => (
+                <p key={caveat} className="text-[0.8125rem] leading-[1.5] text-mute-text">
+                  {caveat}
+                </p>
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </div>
+
       <StickyAnswer text={stickyCopy(state.fund, answer)} />
     </section>
   );

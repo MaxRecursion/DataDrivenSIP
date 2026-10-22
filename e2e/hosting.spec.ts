@@ -33,7 +33,7 @@ test("fonts and hashed assets are cached immutably, index.html is not", async ({
   const asset = await request.get(script ?? "");
   expect(asset.headers()["cache-control"]).toBe("public, max-age=31536000, immutable");
 
-  const font = await request.get("/fonts/v1/cabinet-grotesk-700.woff2");
+  const font = await request.get("/fonts/v2/caprasimo-400-latin.woff2");
   expect(font.status()).toBe(200);
   expect(font.headers()["content-type"]).toContain("font/woff2");
   expect(font.headers()["cache-control"]).toBe("public, max-age=31536000, immutable");

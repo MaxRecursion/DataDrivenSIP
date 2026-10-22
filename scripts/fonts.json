@@ -1,17 +1,29 @@
 {
-  "directory": "public/fonts/v1",
+  "directory": "public/fonts/v2",
   "fonts": [
     {
-      "file": "cabinet-grotesk-700.woff2",
-      "url": "https://cdn.fontshare.com/wf/XMXWOHABYLQDJ42L65EFRYNVRY37HQCB/B2O4O6V3JMFM2WDCYQI3A47L5U4THDUL/WN5274VQ3AUBDFP74GB4EC4XYJ3EKVNE.woff2",
-      "sha256": "52208453fddad17efb2ec2d98729e18556d6c5b64ad22171f8e8b071802314d3",
-      "bytes": 20300
+      "file": "caprasimo-400-latin.woff2",
+      "url": "https://fonts.gstatic.com/s/caprasimo/v6/esDT31JQOPuXIUGBp72Ukp8DOJKuGA.woff2",
+      "sha256": "8be0594f223844d398b066640ab4303555978a8a72c6558ff769251007bd431a",
+      "bytes": 20772
     },
     {
-      "file": "satoshi-variable.woff2",
-      "url": "https://cdn.fontshare.com/wf/NWBQYJIM7GCZ5XWD7D26ARB3VDY55ZRT/K63EV2KZIGKLE7RANQ2U42S6SVHU5RJ7/X6XYTKIVDUW7GZTZPZNN4EUM5KH54KHF.woff2",
-      "sha256": "e739aff9b4d02c264341d6d4872edcda28e79373aeda936f659566a1cd3eb47f",
-      "bytes": 42588
+      "file": "caprasimo-400-latin-ext.woff2",
+      "url": "https://fonts.gstatic.com/s/caprasimo/v6/esDT31JQOPuXIUGBp72UnJ8DOJKuGPLB.woff2",
+      "sha256": "8cbef7cdad7bfe1fd7dc1958f3eca65b6e4e58c34b2f5a366d3e659d6d3efad1",
+      "bytes": 2356
+    },
+    {
+      "file": "figtree-variable-latin.woff2",
+      "url": "https://fonts.gstatic.com/s/figtree/v9/_Xms-HUzqDCFdgfMm4S9DaRvzig.woff2",
+      "sha256": "8330490a01c60c196eae00b823de8102275aaa5862e7b76a7af21b8745338928",
+      "bytes": 20184
+    },
+    {
+      "file": "figtree-variable-latin-ext.woff2",
+      "url": "https://fonts.gstatic.com/s/figtree/v9/_Xms-HUzqDCFdgfMm4q9DaRvziissg.woff2",
+      "sha256": "f153aa07c1b16fbb12391c2512860c97819a0a9fd014f338b2b3f12496479d13",
+      "bytes": 10228
     }
   ]
 }

@@ -23,7 +23,7 @@ import { useRootScale, useWide } from "../lib/use-wide";
 /** Reserved so opening the section doesn't shift what is under it (D13: CLS 0). */
 /** At 16px root; scaled with it on a large screen (useRootScale). */
 const BASE_HEIGHT = 208;
-const WIDE_HEIGHT = 140;
+const WIDE_HEIGHT = 106;
 
 type SpreadChartProps = {
   fund: FundArtifact;
@@ -36,7 +36,7 @@ function palette(): { neutral: string; answer: string; axis: string } {
   const read = (name: string, fallback: string) => style.getPropertyValue(name).trim() || fallback;
   return {
     neutral: read("--line", "#d6dbe4"),
-    answer: read("--marigold", "#f2a71b"),
+    answer: read("--named", "#f2a71b"),
     axis: read("--mute-text", "#626b80"),
   };
 }
@@ -45,7 +45,7 @@ export default function SpreadChart({ fund, answer }: SpreadChartProps) {
   const scale = useRootScale();
   const wide = useWide();
   const HEIGHT = Math.round((wide ? WIDE_HEIGHT : BASE_HEIGHT) * scale);
-  const axisFont = `${Math.round(11 * scale)}px Satoshi, system-ui, sans-serif`;
+  const axisFont = `${Math.round(11 * scale)}px Figtree, system-ui, sans-serif`;
   const host = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -161,7 +161,7 @@ export default function SpreadChart({ fund, answer }: SpreadChartProps) {
       {/* Colour is never the only cue (§6.5): the groups are named here in text as well. */}
       <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-mute-text">
         <span className="flex items-center gap-1.5">
-          <span className="size-3 shrink-0 rounded-sm bg-marigold" />
+          <span className="size-3 shrink-0 rounded-sm bg-named" />
           Best SIP day, the {ordinal(answer)}
         </span>
         <span className="flex items-center gap-1.5">

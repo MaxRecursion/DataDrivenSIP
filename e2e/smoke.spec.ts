@@ -25,15 +25,21 @@ test("home renders the question and the compliance footer without errors", async
 
 test("self-hosted fonts load", async ({ page }) => {
   await page.goto("/");
+  // Both are font-display: optional, so a slow connection would quietly keep the metric-matched
+  // fallback. These assert the real files resolve on a normal load — the reason that choice is
+  // safe (CLAUDE.md). The rupee is checked too: ₹ lives in each family's latin-ext slice, and
+  // loading only the Latin one is exactly how it would silently fall back to a system face.
   const loaded = await page.evaluate(async () => {
-    const [cabinet, satoshi] = await Promise.all([
-      document.fonts.load('700 32px "Cabinet Grotesk"'),
-      document.fonts.load('400 16px "Satoshi"'),
+    const [caprasimo, figtree, rupee] = await Promise.all([
+      document.fonts.load('400 32px "Caprasimo"'),
+      document.fonts.load('400 16px "Figtree"'),
+      document.fonts.load('400 16px "Figtree"', "\u20b9"),
     ]);
-    return { cabinet: cabinet.length, satoshi: satoshi.length };
+    return { caprasimo: caprasimo.length, figtree: figtree.length, rupee: rupee.length };
   });
-  expect(loaded.cabinet).toBeGreaterThan(0);
-  expect(loaded.satoshi).toBeGreaterThan(0);
+  expect(loaded.caprasimo).toBeGreaterThan(0);
+  expect(loaded.figtree).toBeGreaterThan(0);
+  expect(loaded.rupee).toBeGreaterThan(0);
 });
 
 test("an app route falls back to the SPA shell", async ({ page }) => {

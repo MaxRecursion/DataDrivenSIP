@@ -38,9 +38,9 @@ function loadApex(): Promise<ApexClass> {
 
 /** The brand tokens, read from the stylesheet rather than repeating the hex here. */
 export type Palette = {
-  teal: string;
-  marigold: string;
-  loss: string;
+  up: string;
+  named: string;
+  down: string;
   line: string;
   mute: string;
   ink: string;
@@ -51,13 +51,13 @@ function palette(): Palette {
   const style = getComputedStyle(document.documentElement);
   const read = (name: string, fallback: string) => style.getPropertyValue(name).trim() || fallback;
   return {
-    teal: read("--teal", "#0e7c7b"),
-    marigold: read("--marigold", "#f2a71b"),
-    loss: read("--loss", "#d93025"),
-    line: read("--line", "#d6dbe4"),
-    mute: read("--mute-text", "#626b80"),
-    ink: read("--ink", "#17203a"),
-    raised: read("--raised", "#ffffff"),
+    up: read("--up", "#7a8a5e"),
+    named: read("--named", "#201e1d"),
+    down: read("--down", "#c67139"),
+    line: read("--line", "rgb(32 30 29 / 0.16)"),
+    mute: read("--mute-text", "#645c50"),
+    ink: read("--ink", "#201e1d"),
+    raised: read("--raised", "#ebddc5"),
   };
 }
 
@@ -68,7 +68,7 @@ function withBase(options: ApexOptions, height: number): ApexOptions {
     chart: {
       ...options.chart,
       height,
-      fontFamily: "Satoshi, system-ui, sans-serif",
+      fontFamily: "Figtree, system-ui, sans-serif",
       animations: { enabled: false },
       toolbar: { show: false },
       zoom: { enabled: false },

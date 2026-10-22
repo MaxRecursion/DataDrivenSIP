@@ -19,7 +19,7 @@ import { ApexChart, type Palette } from "./apex";
 
 /** Shorter on the wide dashboard, where the half-circle's empty lower half is height it can't spare. */
 const HEIGHT = 170;
-const WIDE_HEIGHT = 140;
+const WIDE_HEIGHT = 124;
 const THRESHOLD = 0.6;
 const CHANCE = 25;
 
@@ -35,7 +35,7 @@ function gauge(
     chart: { type: "radialBar" },
     series,
     labels,
-    colors: [palette.teal, palette.line],
+    colors: [palette.up, palette.line],
     plotOptions: {
       radialBar: {
         startAngle: -90,
@@ -53,7 +53,7 @@ function gauge(
             show: true,
             offsetY: -20 * scale,
             fontSize: "1.375rem",
-            fontFamily: "Cabinet Grotesk, system-ui, sans-serif",
+            fontFamily: "Caprasimo, ui-serif, Georgia, serif",
             fontWeight: 700,
             color: palette.ink,
           },

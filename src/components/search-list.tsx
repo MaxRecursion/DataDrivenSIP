@@ -91,9 +91,9 @@ export default function SearchList({
                     data-trend-change={notes.get(row[0])?.includes("%") ? "" : undefined}
                     className={`tabular shrink-0 font-medium ${
                       notes.get(row[0])?.startsWith("−")
-                        ? "text-loss"
+                        ? "text-down-ink"
                         : notes.get(row[0])?.includes("%")
-                          ? "text-teal"
+                          ? "text-up-ink"
                           : "text-mute-text"
                     }`}
                   >

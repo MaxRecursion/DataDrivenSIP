@@ -15,11 +15,13 @@
  * layout reads that, and the page publishes its date only for funds the cache doesn't hold.
  */
 import { createContext, useContext, useState } from "react";
-import { Outlet, useLocation } from "react-router";
+import { Link, Outlet, useLocation } from "react-router";
+import { Wordmark } from "../components/brand";
 import { Footer } from "../components/footer";
 import { FundSearch } from "../components/fund-search";
 import { peekFund } from "../lib/data";
 import { navAsOfFromDocument } from "../lib/head";
+import { cn } from "../lib/utils";
 
 /** A fund's own last NAV date, carried with the code it belongs to. */
 export type FundNavDate = { code: number; navTo: string };
@@ -57,15 +59,32 @@ export function Layout() {
     // Below 2xl a reading column; from 2xl (large desktops) the whole width, so the fund page's
     // four columns fit the screen without a scroll (routes/fund.tsx).
     <div className="mx-auto flex min-h-dvh max-w-3xl flex-col px-5 2xl:max-w-none 2xl:px-10">
-      <header className="pt-10 2xl:pt-3">
+      <header className="pt-[1.125rem] md:pt-9 2xl:pt-3.5">
         {onHome ? (
-          <h1 className="font-display text-4xl leading-tight font-bold text-balance">
-            Which date should I run my SIP on?
-          </h1>
+          <>
+            <Link to="/" aria-label="Tithi, home" className="flex w-max items-center text-ink">
+              <Wordmark size={52} type="2.875rem" />
+            </Link>
+            {/* 15ch so the question breaks into three short lines rather than one long one. */}
+            <h1 className="mt-7 max-w-[15ch] font-display text-[2.125rem] leading-[1.06] text-balance md:text-5xl 2xl:text-[3.5rem]">
+              Which date should I run my SIP on?
+            </h1>
+          </>
         ) : null}
-        {/* A search box stretched across a 4K screen is a very long empty bar. */}
-        <div className={`${onHome ? "mt-6" : "pt-2"} 2xl:max-w-xl`}>
-          <FundSearch autoFocus={onHome} />
+        {/*
+         * On a fund page the mark sits beside the field rather than above it, so the whole
+         * shell costs one row. A search box stretched across a 4K screen is a very long empty
+         * bar, hence the cap on the field alone.
+         */}
+        <div className={cn("flex flex-wrap items-center gap-x-4 gap-y-3", onHome ? "mt-7" : "pt-2")}>
+          {onHome ? null : (
+            <Link to="/" aria-label="Tithi, home" className="flex flex-none items-center text-ink">
+              <Wordmark />
+            </Link>
+          )}
+          <div className="min-w-56 flex-1 2xl:max-w-[38.75rem]">
+            <FundSearch autoFocus={onHome} />
+          </div>
         </div>
       </header>
 

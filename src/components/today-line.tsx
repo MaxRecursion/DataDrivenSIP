@@ -10,6 +10,6 @@ export function TodayLine({ named, dates }: { named: DateResult; dates: readonly
   if (!ready || day === null) return null;
   const todayRow = dates.find((row) => row.d === day);
   return (
-    <p className="mt-3 text-sm leading-relaxed text-mute-text 2xl:mt-0">{todayCopy(day, named, todayRow)}</p>
+    <p className="text-sm leading-[1.5] text-mute-text">{todayCopy(day, named, todayRow)}</p>
   );
 }

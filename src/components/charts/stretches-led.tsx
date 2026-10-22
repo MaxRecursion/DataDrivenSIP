@@ -15,7 +15,7 @@ import { useWide } from "../../lib/use-wide";
 import { ApexChart, type Palette } from "./apex";
 
 const HEIGHT = 190;
-const WIDE_HEIGHT = 150;
+const WIDE_HEIGHT = 112;
 /** Labels only where a reader can find their place, as the full-curve chart does. */
 const LABELLED = new Set([1, 7, 14, 21, 28]);
 
@@ -29,7 +29,7 @@ export default function StretchesLed({ fund, answer }: Props) {
   const build = (palette: Palette): ApexOptions => ({
     chart: { type: "bar" },
     series: [{ name: "Stretches led", data: series.led }],
-    colors: series.led.map((_, index) => (index === series.highlight ? palette.marigold : palette.line)),
+    colors: series.led.map((_, index) => (index === series.highlight ? palette.named : palette.line)),
     plotOptions: { bar: { distributed: true, columnWidth: "72%", borderRadius: 2 } },
     dataLabels: { enabled: false },
     xaxis: {

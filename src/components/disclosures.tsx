@@ -61,18 +61,28 @@ function Chevron() {
   );
 }
 
+/**
+ * One card per section.
+ *
+ * The prototype draws these with their charts always on screen and only the prose behind a
+ * toggle. That is not available here: ApexCharts is ~175 KB gzipped and is only affordable
+ * because Radix renders a closed section as nothing at all, so a reader who never opens one
+ * never downloads it (CLAUDE.md; an e2e test asserts no Apex request before a section opens).
+ * So the card keeps its collapsible — and on the wide dashboard, where `open` holds every
+ * section open, it looks exactly as drawn anyway.
+ */
 function Section({ id, title, preview, open, children }: SectionProps) {
   const held = open === true;
   return (
     <Collapsible.Root
       data-disclosure={id}
-      className="border-t border-line"
+      className="rounded-[2rem] bg-raised px-5 py-4 md:px-7 md:py-6 2xl:px-5 2xl:py-3"
       {...(held ? { open: true, onOpenChange: () => {} } : {})}
     >
       {/* §8.1's response-to-action motion: transform only, and instant under reduced motion. */}
       <Collapsible.Trigger
         disabled={held}
-        className="group flex w-full items-center gap-3 py-4 text-left font-display text-base font-bold text-ink outline-none transition-transform duration-100 active:scale-[0.99] disabled:cursor-default disabled:active:scale-100 motion-reduce:transition-none focus-visible:ring-2 focus-visible:ring-teal 2xl:py-3"
+        className="group flex w-full items-center gap-3 py-1 text-left font-display text-xl text-ink outline-none transition-transform duration-100 active:scale-[0.99] disabled:cursor-default disabled:active:scale-100 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
       >
         <span className="flex flex-1 items-center gap-2.5">
           {title}
@@ -86,7 +96,7 @@ function Section({ id, title, preview, open, children }: SectionProps) {
          * `content-visibility` set would otherwise be clipped by the containment box.
          */}
         <div
-          className="max-w-[65ch] px-0.5 pb-6 2xl:max-w-none 2xl:pb-4"
+          className="max-w-[65ch] px-0.5 pt-3 2xl:max-w-none 2xl:pt-2"
           style={
             held
               ? undefined
@@ -102,10 +112,46 @@ function Section({ id, title, preview, open, children }: SectionProps) {
 
 const paragraphs = (lines: string[]) =>
   lines.map((line) => (
-    <p key={line} className="mt-3 text-sm leading-relaxed text-mute-text first:mt-0 2xl:mt-2 2xl:leading-normal">
+    <p
+      key={line}
+      className="mt-3 text-sm leading-relaxed text-mute-text first:mt-0 2xl:mt-2 2xl:text-[0.8125rem] 2xl:leading-[1.45]"
+    >
       {line}
     </p>
   ));
+
+/**
+ * The prose at the foot of a card, behind a toggle of its own on the wide dashboard.
+ *
+ * Below 2xl the whole card is already a disclosure, so a second one inside it would make a
+ * reader open two things to read one: the prose is simply there. On the dashboard every card
+ * is held open to show its chart, and five paragraphs of confidence copy below that chart is
+ * what pushed the layout past one screen — so there, and only there, the prose folds away.
+ * This is how the prototype draws it too (`confOpen` starts false in the wide layout).
+ */
+function Prose({ inset, label, children }: { inset: boolean; label: string; children: ReactNode }) {
+  if (!inset) return <>{children}</>;
+  return (
+    <Collapsible.Root className="group/prose">
+      <Collapsible.Content>
+        <div className="pb-1">{children}</div>
+      </Collapsible.Content>
+      <Collapsible.Trigger className="mt-1 inline-flex min-h-9 items-center gap-1.5 rounded-full px-1.5 text-[0.8125rem] font-semibold text-down-ink outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+        <span className="group-data-[state=open]/prose:hidden">{label}</span>
+        <span className="hidden group-data-[state=open]/prose:inline">Show less</span>
+        <svg
+          viewBox="0 0 16 16"
+          width="13"
+          height="13"
+          aria-hidden="true"
+          className="shrink-0 group-data-[state=open]/prose:rotate-180"
+        >
+          <path d="M3 6l5 5 5-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+      </Collapsible.Trigger>
+    </Collapsible.Root>
+  );
+}
 
 type SectionPartProps = {
   fund: FundArtifact;
@@ -131,7 +177,7 @@ export function CurveSection({ fund, answer, copy, open }: SectionPartProps) {
       <Suspense fallback={<div className="h-[13rem] 2xl:h-[8.75rem]" />}>
         <SpreadChart fund={fund} answer={answer.date} />
       </Suspense>
-      <p className="mt-3 text-sm leading-relaxed text-mute-text 2xl:mt-2">{copy.chartCaption}</p>
+      <p className="mt-3 text-sm leading-relaxed text-mute-text 2xl:mt-2 2xl:text-[0.8125rem] 2xl:leading-[1.45]">{copy.chartCaption}</p>
     </Section>
   );
 }
@@ -155,7 +201,9 @@ export function ConfidenceSection({ fund, answer, copy, open }: SectionPartProps
           <StretchesLed fund={fund} answer={answer} />
         </Suspense>
       </div>
-      <div className="2xl:columns-2 2xl:gap-8 [&>p]:break-inside-avoid">{paragraphs(copy.confidence)}</div>
+      <Prose inset={open === true} label="What these mean">
+        <div className="2xl:columns-2 2xl:gap-6 [&>p]:break-inside-avoid">{paragraphs(copy.confidence)}</div>
+      </Prose>
     </Section>
   );
 }
@@ -167,14 +215,18 @@ export function MattersSection({ fund, answer, copy, open }: SectionPartProps) {
        * On a wide screen, two balanced columns: the bars with the sentence that prices them,
        * then the rest. Stacked, the same DOM reads in the same order as before.
        */}
-      <div className="2xl:grid 2xl:grid-cols-2 2xl:items-start 2xl:gap-8">
+      <div className="2xl:grid 2xl:grid-cols-1 2xl:items-start 2xl:gap-0">
         <div>
           <Suspense fallback={<div style={{ height: 150 }} />}>
             <MattersBars fund={fund} answer={answer} />
           </Suspense>
           {paragraphs(copy.matters.slice(0, 1))}
         </div>
-        <div className="mt-3 2xl:mt-0">{paragraphs(copy.matters.slice(1))}</div>
+        <div className="mt-3 2xl:mt-2">
+          <Prose inset={open === true} label="More on this">
+            {paragraphs(copy.matters.slice(1))}
+          </Prose>
+        </div>
       </div>
     </Section>
   );

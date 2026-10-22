@@ -41,7 +41,7 @@ export function CopyAnswer({
       type="button"
       onClick={() => void onCopy()}
       className={cn(
-        "inline-flex min-h-11 items-center justify-center gap-1.5 rounded-full border border-line",
+        "inline-flex min-h-11 items-center justify-center 2xl:min-h-9 gap-1.5 rounded-full border border-line",
         "bg-surface px-[1.125rem] font-display text-sm text-ink",
         "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marigold",
         className,

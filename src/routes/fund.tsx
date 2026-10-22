@@ -298,7 +298,7 @@ export function FundPage() {
         <GlanceStrip fund={state.fund} />
 
         {/* The reader's own date, and everything that follows from it, in one card. */}
-        <div className="mt-4 flex max-w-[32.5rem] flex-col gap-2.5 rounded-[1.75rem] bg-raised px-[1.125rem] py-4 2xl:max-w-none">
+        <div className="mt-4 flex max-w-[32.5rem] flex-col gap-2.5 rounded-[1.75rem] bg-raised px-[1.125rem] py-4 2xl:mt-2.5 2xl:max-w-none 2xl:gap-2 2xl:py-3">
           <SipDaySelect value={compareDay} onChange={pickCompareDay} />
           <TodayLine named={answer.result} dates={state.fund.dates} />
           {wide ? copyControl : null}

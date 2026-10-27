@@ -34,6 +34,9 @@ export const ROBOTS_NOINDEX = "noindex, follow";
 
 export const DEFAULT_ORIGIN = "https://tithi.maxrecursion.dev";
 
+/** Google Search Console ownership. The token belongs to the owner's Google account and is public by design. */
+export const GOOGLE_SITE_VERIFICATION = "3efd9CZKpEHsqFNbpOju7-S-ZUlIO60T7I3ueTkJb_M";
+
 /** Who made the site. Shown in the footer, so the structured data may name the author too. */
 export const AUTHOR = { name: "Akshay Kulkarni", url: "https://maxrecursion.dev" } as const;
 
@@ -238,6 +241,7 @@ export function headTags(tags: HeadTags): string {
     `<meta name="twitter:image" content="${attribute(image)}" />`,
     `<meta name="twitter:title" content="${attribute(tags.title)}" />`,
     `<meta name="twitter:description" content="${attribute(tags.description)}" />`,
+    `<meta name="google-site-verification" content="${GOOGLE_SITE_VERIFICATION}" />`,
   ];
 
   for (const block of tags.jsonLd ?? []) {

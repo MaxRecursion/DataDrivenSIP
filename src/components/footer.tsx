@@ -42,6 +42,12 @@ export function Footer({ navAsOf, source = "mfapi.in" }: FooterProps) {
           Buy me a coffee
         </Link>
       </p>
+      <p className="mt-2 2xl:mt-0">
+        Made by{" "}
+        <a href="https://maxrecursion.dev" className="underline decoration-line underline-offset-2">
+          Akshay Kulkarni
+        </a>
+      </p>
       <p className="mt-2 max-w-[65ch] 2xl:mt-0 2xl:max-w-none">
         Educational tool. Not investment advice. Past performance does not indicate future
         results. Data from AMFI published NAVs via {source}.

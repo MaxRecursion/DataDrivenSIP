@@ -18,7 +18,8 @@ me first and I'll adjust the job.
 The site is deployed by **Cloudflare Workers Builds** from this repo:
 
 - **Project:** `sip-date-planner`
-- **Production:** <https://sip-date-planner.kulkarniakshay1989.workers.dev>
+- **Production:** <https://tithi.maxrecursion.dev> (Vercel). The old Workers URL,
+  <https://sip-date-planner.kulkarniakshay1989.workers.dev>, still serves the same build; its pages name the Vercel URL as canonical.
 - **Previews:** `*-sip-date-planner.kulkarniakshay1989.workers.dev`, one per branch
 
 The plan originally called for Cloudflare Pages, because Pages returns a real 404 for a

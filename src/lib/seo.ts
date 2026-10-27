@@ -32,7 +32,10 @@ export const OG_IMAGE_ALT = "Tithi: which date of the month to run your mutual f
 export const ROBOTS_INDEX = "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1";
 export const ROBOTS_NOINDEX = "noindex, follow";
 
-export const DEFAULT_ORIGIN = "https://sip-date-planner.kulkarniakshay1989.workers.dev";
+export const DEFAULT_ORIGIN = "https://tithi.maxrecursion.dev";
+
+/** Who made the site. Shown in the footer, so the structured data may name the author too. */
+export const AUTHOR = { name: "Akshay Kulkarni", url: "https://maxrecursion.dev" } as const;
 
 /** The one sentence the site is about, for the home page and as a fallback. */
 export function siteDescription(count?: number): string {
@@ -269,6 +272,7 @@ export function websiteJsonLd(origin: string, count: number): string {
     url: `${origin}/`,
     description: siteDescription(count),
     inLanguage: "en-IN",
+    creator: { "@type": "Person", name: AUTHOR.name, url: AUTHOR.url },
   });
 }
 
@@ -423,6 +427,8 @@ export function llmsTxt(
       `not an error. It is not investment advice and does not rank funds.`,
     "",
     `Data covers ${fundCount} funds, with NAV history up to ${navAsOf} (source: mfapi.in, from AMFI).`,
+    "",
+    `Made by [${AUTHOR.name}](${AUTHOR.url}).`,
     "",
     "## Pages",
     "",

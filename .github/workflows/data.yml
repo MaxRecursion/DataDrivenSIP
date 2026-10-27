@@ -30,7 +30,7 @@ permissions:
   contents: write
 
 env:
-  PRODUCTION_URL: https://sip-date-planner.kulkarniakshay1989.workers.dev
+  PRODUCTION_URL: https://tithi.maxrecursion.dev
 
 jobs:
   refresh:

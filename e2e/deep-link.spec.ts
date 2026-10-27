@@ -44,7 +44,7 @@ test.describe("the HTML a crawler sees", () => {
     expect(title).toContain("Kotak Mid Cap Fund");
     expect(title).toMatch(/SIP on the \d+(st|nd|rd|th)/);
     expect(html).toContain(`<meta property="og:title" content="${title}" />`);
-    expect(html).toContain(`content="https://sip-date-planner.kulkarniakshay1989.workers.dev/f/${FUND.code}"`);
+    expect(html).toContain(`content="https://tithi.maxrecursion.dev/f/${FUND.code}"`);
     expect(html).toContain(`<script type="application/json" id="fund-data">`);
 
     // Data is fetched from a path carrying this version, so it must be stamped in.

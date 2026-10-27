@@ -77,8 +77,8 @@ Two halves that never mix:
   list: the five funds whose NAV rose most over the past month, computed nightly
   (`pipeline/analysis/momentum.ts`), written to `/data/trending.json`, and shown only when the
   empty field is clicked. It is labelled with what it measures ("biggest NAV gains over the
-  past month"), because nothing in this project counts visits, so "trending" can never honestly
-  mean popular. Everything else stays unranked: typed search matches are ordered by text
+  past month"), because "trending" can never honestly mean popular: visit analytics (below)
+  measure the site, and nothing they record ever reaches the data or the ranking. Everything else stays unranked: typed search matches are ordered by text
   relevance only, and the fund page never compares funds. Copy still never says "best fund",
   "top performing" or "recommended fund" — `scripts/check-rules.ts` still bans those, and
   "best" stays fine of a DAY.
@@ -107,7 +107,10 @@ Two halves that never mix:
 - SEO is not a promise about a head term. "Mutual fund", "investment" and "SIP" are won with
   links, brand and time; what these pages can win is the question they answer, which is why the
   titles name the fund and the date rather than repeating a generic phrase 1001 times. No Redux, Zustand,
-  React Query, analytics SDKs or auth.
+  React Query or auth. **Analytics were allowed on 2026-10-28, by the user:** Vercel Web Analytics and
+  GA4, both started from `src/lib/analytics.ts`, only on the production maxrecursion.dev domain, GA4
+  only with `VITE_GA_MEASUREMENT_ID` set, and with analytics storage denied by default in the EEA, the
+  UK and Switzerland. No other analytics SDK, and no custom events.
 - The compliance footer and visible `navAsOf` appear on every page.
 - **The grid and the answer are the same number now, and that is worth protecting.** Cells print
   each date's full-history XIRR and the named day is the greatest of them, so the picture and the

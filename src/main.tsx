@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot, hydrateRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router";
 import { App } from "@/app";
+import { startHostedAnalytics } from "@/lib/analytics";
 import { seedFund, seedIndex, setDataVersion } from "@/lib/data";
 import { initTheme } from "@/lib/use-theme";
 import type { FundArtifact, IndexRow } from "../shared/artifacts";
@@ -57,6 +58,8 @@ const sameView = builtFor === window.location.pathname && window.location.search
 
 if (sameView) hydrateRoot(root, tree);
 else createRoot(root).render(tree);
+
+startHostedAnalytics();
 
 /**
  * The inline head script hid the prerendered answer because this URL asks for a different one.

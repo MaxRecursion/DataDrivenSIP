@@ -90,9 +90,27 @@ describe("fetchJson", () => {
     expect(calls()).toBe(1);
   });
 
+  it("retries malformed success responses, then returns the complete JSON", async () => {
+    let calls = 0;
+    const fetcher = async () => {
+      calls++;
+      if (calls === 1) return new Response("<html>temporarily unavailable</html>", { status: 200 });
+      if (calls === 2) return new Response('{"data": [', { status: 200 });
+      return respond(200, { data: [1, 2] });
+    };
+    const result = await fetchJson("https://example.test", { fetcher, baseDelayMs: 0 });
+    expect(result).toEqual({ ok: true, value: { data: [1, 2] } });
+    expect(calls).toBe(3);
+  });
+
   it("treats unparseable JSON as a failure rather than throwing", async () => {
-    const fetcher = async () => new Response("<html>oops</html>", { status: 200 });
+    let calls = 0;
+    const fetcher = async () => {
+      calls++;
+      return new Response("<html>oops</html>", { status: 200 });
+    };
     const result = await fetchJson("https://example.test", { fetcher, baseDelayMs: 0 });
     expect(result).toEqual({ ok: false, reason: "bad-body" });
+    expect(calls).toBe(4);
   });
 });

@@ -14,7 +14,7 @@ export type FetchOptions = {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/** Retries 429, 5xx and network errors with exponential backoff; other statuses fail at once. */
+/** Retries 429, 5xx, network errors and malformed JSON with bounded exponential backoff. */
 export async function fetchJson<T>(url: string, options: FetchOptions = {}): Promise<FetchResult<T>> {
   const { retries = 3, baseDelayMs = 500, fetcher = fetch } = options;
   let lastReason: FetchFailure = "network";
@@ -27,7 +27,10 @@ export async function fetchJson<T>(url: string, options: FetchOptions = {}): Pro
         try {
           return { ok: true, value: (await response.json()) as T };
         } catch {
-          return { ok: false, reason: "bad-body" };
+          // mfapi sometimes returns an incomplete/non-JSON body with HTTP 200. Treat it
+          // like a transient transport failure so one bad response doesn't drop a fund.
+          lastReason = "bad-body";
+          continue;
         }
       }
       if (response.status === 404) return { ok: false, reason: "not-found" };

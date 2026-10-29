@@ -218,13 +218,11 @@ describe("copy for real published funds", () => {
     if (fund.cohortSpreadPp !== null) expect(copy.confidence[1]).toContain(formatPp(fund.cohortSpreadPp));
   });
 
-  it("tells a 40-month fund whether its dates repeated or reversed order between the halves (151713)", () => {
+  it("describes a young fund's current stability and confidence (151713)", () => {
     const fund = published(151713);
     const copy = realCopy(151713);
-    expect(fund.windows).toBeLessThan(24);
-
     if (fund.stability !== null && fund.stability < 0) expect(copy.confidence[0]).toContain("reversed");
-    expect(copy.confidence.at(-1)).toContain("reduced confidence");
+    expect(copy.confidence.some((line) => line.includes("reduced confidence"))).toBe(fund.confidence === "reduced");
   });
 
   it("offers no typical spread for a fund whose cohort band is empty, states one otherwise (103490)", () => {

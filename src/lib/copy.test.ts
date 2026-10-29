@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import meta from "../../public/data/meta.json";
 import type { DateResult, FundArtifact } from "../../shared/artifacts";
 import { pickAnswer, type Answer } from "./answer";
-import { answerCopy, MIN_EDGE_PP, SETTLED_INSTALMENTS, SPREAD_THRESHOLD_PP, STABILITY_THRESHOLD } from "./copy";
+import { answerCopy, MIN_EDGE_PP, MIN_WINDOWS, SETTLED_INSTALMENTS, SPREAD_THRESHOLD_PP, STABILITY_THRESHOLD } from "./copy";
 import { formatNavDate, formatPp, formatYearsOfMonths } from "./format";
 
 const dateAt = (d: number, over: Partial<DateResult> = {}): DateResult => ({
@@ -105,19 +105,6 @@ const published = (code: number): FundArtifact => {
 const realCopy = (code: number) => {
   const fund = published(code);
   return answerCopy(fund, pickAnswer(fund));
-};
-
-/**
- * A real fund's own dates and corpus, graded the way the case needs. The verdict is the pipeline's
- * arithmetic on spread and stability, and copy.ts only reads it. A real fund that clears a
- * threshold by 0.017 pp today is under it after a night's NAVs, which is how the 2026-10-02
- * nightly run failed on 142110: only one published fund was meaningful with agreeing metrics at a
- * settled length, so there was no safer fund to pin instead. The thresholds themselves stay under
- * "the mirrored thresholds" below, against each fund's own fields.
- */
-const graded = (code: number, grade: Partial<FundArtifact>) => {
-  const fund: FundArtifact = { ...published(code), ...grade };
-  return { fund, copy: answerCopy(fund, pickAnswer(fund)) };
 };
 
 // ---------------------------------------------------------------------------------------------
@@ -375,8 +362,8 @@ const nth = (d: number) => {
 
 describe("copy for real published funds", () => {
   /**
-   * One case per shape the D7-style headline table can produce, matched to a real fund known
-   * to sit in that branch as of Phase 0 research. Each assertion is a relationship the artifact
+   * Branch coverage uses the fixed inputs above. Published funds can change branch as NAVs
+   * arrive or their histories grow. Each assertion here is a relationship the artifact
    * itself proves (the named date really is the highest, the rupee gap really is the two rows'
    * difference, the caveat really names this fund's own month count) rather than a string
    * copied from a snapshot — so a real nightly NAV refresh, which moves these funds' numbers by
@@ -401,21 +388,21 @@ describe("copy for real published funds", () => {
     expect(copy.rupeeLine).toContain(gap.toLocaleString("en-IN"));
   });
 
-  it("tells a 40-month fund's reader the history is too short, not that a date won (151713)", () => {
+  it("describes the current history of a young fund without assuming it stays short (151713)", () => {
     const fund = published(151713);
     const copy = realCopy(151713);
     const best = highestXirrDate(fund);
 
-    // Criterion 5: this is the shortest fund the planner covers, and always reads on its month
-    // count rather than naming a date effect, whatever the current spread happens to be.
-    expect(fund.windows).toBeLessThan(24);
     expect(copy.headline).toContain(`The ${nth(best)} had the highest full-history XIRR`);
-    expect(copy.headline).toContain(`${fund.instalments} months of history is too little`);
-
-    // D21: the caveat exists to defuse the spread, not to report the month count a second time
-    // now that the headline already gave it — so the duplicated phrasing must not come back.
-    expect(copy.caveats.join(" ")).not.toContain(`${fund.instalments} months of history, fewer than eight years`);
-    if (!fund.metricsAgree) {
+    expect(copy.headline.includes("months of history is too little")).toBe(
+      fund.windows < MIN_WINDOWS && fund.trimmedFrom === undefined,
+    );
+    if (fund.windows < MIN_WINDOWS && fund.trimmedFrom === undefined) {
+      expect(copy.headline).toContain(`${fund.instalments} months of history is too little`);
+      // D21: don't repeat the month count after the headline has already given it.
+      expect(copy.caveats.join(" ")).not.toContain(`${fund.instalments} months of history, fewer than eight years`);
+    }
+    if (!fund.metricsAgree && fund.verdict !== "noise") {
       expect(copy.caveats[0]).toContain("points to noise");
     }
   });
@@ -432,25 +419,22 @@ describe("copy for real published funds", () => {
     expect(copy.rupeeLine).toContain(formatYearsOfMonths(fund.instalments));
   });
 
-  it("states the edge for a meaningful fund with metrics that agree (142110's history)", () => {
-    const { fund, copy } = graded(142110, { verdict: "meaningful", metricsAgree: true });
-    expect(fund.instalments).toBeGreaterThanOrEqual(SETTLED_INSTALMENTS);
+  it.each([142110, 145137])("matches the current verdict and history length of fund %s", (code) => {
+    const fund = published(code);
+    const copy = realCopy(code);
     const answer = pickAnswer(fund);
-    expect(answer.edgePp).toBeGreaterThan(MIN_EDGE_PP);
 
     expect(copy.headline).toContain(`The ${nth(highestXirrDate(fund))} had the highest full-history XIRR`);
-    expect(copy.headline).toContain(`${formatPp(answer.edgePp)} above the middle of the month`);
-    // Nothing to hedge: a settled history and metrics that agree leave no caveat at all.
-    expect(copy.caveats).toEqual([]);
-  });
+    const meaningful = fund.windows >= MIN_WINDOWS && fund.verdict === "meaningful" && answer.edgePp > MIN_EDGE_PP;
+    expect(copy.headline.includes("It sits")).toBe(meaningful);
+    if (meaningful) expect(copy.headline).toContain(`${formatPp(answer.edgePp)} above the middle of the month`);
 
-  it("hedges the meaningful verdict of a fund under eight years, which is the whole point of D21 (145137)", () => {
-    const { fund, copy } = graded(145137, { verdict: "meaningful" });
-    expect(fund.instalments).toBeLessThan(SETTLED_INSTALMENTS);
-
-    expect(copy.headline).toContain(`The ${nth(highestXirrDate(fund))} had the highest full-history XIRR`);
-    expect(copy.caveats.join(" ")).toContain(`${fund.instalments} months of history, fewer than eight years`);
-    expect(copy.caveats.join(" ")).toContain(formatPp(fund.spreadPp));
+    // A fund may cross eight years on any refresh. Fixed boundary cases above cover both
+    // sides; this integration check follows the artifact rather than pinning its old age.
+    const shortHistory = fund.verdict !== "noise" && fund.instalments < SETTLED_INSTALMENTS;
+    const caveats = copy.caveats.join(" ");
+    expect(caveats.includes("history this short produces")).toBe(shortHistory);
+    if (shortHistory) expect(caveats).toContain(formatPp(fund.spreadPp));
   });
 
   it("owns up to the cut series on a trimmed fund, without also calling it too short (120497)", () => {
@@ -500,12 +484,18 @@ describe("the mirrored thresholds", () => {
     }
   });
 
-  it("sit either side of the real funds that only just clear them", () => {
-    // 141924 is marginal on spread alone at 0.26 pp; 118320 on stability alone at 0.668.
-    expect(published(141924).spreadPp).toBeGreaterThan(SPREAD_THRESHOLD_PP);
-    expect(published(141924).stability).toBeLessThan(STABILITY_THRESHOLD);
-    expect(published(118320).spreadPp).toBeLessThan(SPREAD_THRESHOLD_PP);
-    expect(published(118320).stability).toBeGreaterThan(STABILITY_THRESHOLD);
+  // Fixed cases protect the strict, approved boundaries even when no live fund sits near
+  // them. On 2026-10-29, 141924's spread fell below the cutoff to 0.248 pp.
+  it.each([
+    [0.249, 0.599, "noise"],
+    [0.25, 0.6, "noise"],
+    [0.251, 0.6, "marginal"],
+    [0.25, 0.601, "marginal"],
+    [0.251, 0.601, "meaningful"],
+    [0.249, null, "noise"],
+    [0.251, null, "marginal"],
+  ])("grade a spread of %s pp and stability %s as %s", (spreadPp, stability, expected) => {
+    expect(verdictFrom(spreadPp, stability)).toBe(expected);
   });
 });
 

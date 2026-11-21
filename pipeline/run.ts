@@ -54,6 +54,8 @@ export type PipelineReport = {
   trimmed: number;
   funnel: Map<ExclusionReason | HistoryRejection | "not-found", number>;
   failures: PipelineFailure[];
+  /** Funds analysed from cached rows because every fetch for them failed. */
+  fromCache: number[];
   /** Null when nothing could be analysed: a run that publishes nothing must not blank the site. */
   write: WriteResult | null;
   elapsedMs: number;
@@ -85,7 +87,7 @@ export async function runPipeline(options: PipelineOptions): Promise<PipelineRep
 
   const results = await pool(eligible, options.concurrency ?? DEFAULT_CONCURRENCY, async (scheme) => {
     try {
-      const rows = await rowsFor(scheme, options);
+      const { rows, fromCache } = await rowsFor(scheme, options);
       if (rows === null) return { scheme, drop: "not-found" as const };
 
       const parsed = parseNavRows(rows).filter((row) => options.asOf === undefined || row.day <= options.asOf);
@@ -104,7 +106,7 @@ export async function runPipeline(options: PipelineOptions): Promise<PipelineRep
       };
       const artifact = analyse(history, meta, trimmedAt === null ? {} : { trimmedFrom: trimmedAt });
       const month = monthReturn(history);
-      return { scheme, artifact, trimmed: trimmedAt !== null, month };
+      return { scheme, artifact, trimmed: trimmedAt !== null, month, fromCache };
     } catch (error) {
       const reason = error instanceof AnalysisError ? error.reason : (error as Error).message;
       return { scheme, failure: reason };
@@ -112,9 +114,11 @@ export async function runPipeline(options: PipelineOptions): Promise<PipelineRep
   });
 
   let trimmed = 0;
+  const fromCache: number[] = [];
   for (const result of results) {
     if ("artifact" in result && result.artifact) {
       artifacts.push(result.artifact);
+      if ("fromCache" in result && result.fromCache) fromCache.push(result.scheme.code);
       if ("month" in result && result.month) momentum.push({ code: result.scheme.code, ...result.month });
       if ("trimmed" in result && result.trimmed) trimmed++;
     }
@@ -122,6 +126,7 @@ export async function runPipeline(options: PipelineOptions): Promise<PipelineRep
     else if ("failure" in result && result.failure) failures.push({ code: result.scheme.code, reason: result.failure });
   }
   log(`${artifacts.length} analysed, ${failures.length} could not be analysed`);
+  if (fromCache.length > 0) log(`${fromCache.length} analysed from the cache because upstream failed`);
 
   // Publishing nothing would replace a working site with an empty one, so leave the last
   // good data in place and let the caller fail loudly with the reasons in hand.
@@ -146,15 +151,26 @@ export async function runPipeline(options: PipelineOptions): Promise<PipelineRep
     trimmed,
     funnel,
     failures,
+    fromCache,
     write,
     elapsedMs: Date.now() - started,
   };
 }
 
-/** Cached rows plus a refetched tail, or a whole history when there's nothing to build on. */
-async function rowsFor(scheme: SchemeSummary, options: PipelineOptions): Promise<RawNavRow[] | null> {
+type Rows = { rows: RawNavRow[] | null; fromCache: boolean };
+
+/**
+ * Cached rows plus a refetched tail, or a whole history when there's nothing to build on.
+ *
+ * When upstream fails after every retry and the cache holds this fund, the cached history is
+ * analysed as it stands. The fund is then published as of its last cached NAV — every artifact
+ * carries its own `navTo`, so the page says so — rather than vanishing from the site for a
+ * night because mfapi throttled us (2026-11-21: 178 funds, 151713 among them). A cache whose
+ * overlap upstream has just corrected is never used this way: that history is known wrong.
+ */
+async function rowsFor(scheme: SchemeSummary, options: PipelineOptions): Promise<Rows> {
   const { cacheDir, source, full } = options;
-  if (!cacheDir) return source.history(scheme.code);
+  if (!cacheDir) return { rows: await source.history(scheme.code), fromCache: false };
 
   const fetchWhole = async (): Promise<RawNavRow[] | null> => {
     const fresh = await source.history(scheme.code);
@@ -165,36 +181,54 @@ async function rowsFor(scheme: SchemeSummary, options: PipelineOptions): Promise
     return fresh;
   };
 
-  const cached = full ? null : await readEntry(cacheDir, scheme.code);
+  // A full refresh doesn't build on the cache, but can still fall back to it.
+  const cached = await readEntry(cacheDir, scheme.code);
   const cachedNewest = cached ? dayOf(cached.rows[0]?.date) : null;
-  if (!cached || cachedNewest === null) return fetchWhole();
+  const usable = cached !== null && cachedNewest !== null && cached.rows.length > 0;
+  if (full || !usable) return withFallback(fetchWhole, usable ? cached.rows : null);
 
   // The cache key is the latest NAV date: unchanged means nothing to fetch at all.
   const upstreamNewest = scheme.latestNavDate ?? options.today;
-  if (upstreamNewest === cachedNewest) return cached.rows;
+  if (upstreamNewest === cachedNewest) return { rows: cached.rows, fromCache: false };
 
   // The tail has to reach back to what the cache already holds, not merely to the newest day
   // upstream: a cache older than the tail window would otherwise leave a permanent hole in
   // the merged history. Anything staler than the window is refetched whole, which doubles as
   // the periodic full refresh.
-  if (upstreamNewest - cachedNewest > TAIL_DAYS) return fetchWhole();
+  if (upstreamNewest - cachedNewest > TAIL_DAYS) return withFallback(fetchWhole, cached.rows);
 
-  const tail = await source.history(scheme.code, cachedNewest - TAIL_DAYS);
-  if (tail === null) return null;
+  let tail: RawNavRow[] | null;
+  try {
+    tail = await source.history(scheme.code, cachedNewest - TAIL_DAYS);
+  } catch {
+    return { rows: cached.rows, fromCache: true };
+  }
+  if (tail === null) return { rows: null, fromCache: false };
 
   const merged = mergeRows(cached.rows, tail);
   const tailOldest = dayOf(tail.at(-1)?.date);
   // A tail that starts after the cache ends, or that corrects a day we already had, means the
   // merge can't be trusted; take the whole history instead.
   const joins = tailOldest !== null && tailOldest <= cachedNewest + 1;
-  if (merged.conflict || !joins) return fetchWhole();
+  if (merged.conflict) return { rows: await fetchWhole(), fromCache: false };
+  if (!joins) return withFallback(fetchWhole, cached.rows);
 
   await writeEntry(cacheDir, {
     code: scheme.code,
     latestDate: merged.rows[0]?.date ?? cached.latestDate,
     rows: merged.rows,
   });
-  return merged.rows;
+  return { rows: merged.rows, fromCache: false };
+}
+
+/** Upstream's answer, or the cached rows when upstream fails outright and there are some. */
+async function withFallback(fetchRows: () => Promise<RawNavRow[] | null>, cached: RawNavRow[] | null): Promise<Rows> {
+  try {
+    return { rows: await fetchRows(), fromCache: false };
+  } catch (error) {
+    if (cached === null) throw error;
+    return { rows: cached, fromCache: true };
+  }
 }
 
 function dayOf(date: string | undefined): DayNum | null {

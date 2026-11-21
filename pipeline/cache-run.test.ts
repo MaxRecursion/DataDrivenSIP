@@ -2,11 +2,11 @@
  * The cache key is the latest NAV date (spec §4.3): unchanged means nothing to fetch, and a
  * newer date means only the tail is fetched and merged.
  */
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { dayFromIso, dayFromNavDate } from "./analysis/dates";
+import { dayFromIso, dayFromNavDate, isoFromDay } from "./analysis/dates";
 import { readEntry, writeEntry } from "./cache";
 import { runPipeline } from "./run";
 import { fixtureSource } from "./sources/fixture";
@@ -154,5 +154,112 @@ describe("runPipeline with a cache", () => {
     });
     expect(calls).toHaveLength(1);
     expect(second.analysed).toBe(1);
+  });
+
+  describe("when upstream fails after every retry", () => {
+    /** A source whose list works but whose every history request fails, as on 2026-11-21. */
+    function failingSource(scheme: SchemeSummary) {
+      const calls: (number | undefined)[] = [];
+      const source: NavSource = {
+        listSchemes: async () => [scheme],
+        history: async (_code, since) => {
+          calls.push(since);
+          throw new Error("http-error");
+        },
+      };
+      return { source, calls };
+    }
+
+    async function cachedKotak(staleByDays: number) {
+      const { scheme, rows } = await kotakFixture();
+      const newestDay = scheme.latestNavDate;
+      if (newestDay === null) throw new Error("fixture has no date");
+      const cacheDir = mkdtempSync(join(tmpdir(), "sip-cache-run-"));
+      const cachedRows = rows.filter((row) => dayFromNavDate(row.date) <= newestDay - staleByDays);
+      const cachedNewest = cachedRows[0];
+      if (!cachedNewest) throw new Error("fixture too short");
+      await writeEntry(cacheDir, { code: scheme.code, latestDate: cachedNewest.date, rows: cachedRows });
+      return { scheme, cacheDir, cachedRows };
+    }
+
+    it("publishes the fund from its cached history when the tail fetch fails", async () => {
+      const { scheme, cacheDir, cachedRows } = await cachedKotak(3);
+      const { source, calls } = failingSource(scheme);
+      const report = await runPipeline({
+        source,
+        outDir: mkdtempSync(join(tmpdir(), "sip-data-")),
+        cacheDir,
+        ...options,
+      });
+
+      expect(calls).toHaveLength(1);
+      expect(calls[0]).toBeDefined();
+      expect(report.failures).toEqual([]);
+      expect(report.analysed).toBe(1);
+      expect(report.fromCache).toEqual([scheme.code]);
+      // The cache is left as it was, so tomorrow's tail still joins it.
+      expect((await readEntry(cacheDir, scheme.code))?.rows).toHaveLength(cachedRows.length);
+    });
+
+    it("publishes from the cache when a whole-history refetch fails", async () => {
+      const { scheme, cacheDir } = await cachedKotak(40);
+      const { source, calls } = failingSource(scheme);
+      const report = await runPipeline({
+        source,
+        outDir: mkdtempSync(join(tmpdir(), "sip-data-")),
+        cacheDir,
+        ...options,
+      });
+
+      expect(calls).toEqual([undefined]);
+      expect(report.analysed).toBe(1);
+      expect(report.fromCache).toEqual([scheme.code]);
+    });
+
+    it("dates the fallback by its last cached NAV, not by the run", async () => {
+      const { scheme, cacheDir, cachedRows } = await cachedKotak(3);
+      const outDir = mkdtempSync(join(tmpdir(), "sip-data-"));
+      await runPipeline({
+        source: failingSource(scheme).source,
+        outDir,
+        cacheDir,
+        ...options,
+      });
+
+      const meta = JSON.parse(readFileSync(join(outDir, "meta.json"), "utf8")) as { navAsOf: string };
+      const newest = cachedRows[0];
+      if (!newest) throw new Error("fixture has no rows");
+      expect(meta.navAsOf).toBe(isoFromDay(dayFromNavDate(newest.date)));
+    });
+
+    it("still counts the fund as a failure when nothing is cached", async () => {
+      const { scheme } = await kotakFixture();
+      const report = await runPipeline({
+        source: failingSource(scheme).source,
+        outDir: mkdtempSync(join(tmpdir(), "sip-data-")),
+        cacheDir: mkdtempSync(join(tmpdir(), "sip-cache-run-")),
+        ...options,
+      });
+
+      expect(report.analysed).toBe(0);
+      expect(report.fromCache).toEqual([]);
+      expect(report.failures).toEqual([{ code: scheme.code, reason: "http-error" }]);
+    });
+
+    it("falls back on a full refresh too, without building on the cache otherwise", async () => {
+      const { scheme, cacheDir } = await cachedKotak(0);
+      const { source, calls } = failingSource(scheme);
+      const report = await runPipeline({
+        source,
+        outDir: mkdtempSync(join(tmpdir(), "sip-data-")),
+        cacheDir,
+        full: true,
+        ...options,
+      });
+
+      expect(calls).toEqual([undefined]);
+      expect(report.analysed).toBe(1);
+      expect(report.fromCache).toEqual([scheme.code]);
+    });
   });
 });

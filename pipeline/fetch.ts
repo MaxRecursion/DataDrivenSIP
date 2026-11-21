@@ -9,18 +9,45 @@ export type FetchResult<T> = { ok: true; value: T } | { ok: false; reason: Fetch
 export type FetchOptions = {
   retries?: number;
   baseDelayMs?: number;
+  /** No single wait, backoff or `Retry-After`, is longer than this. */
+  maxDelayMs?: number;
   fetcher?: typeof fetch;
+  /** Injected so tests can see the waits without spending them. */
+  sleep?: (ms: number) => Promise<void>;
 };
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const realSleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
-/** Retries 429, 5xx, network errors and malformed JSON with bounded exponential backoff. */
+/**
+ * The wait a 429 or 503 asks for, in milliseconds, or null when it asks for none we can read.
+ * `Retry-After` is either whole seconds or an HTTP date.
+ */
+export function retryAfterMs(header: string | null, now: number): number | null {
+  if (header === null) return null;
+  const trimmed = header.trim();
+  if (/^\d+$/.test(trimmed)) return Number.parseInt(trimmed, 10) * 1000;
+  const at = Date.parse(trimmed);
+  return Number.isFinite(at) ? Math.max(0, at - now) : null;
+}
+
+/**
+ * Retries 429, 5xx, network errors and malformed JSON with bounded exponential backoff,
+ * waiting at least as long as a `Retry-After` header asks.
+ *
+ * Five retries from one second reach about 31 s of waiting before giving up. Three from half a
+ * second (3.5 s) was too short for mfapi's throttling: on 2026-11-21 it cost 178 funds.
+ */
 export async function fetchJson<T>(url: string, options: FetchOptions = {}): Promise<FetchResult<T>> {
-  const { retries = 3, baseDelayMs = 500, fetcher = fetch } = options;
+  const { retries = 5, baseDelayMs = 1000, maxDelayMs = 30_000, fetcher = fetch, sleep = realSleep } = options;
   let lastReason: FetchFailure = "network";
+  let askedMs: number | null = null;
 
   for (let attempt = 0; attempt <= retries; attempt++) {
-    if (attempt > 0) await sleep(baseDelayMs * 2 ** (attempt - 1));
+    if (attempt > 0) {
+      const backoff = baseDelayMs * 2 ** (attempt - 1);
+      await sleep(Math.min(maxDelayMs, Math.max(backoff, askedMs ?? 0)));
+    }
+    askedMs = null;
     try {
       const response = await fetcher(url);
       if (response.ok) {
@@ -36,6 +63,7 @@ export async function fetchJson<T>(url: string, options: FetchOptions = {}): Pro
       if (response.status === 404) return { ok: false, reason: "not-found" };
       lastReason = "http-error";
       if (response.status !== 429 && response.status < 500) return { ok: false, reason: "http-error" };
+      askedMs = retryAfterMs(response.headers.get("retry-after"), Date.now());
     } catch {
       lastReason = "network";
     }

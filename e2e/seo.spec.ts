@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type APIRequestContext } from "@playwright/test";
 
 /**
  * What a crawler actually gets, served the way production serves it.
@@ -14,6 +14,19 @@ import { expect, test } from "@playwright/test";
 test.beforeEach(({}, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "Crawler-facing checks run once");
 });
+
+/**
+ * How many funds this build publishes, read from the served index rather than hard-coded: the
+ * nightly set drifts (989 on 2026-11-19), and a fixed floor of 1000 failed on data alone.
+ */
+async function publishedFundCount(request: APIRequestContext): Promise<number> {
+  const response = await request.get("/data/index.json");
+  expect(response.status()).toBe(200);
+  const index = (await response.json()) as unknown[];
+  // A real build, not a handful of fixtures: CLAUDE.md's 1001 pages are the order of magnitude.
+  expect(index.length).toBeGreaterThan(800);
+  return index.length;
+}
 
 test("robots.txt is served at the root and names an absolute sitemap", async ({ request }) => {
   const response = await request.get("/robots.txt");
@@ -37,7 +50,8 @@ test("the sitemap parses, and lists the home page, the directory and every fund"
 
   // An unescaped ampersand is the classic way a sitemap silently stops being read.
   expect(xml).not.toMatch(/&(?!amp;|lt;|gt;|quot;|apos;)/);
-  expect(locations.length).toBeGreaterThan(1000);
+  // Every fund, plus the home page and the directory.
+  expect(locations.length).toBe((await publishedFundCount(request)) + 2);
   expect(locations.some((url) => url.endsWith("/"))).toBe(true);
   expect(locations.some((url) => url.endsWith("/funds"))).toBe(true);
   expect(locations).toContain(locations.find((url) => url.endsWith("/f/119775")));
@@ -61,7 +75,7 @@ test("the directory is a real page with real links, before any JavaScript runs",
   const html = await response.text();
   // Prerendered, not the shell: the links have to be in the document a crawler reads.
   const links = [...html.matchAll(/href="\/f\/(\d+)"/g)].map((match) => match[1]);
-  expect(links.length).toBeGreaterThan(1000);
+  expect(links.length).toBe(await publishedFundCount(request));
   expect(new Set(links).size).toBe(links.length);
 
   expect(html).toContain("<title>All funds");

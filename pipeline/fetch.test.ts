@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fetchJson, pool } from "./fetch";
+import { fetchJson, pool, retryAfterMs } from "./fetch";
 
 const respond = (status: number, body: unknown = {}) =>
   new Response(status === 204 ? null : JSON.stringify(body), {
@@ -76,11 +76,47 @@ describe("fetchJson", () => {
     expect(calls()).toBe(2);
   });
 
-  it("gives up after three retries", async () => {
+  it("gives up after five retries", async () => {
     const { fetcher, calls } = fetcherFor([500]);
     const result = await fetchJson("https://example.test", { fetcher, baseDelayMs: 0 });
     expect(result).toEqual({ ok: false, reason: "http-error" });
-    expect(calls()).toBe(4);
+    expect(calls()).toBe(6);
+  });
+
+  it("backs off exponentially from one second, capped", async () => {
+    const waits: number[] = [];
+    const { fetcher } = fetcherFor([503]);
+    await fetchJson("https://example.test", {
+      fetcher,
+      maxDelayMs: 10_000,
+      sleep: async (ms) => void waits.push(ms),
+    });
+    expect(waits).toEqual([1000, 2000, 4000, 8000, 10_000]);
+  });
+
+  it("waits as long as Retry-After asks, when that is longer than the backoff", async () => {
+    const waits: number[] = [];
+    let calls = 0;
+    const fetcher = async () => {
+      calls++;
+      if (calls === 1) return new Response("{}", { status: 429, headers: { "retry-after": "7" } });
+      return respond(200, { ok: true });
+    };
+    const result = await fetchJson("https://example.test", { fetcher, sleep: async (ms) => void waits.push(ms) });
+    expect(result.ok).toBe(true);
+    expect(waits).toEqual([7000]);
+  });
+
+  it("never waits longer than the cap, whatever Retry-After says", async () => {
+    const waits: number[] = [];
+    let calls = 0;
+    const fetcher = async () => {
+      calls++;
+      if (calls === 1) return new Response("{}", { status: 429, headers: { "retry-after": "3600" } });
+      return respond(200, { ok: true });
+    };
+    await fetchJson("https://example.test", { fetcher, sleep: async (ms) => void waits.push(ms) });
+    expect(waits).toEqual([30_000]);
   });
 
   it("doesn't retry a 404", async () => {
@@ -111,6 +147,27 @@ describe("fetchJson", () => {
     };
     const result = await fetchJson("https://example.test", { fetcher, baseDelayMs: 0 });
     expect(result).toEqual({ ok: false, reason: "bad-body" });
-    expect(calls).toBe(4);
+    expect(calls).toBe(6);
+  });
+});
+
+describe("retryAfterMs", () => {
+  const now = Date.parse("2026-11-21T07:30:00Z");
+
+  it("reads whole seconds", () => {
+    expect(retryAfterMs("12", now)).toBe(12_000);
+  });
+
+  it("reads an HTTP date, relative to now", () => {
+    expect(retryAfterMs("Sat, 21 Nov 2026 07:30:05 GMT", now)).toBe(5000);
+  });
+
+  it("never returns a negative wait for a date in the past", () => {
+    expect(retryAfterMs("Sat, 21 Nov 2026 07:29:00 GMT", now)).toBe(0);
+  });
+
+  it("ignores a missing or unreadable header", () => {
+    expect(retryAfterMs(null, now)).toBeNull();
+    expect(retryAfterMs("soon", now)).toBeNull();
   });
 });
